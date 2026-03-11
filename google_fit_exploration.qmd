@@ -1,0 +1,45 @@
+---
+title: "Google fit exploration"
+author: "Jonas Poppe"
+format: html
+editor: source
+---
+
+
+# Load Libraries
+
+```{r}
+#| echo: false
+
+library(tidyverse)
+library(targets)
+library(ggpubr)
+library(here)
+
+```
+
+# Load data
+```{r}
+tar_load(c(azm_daily, daily),
+         store = here("_targets"))
+```
+
+# Exploration of daily data
+
+
+```{r}
+#| echo: FALSE
+
+
+daily %>% 
+  mutate(year = as.factor(year(date))) %>%
+  ggplot(aes(x = weight_kg, y = azm_total)) +
+  geom_point(aes(fill = year), shape = 21) +
+  geom_smooth() +
+  theme_anthropic() +
+  stat_cor() +
+  scale_fill_health()+
+  labs(y = "Active zone minutes (total)",
+       x= "Weight (kg)")
+
+```
