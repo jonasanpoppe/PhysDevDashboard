@@ -24,6 +24,51 @@ tar_load(c(azm_daily, daily),
          store = here("_targets"))
 ```
 
+# Exploration of overlap
+
+
+```{r}
+
+coverage <- bind_rows(
+  macrofactor_daily %>%
+    mutate(source = "MacroFactor") %>%
+    select(date, source),
+
+  azm_daily %>%                          # uncomment when ready
+    mutate(source = "Active Zone Min") %>%  #
+    select(date, source),                  #
+) %>%
+  mutate(
+    week      = floor_date(date, "week", week_start = 1),
+    day_label = wday(date, label = TRUE, abbr = TRUE, week_start = 1)
+  ) %>%
+  distinct(date, source, .keep_all = TRUE) %>%
+  mutate(present = 1L)
+
+ggplot(coverage, aes(x = day_label, y = week, fill = factor(present))) +
+  geom_tile( linewidth = 0.4, width = 0.9, height = 0.9) +
+  scale_fill_manual(
+    values  = c("1" = anthropic$coral),
+    na.value = anthropic$bg_card,
+    guide   = "none"
+  ) +
+  facet_wrap(~source, ncol = 1) +
+  scale_y_date(date_labels = "%b %Y", date_breaks = "2 months") +
+  theme_anthropic(grid = "none") +
+  theme(
+    axis.text.x = element_text(size = 8),
+    axis.text.y = element_text(size = 7),
+    panel.spacing = unit(1, "lines")
+  ) +
+  labs(
+    title    = "Data coverage by source",
+    subtitle = "Each tile = one day with data. Gaps = missing dates.",
+    x = NULL, y = NULL
+  )
+
+```
+
+
 # Exploration of daily data
 
 
