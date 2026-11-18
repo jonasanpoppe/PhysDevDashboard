@@ -24,7 +24,7 @@ source("R/health_palette.R")
 
 # Load data
 ```{r}
-tar_load(daily,
+tar_load(c(daily, azm_daily),
          store = here("_targets"))
 ```
 
