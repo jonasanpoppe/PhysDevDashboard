@@ -9,3 +9,5 @@
 data/
 db/
 _targets/
+.env
+config/goals.yml
