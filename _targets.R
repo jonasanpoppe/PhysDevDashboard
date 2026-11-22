@@ -13,7 +13,26 @@ list(
 
   # ── Source file tracking ─────────────────────────────────────────────────────
   # Targets will re-run downstream steps if these files change
-  tar_target(macrofactor_file, "data/raw_data/MacroFactor-20260310221353.xlsx", format = "file"),
+  # MacroFactor: newest export of each kind (summary xlsx, food log csv,
+  # workout csv). Re-checks the folder every run so a new export is picked up.
+  tar_target(
+    macrofactor_file,
+    find_macrofactor_exports("data/raw_data")$summary,
+    format = "file",
+    cue = tar_cue(mode = "always")
+  ),
+  tar_target(
+    macrofactor_food_log_file,
+    find_macrofactor_exports("data/raw_data")$food_log,
+    format = "file",
+    cue = tar_cue(mode = "always")
+  ),
+  tar_target(
+    macrofactor_workouts_file,
+    find_macrofactor_exports("data/raw_data")$workout_log,
+    format = "file",
+    cue = tar_cue(mode = "always")
+  ),
   tar_target(azm_dir, "data/raw_data/takeout-20260310T172133Z-3-001/Takeout/Fitbit/Active Zone Minutes (AZM)", format = "file"),
   tar_target(physical_activity_dir, "data/raw_data/takeout-20260310T172133Z-3-001/Takeout/Fitbit/Physical Activity_GoogleData", format = "file"),
   tar_target(readiness_dir, "data/raw_data/takeout-20260310T172133Z-3-001/Takeout/Fitbit/Daily Readiness", format = "file"),
@@ -29,6 +48,28 @@ list(
     macrofactor_raw,
     load_macrofactor(
       path    = macrofactor_file,
+      db_path = "db/health.db"
+    )
+  ),
+  tar_target(
+    macrofactor_food_log,
+    load_macrofactor_food_log(
+      path    = macrofactor_food_log_file,
+      db_path = "db/health.db"
+    )
+  ),
+  tar_target(
+    macrofactor_workout_sets,
+    load_macrofactor_workouts(
+      path       = macrofactor_workouts_file,
+      bodyweight = dplyr::select(macrofactor_daily, date, bodyweight_kg = trend_weight_kg),
+      db_path    = "db/health.db"
+    )
+  ),
+  tar_target(
+    macrofactor_e1rm_sessions,
+    load_macrofactor_e1rm_sessions(
+      sets    = macrofactor_workout_sets,
       db_path = "db/health.db"
     )
   ),

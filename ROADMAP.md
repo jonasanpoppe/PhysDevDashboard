@@ -155,8 +155,11 @@ and CI is green.
   produce the expected output.
 - `seeds/exercises.csv`: map MacroFactor exercise names to canonical lifts, so a
   rename doesn't break a series.
-- Set-level e1RM in SQL: bar-weight Epley, load × (1 + (reps + RIR) / 30),
-  RIR ≤ 3, warm-ups excluded. Session bests with window functions.
+- Set-level e1RM in SQL: Wathen (1994), 100 × load / (48.8 + 53.8 ×
+  e^(−0.075 × (reps + RIR))), with load = bar + machine base weight, or
+  bodyweight − assistance for assisted lifts. Standard and Failure sets only,
+  RIR ≤ 3. Session bests with window functions. (The R version is
+  `R/e1rm.R`.)
 - Golden test (local only, skipped in CI) against the reference output;
   synthetic tests run everywhere.
 - Shiny module: e1RM per canonical lift against targets from config.

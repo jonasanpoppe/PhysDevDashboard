@@ -24,8 +24,11 @@ source("R/health_palette.R")
 
 # Load data
 ```{r}
-tar_load(c(daily, azm_daily),
+tar_load(c(daily, azm_daily, macrofactor_daily, macrofactor_workout_sets),
          store = here("_targets"))
+
+
+
 ```
 
 # Exploration of overlap

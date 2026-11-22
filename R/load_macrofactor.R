@@ -4,9 +4,10 @@ library(dplyr)
 library(tidyr)
 library(purrr)
 library(janitor)
+library(stringr)
 
 load_macrofactor <- function(
-    path = "data/raw_data/MacroFactor-20260310221353.xlsx",
+    path = find_macrofactor_exports()$summary,
     db_path = "db/health.db"
 ) {
 
