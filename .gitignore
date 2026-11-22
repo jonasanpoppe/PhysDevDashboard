@@ -11,3 +11,8 @@ db/
 _targets/
 .env
 config/goals.yml
+
+/.quarto/
+
+# Windows download metadata written by WSL
+*:Zone.Identifier
