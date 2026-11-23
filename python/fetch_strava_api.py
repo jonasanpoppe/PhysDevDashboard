@@ -12,10 +12,12 @@ targets pipeline:
   details/{id}.json         detailed activity: calories, description, laps,
                             splits, best efforts and all segment efforts
   streams/{id}.json         per-second time series (HR, power, GPS, …)
-  zones/{id}.json           time in HR / power zones (needs a subscription)
   segments/{id}.json        each segment ridden or run, with your PR stats
   gear/{id}.json            bikes and shoes (latest snapshot)
-  athlete/*.json            profile, zones and totals (latest snapshot)
+  athlete/*.json            profile and totals (latest snapshot)
+
+Time in HR zones isn't fetched: it is computed from the heartrate streams with
+our own zone boundaries, consistent across Strava and Garmin.
 
 Crash safety: every per-activity and per-segment response goes to its own file
 (written atomically), and a run only requests what has no file yet, so after a
@@ -60,7 +62,6 @@ REPO_DIR = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = REPO_DIR / "data" / "strava_api"
 DETAILS_DIR = OUTPUT_DIR / "details"
 STREAMS_DIR = OUTPUT_DIR / "streams"
-ZONES_DIR = OUTPUT_DIR / "zones"
 SEGMENTS_DIR = OUTPUT_DIR / "segments"
 GEAR_DIR = OUTPUT_DIR / "gear"
 ATHLETE_DIR = OUTPUT_DIR / "athlete"
@@ -72,7 +73,7 @@ TOKEN_URL = "https://www.strava.com/oauth/token"
 API_URL = "https://www.strava.com/api/v3"
 REDIRECT_URI = "http://localhost/exchange_token"
 # activity:read_all includes activities set to "Only you"
-SCOPE = "read,profile:read_all,activity:read_all"
+SCOPE = "read,activity:read_all"
 PER_PAGE = 200  # Strava's maximum
 STREAM_KEYS = ("time,distance,latlng,altitude,velocity_smooth,heartrate,"
                "cadence,watts,temp,moving,grade_smooth")
@@ -340,22 +341,13 @@ def fetch_activity_list(api: Strava, full: bool) -> None:
 # ── Per-item backfill ────────────────────────────────────────────────────────
 
 def backfill(api: Strava, name: str, out_dir: Path, ids: list, path_for,
-             params: dict | None = None, indent: int | None = 2,
-             stop_on: tuple[int, ...] = ()) -> None:
-    """Fetch each id that has no file in out_dir yet.
-
-    Statuses in stop_on (e.g. 402 for a subscription-only endpoint) end the
-    phase without writing markers, so a later run can try again.
-    """
+             params: dict | None = None, indent: int | None = 2) -> None:
+    """Fetch each id that has no file in out_dir yet."""
     out_dir.mkdir(parents=True, exist_ok=True)
     todo = [i for i in ids if not (out_dir / f"{i}.json").exists()]
     log(f"{name}: {len(ids) - len(todo)} of {len(ids)} done, {len(todo)} to fetch")
     for n, item_id in enumerate(todo, 1):
         status, data = api.get(path_for(item_id), params)
-        if status in stop_on:
-            log(f"  {name}: HTTP {status} — endpoint not available for this "
-                "account; skipping this step")
-            return
         if data is None:
             # Only "this has no data" is final; anything else is a bug to see
             if status not in (403, 404):
@@ -376,23 +368,15 @@ def segment_ids() -> list[int]:
 
 
 def fetch_snapshots(api: Strava, acts: dict[int, dict]) -> None:
-    """Athlete profile, zones and totals, and gear: small, refreshed each run."""
+    """Athlete profile and totals, and gear: small, refreshed each run."""
     ATHLETE_DIR.mkdir(parents=True, exist_ok=True)
     status, athlete = api.get("/athlete")
     if status != 200:
         raise RuntimeError(f"Fetching the athlete failed: HTTP {status}")
     write_json(ATHLETE_DIR / "athlete.json", athlete)
-    for name, path in (("zones", "/athlete/zones"),
-                       ("stats", f"/athletes/{athlete['id']}/stats")):
-        try:
-            status, data = api.get(path)
-        except RuntimeError as e:
-            # /athlete worked, so a 401 here is a missing scope: zones need
-            # profile:read_all, granted by running `auth` again
-            log(f"  ⚠ athlete {name} skipped: {e}")
-            continue
-        write_json(ATHLETE_DIR / f"{name}.json",
-                   data if data is not None else {"_status": status})
+    status, stats = api.get(f"/athletes/{athlete['id']}/stats")
+    write_json(ATHLETE_DIR / "stats.json",
+               stats if stats is not None else {"_status": status})
 
     GEAR_DIR.mkdir(parents=True, exist_ok=True)
     gear = sorted({a["gear_id"] for a in acts.values() if a.get("gear_id")})
@@ -400,7 +384,7 @@ def fetch_snapshots(api: Strava, acts: dict[int, dict]) -> None:
         status, data = api.get(f"/gear/{gear_id}")
         write_json(GEAR_DIR / f"{gear_id}.json",
                    data if data is not None else {"id": gear_id, "_status": status})
-    log(f"✓ Athlete profile, zones, stats and {len(gear)} gear items")
+    log(f"✓ Athlete profile, stats and {len(gear)} gear items")
 
 
 def fetch_all(full: bool, list_only: bool) -> None:
@@ -419,8 +403,6 @@ def fetch_all(full: bool, list_only: bool) -> None:
         backfill(api, "streams", STREAMS_DIR, ids,
                  lambda i: f"/activities/{i}/streams",
                  {"keys": STREAM_KEYS, "key_by_type": "true"}, indent=None)
-        backfill(api, "zones", ZONES_DIR, ids,
-                 lambda i: f"/activities/{i}/zones", stop_on=(402, 403))
         backfill(api, "segments", SEGMENTS_DIR, segment_ids(),
                  lambda i: f"/segments/{i}")
         log(f"✓ Done ({api.calls} API calls this run)")
