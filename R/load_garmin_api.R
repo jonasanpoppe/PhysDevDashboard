@@ -27,7 +27,6 @@ load_garmin_api <- function(
     # Heart
     rhr                       = numeric(),
     hrv                       = numeric(),
-    hrv_last_night            = numeric(),
     hrv_last_night_avg        = numeric(),
     hrv_last_night_5_min_high = numeric(),
     hrv_baseline_low          = numeric(),
@@ -75,8 +74,7 @@ load_garmin_api <- function(
     sleep_skin_temp_dev_c     = numeric(),
     sleep_restless_moments    = numeric(),
     # VO2max (Garmin model output, sparse)
-    vo2max                    = numeric(),
-    vo2max_cycling            = numeric()
+    vo2max                    = numeric()
   )
 
   daily_data <- json_files %>%
