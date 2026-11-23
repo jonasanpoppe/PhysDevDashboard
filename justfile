@@ -19,9 +19,9 @@
 
 set dotenv-load
 
-# Raw data, personal goals and secrets. db/ is rebuilt from data/, so it is
-# never backed up.
-backup_paths := "data config/goals.yml .env"
+# Raw data, personal config, private reports and secrets. db/ is rebuilt
+# from data/, so it is never backed up.
+backup_paths := "data config/goals.yml config/athlete.yml private .env"
 
 default:
     @just --list
