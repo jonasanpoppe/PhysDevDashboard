@@ -1,0 +1,8 @@
+# Copy to config/goals.yml (gitignored) and fill in real values.
+
+# Strava segments tracked as benchmark climbs. segment_id is a string (Strava
+# IDs exceed R's integer range); name is just a label, Strava's name is in
+# strava_segments.
+benchmark_climbs:
+  - {segment_id: "1234567", name: "Example hill"}
+  - {segment_id: "7654321", name: "Example long climb"}
