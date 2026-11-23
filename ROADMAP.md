@@ -115,7 +115,7 @@ Each milestone: one branch, one PR, and a short note on what you learned.
 - `.gitignore`: add `*.html`, `*_files/`, `.env`, `config/goals.yml`.
 - `config/goals.example.yml` with invented values (committed);
   `config/goals.yml` with real ones (ignored).
-- `pyproject.toml` with `uv`; move `scripts/fetch_garmin_api.py` to `py/` and
+- `pyproject.toml` with `uv`; move `python/fetch_garmin_api.py` into the `uv` project and
   point it at `data/landing/garmin/`.
 - `justfile` with `doctor` (tool versions, including DuckDB), `fetch`, `build`,
   `build-fixture`, `test`, `app`.
