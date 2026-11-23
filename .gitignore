@@ -11,6 +11,7 @@ db/
 _targets/
 .env
 config/goals.yml
+config/athlete.yml
 
 /.quarto/
 

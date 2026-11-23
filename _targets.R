@@ -40,8 +40,30 @@ list(
   tar_target(stress_score_dir, "data/raw_data/takeout-20260310T172133Z-3-001/Takeout/Fitbit/Stress Score", format = "file"),
   tar_target(garmin_wellness_dir, "data/raw_data/da0779f1-f01f-45e6-865a-e08f44f45e3c_1/DI_CONNECT/DI-Connect-Wellness", format = "file"),
   tar_target(garmin_api_dir, "data/garmin_api", format = "file"),
-  # Future sources:
-  # tar_target(strava_file, "data/strava.csv", format = "file"),
+  # Strava: summaries are one file per fetch, so re-list them every run
+  tar_target(
+    strava_activity_files,
+    list.files("data/strava_api", "_strava_activities\\.json$", full.names = TRUE),
+    format = "file",
+    cue = tar_cue(mode = "always")
+  ),
+  tar_target(strava_details_dir, "data/strava_api/details", format = "file"),
+  tar_target(strava_segments_dir, "data/strava_api/segments", format = "file"),
+  # One branch per stream file: only new activities are processed on a rebuild
+  tar_target(
+    strava_stream_paths,
+    list.files("data/strava_api/streams", "\\.json$", full.names = TRUE),
+    cue = tar_cue(mode = "always")
+  ),
+  tar_target(
+    strava_stream_files,
+    strava_stream_paths,
+    pattern = map(strava_stream_paths),
+    format = "file"
+  ),
+  # Personal settings (HR zones); gitignored, see config/athlete.example.yml
+  tar_target(athlete_config_file, "config/athlete.yml", format = "file"),
+  tar_target(athlete_config, yaml::read_yaml(athlete_config_file)),
 
   # ── Load raw data ────────────────────────────────────────────────────────────
   tar_target(
@@ -129,8 +151,29 @@ list(
     garmin_api_daily,
     load_garmin_api(dir = garmin_api_dir, db_path = "db/health.db")
   ),
-  # Future loaders:
-  # tar_target(strava_raw, load_strava(strava_file)),
+  tar_target(
+    strava_raw,
+    load_strava_api(
+      activity_files = strava_activity_files,
+      details_dir    = strava_details_dir,
+      segments_dir   = strava_segments_dir,
+      db_path        = "db/health.db"
+    )
+  ),
+  tar_target(
+    strava_hr_histogram_branches,
+    strava_hr_histogram(strava_stream_files),
+    pattern = map(strava_stream_files)
+  ),
+  tar_target(
+    strava_hr_zones,
+    load_strava_hr_zones(
+      histogram  = strava_hr_histogram_branches,
+      activities = strava_activities,
+      zones      = athlete_config$hr_zones,
+      db_path    = "db/health.db"
+    )
+  ),
 
   # ── Clean ───────────────────────────────────────────────────────────────────
   tar_target(
@@ -141,8 +184,11 @@ list(
     macrofactor_exercise,
     macrofactor_raw$exercise
   ),
-  # Future:
-  # tar_target(strava_clean, clean_strava(strava_raw)),
+  tar_target(strava_activities, strava_raw$activities),
+  tar_target(strava_laps, strava_raw$laps),
+  tar_target(strava_segment_efforts, strava_raw$segment_efforts),
+  tar_target(strava_segments, strava_raw$segments),
+  tar_target(strava_best_efforts, strava_raw$best_efforts),
 
   # ── Join ─────────────────────────────────────────────────────────────────────
   # Placeholder: extend as new daily-grain sources are added

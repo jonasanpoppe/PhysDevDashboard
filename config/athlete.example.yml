@@ -1,0 +1,10 @@
+# Copy to config/athlete.yml (gitignored) and fill in real values.
+hr_zones:
+  names: [Recovery, Aerobic, Tempo, SubThreshold, SuperThreshold, Aerobic Capacity, Anaerobic]
+  # Upper bound (bpm, inclusive) of zones 1-6; zone 7 is everything above.
+  # Strava sport types map to ride (Ride, GravelRide, VirtualRide, …),
+  # run (Run, TrailRun, VirtualRun) or other.
+  upper_bpm:
+    ride:  [120, 135, 145, 155, 160, 165]
+    run:   [125, 140, 150, 158, 163, 168]
+    other: [125, 140, 150, 158, 163, 168]
