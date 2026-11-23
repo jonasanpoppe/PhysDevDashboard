@@ -21,7 +21,7 @@ set dotenv-load
 
 # Raw data, personal config, private reports and secrets. db/ is rebuilt
 # from data/, so it is never backed up.
-backup_paths := "data config/goals.yml config/athlete.yml private .env"
+backup_paths := "data config/goals.yml config/athlete.yml private CLAUDE.local.md .env"
 
 default:
     @just --list

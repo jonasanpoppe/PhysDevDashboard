@@ -12,6 +12,7 @@ _targets/
 .env
 config/goals.yml
 config/athlete.yml
+CLAUDE.local.md
 
 # Private reports and modules: content stays local (backed up by restic)
 private/*
