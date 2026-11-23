@@ -16,3 +16,6 @@ config/goals.yml
 
 # Windows download metadata written by WSL
 *:Zone.Identifier
+
+# Editor settings
+.vscode/
