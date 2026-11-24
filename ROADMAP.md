@@ -22,15 +22,16 @@ replaces them.
 4. **One writer, one DuckDB version.** Python never writes the database; it only
    writes files. R runs the SQL build and serves the app.
 5. **Public repo, private data.** No personal data, values or targets in code,
-   tests, docs or commit messages. Personal goals live in `config/goals.yml`
-   (gitignored).
+   tests, docs or commit messages. Personal config (`config/*.yml`,
+   `config/*.csv`: goals, zones, bikes, climbs, overrides) is gitignored; each
+   file has a committed `*.example.*` twin with invented values.
 6. **Keep the old tracker running** until the app covers each of its views.
 
 ## Architecture
 
 ```
-APIs ──Python──▶ data/landing/<source>/<date>/   (dated files, never edited)
-exports ────────▶ data/landing/<source>/<date>/
+APIs ──Python──▶ data/landing/<source>/   (per date, or per item, e.g. one
+exports ────────▶ data/landing/<source>/    file per activity; never edited)
                           │
                           ▼  R runs sql/*.sql through DuckDB
                  raw ──▶ staging ──▶ marts        (db/health.duckdb, rebuilt every time)
@@ -46,7 +47,7 @@ exports ────────▶ data/landing/<source>/<date>/
 | R env | `renv` | Already in place |
 | Loading files | DuckDB SQL (`read_xlsx`, `read_csv`, `read_json`, `read_parquet`) | Reads every landing format natively |
 | Transformations | Plain SQL files, run in order from R | Language-neutral, testable |
-| Analysis | R; `targets` for projections only | Existing strength |
+| Analysis | R; `targets` for analysis only (projections, climb matching, models) | Existing strength |
 | Dashboard | Shiny + `bslib`, one module per view | Scenario inputs, not just charts |
 | Task runner | `just` | Owns the data flow: `fetch`, `build`, `test`, `app` |
 | Secrets | `.env` with `chmod 600`, outside git | `keyring` usually has no backend in WSL |
@@ -78,9 +79,9 @@ against it (match on start time within a tolerance).
 | Data | System of record | Notes |
 |---|---|---|
 | Intake, body weight, lifting sets | MacroFactor export | Strength sessions logged elsewhere are ignored |
-| Rides | intervals.icu if it syncs directly from Garmin, otherwise Garmin | Never sum rides across sources |
-| Segment efforts (benchmark climbs) | Strava | Check whether intervals.icu covers these too |
-| Sleep, HRV, resting HR | Garmin, preferably via intervals.icu's sync over the unofficial library | |
+| Rides and runs (activities, streams) | Strava | Complete history; never sum rides across sources. intervals.icu is a settings source (HR zones), not a data source |
+| Climb efforts | Own matching on Strava GPS streams | Strava segments seed the climb list once; reduced polylines are not enough |
+| Sleep, HRV, resting HR | Garmin, via the own fetcher | |
 | History before the Garmin era | Fitbit Takeout | One-off backfill |
 
 **Measurements vs. model outputs.** Scale weight and intake are measurements.
@@ -94,15 +95,36 @@ the home timezone (set in config). Sleep and overnight HRV belong to the date
 you wake up. Store UTC timestamps next to the local date. Document each source's
 native convention in `docs/sources.md` and convert in staging.
 
-**No splicing.** Series from different devices or measurement windows stay
-separate (Fitbit vs. Garmin; morning chest-strap HRV vs. overnight watch HRV).
+**No silent splicing.** Series from different devices or measurement windows
+stay separate (Fitbit vs. Garmin; wrist vs. chest-strap HR; morning
+chest-strap HRV vs. overnight watch HRV). Each record carries its device era.
+A spliced series is allowed only as a derived, clearly labelled series kept
+beside the originals, and models filter on era, not on year.
 
-**Estimated power** (no power meter) is directional only; heart rate is the
+**Heart-rate zones.** Two named sets, never mixed: `hr_zones` (descriptive,
+from intervals.icu) and `plan_bands` (training-plan compliance). Both are
+computed from the same per-activity HR histogram.
+
+**Estimated power** (no power meter) is a physics model for comparing efforts
+with each other: directional, with its uncertainty shown in the app. Measured
+power and Strava's own estimate stay separate series; heart rate remains the
 primary intensity metric.
+
+**Table names.** Source tables carry their source as prefix (`strava_*`,
+`garmin_*`), including analysis tables derived from a single source
+(`strava_climb_efforts`, `strava_daily_load`).
+
+**Interim loaders.** Until the climb module works end to end, sources are
+loaded by R functions in `_targets.R`. After that, loading moves to the SQL
+layers in one go; the analysis stays in `targets`.
 
 ## Milestones
 
 Each milestone: one branch, one PR, and a short note on what you learned.
+
+**Order.** Minimal M1 first, then the Vitals view from M6 (Garmin data is
+complete), then climbs (M5). The Strava fetcher (M4/M5 data and OAuth) already
+exists; those milestones now centre on modelling and views.
 
 ### 1. Foundations
 
@@ -115,8 +137,9 @@ Each milestone: one branch, one PR, and a short note on what you learned.
 - `.gitignore`: add `*.html`, `*_files/`, `.env`, `config/goals.yml`.
 - `config/goals.example.yml` with invented values (committed);
   `config/goals.yml` with real ones (ignored).
-- `pyproject.toml` with `uv`; move `python/fetch_garmin_api.py` into the `uv` project and
-  point it at `data/landing/garmin/`.
+- `pyproject.toml` with `uv` for both fetchers (Garmin, Strava); move the
+  existing data folders to `data/landing/<source>/` and point fetchers,
+  `_targets.R` and the backup check at them.
 - `justfile` with `doctor` (tool versions, including DuckDB), `fetch`, `build`,
   `build-fixture`, `test`, `app`.
 - Synthetic fixture: a script generates a fake MacroFactor export with the real
@@ -167,14 +190,12 @@ and CI is green.
 **Done when:** the golden test matches to within rounding. If it doesn't, stop
 and resolve the difference before anything else.
 
-### 4. Slice: rides (first API)
+### 4. Slice: rides
 
-*Learn: REST APIs, API-key auth, incremental pulls, timezones.*
+*Learn: REST APIs, incremental pulls, timezones.*
 
-- Confirm the system of record for rides (does intervals.icu sync directly from
-  Garmin?).
-- Python client with `httpx`, API key from `.env`. Each pull writes dated JSON
-  to `data/landing/intervals/`, fetching only what is newer than the last file.
+- Strava is the system of record. The fetcher writes one JSON file per
+  activity to `data/landing/strava/`, fetching only what is new.
 - Staging converts timestamps to UTC plus local date.
 - Test: a ride present in two sources counts once.
 - Shiny module: distance year-to-date against the annual target from config;
@@ -189,14 +210,16 @@ and resolve the difference before anything else.
 - Register a Strava API app; run the authorization-code flow once, then refresh
   tokens automatically.
 - Store tokens in a file with `chmod 600`, outside the repo.
-- Pull segment efforts for benchmark climbs only; activities stay with their
-  system of record.
-- Shiny module: climb times over time.
+- Climb library in `config/climbs.csv`, seeded once from Strava segments and
+  reviewed by hand.
+- Own climb matching on full GPS streams; effort metrics and a status per
+  effort (clean or with stops), with manual overrides.
+- Power model per effort (estimate, see data conventions).
+- Golden tests on known efforts (local only, skipped in CI).
+- Shiny module: climb record.
 
-**Done when:** an expired token refreshes without manual steps.
-
-If intervals.icu already covers segment efforts, this milestone is OAuth
-practice rather than new data. Still worth doing; just know which it is.
+**Done when:** an expired token refreshes without manual steps, and the
+golden tests pass.
 
 ### 6. Slice: recovery and history
 
@@ -204,9 +227,11 @@ practice rather than new data. Still worth doing; just know which it is.
 
 - Convert the Fitbit Takeout once to Parquet in `data/landing/fitbit/` with the
   existing R loaders; never rebuilt after that.
-- Garmin wellness via intervals.icu if available, otherwise the existing script.
+- Garmin wellness via the existing fetcher.
 - Apply the day convention to sleep and HRV.
-- Shiny module: recovery trends, with device eras as separate series.
+- Shiny module (Vitals, built early, right after M1): resting HR, HRV against
+  its baseline band, sleep, breathing rate, SpO2, skin temperature, with device
+  eras as separate series and the device switch visible.
 
 **Done when:** the old loaders in `_targets.R` are gone.
 

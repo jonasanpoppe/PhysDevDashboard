@@ -1,4 +1,4 @@
-# Task runner for personal-health-analytics. See ROADMAP.md.
+# Task runner for PhysDevDashboard. See ROADMAP.md.
 # Milestone 1 adds doctor, fetch, build, build-fixture, test and app.
 #
 # Backups: an encrypted restic repository in a Backblaze B2 bucket, reached
