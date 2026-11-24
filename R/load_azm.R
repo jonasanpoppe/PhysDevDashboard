@@ -6,7 +6,7 @@ library(janitor)
 library(duckdb)
 
 load_azm <- function(
-    azm_dir = "data/raw_data/takeout-20260310T172133Z-3-001/Takeout/Fitbit/Active Zone Minutes (AZM)",
+    azm_dir = "data/landing/fitbit/Takeout/Fitbit/Active Zone Minutes (AZM)",
     db_path = "db/health.db"
 ) {
 

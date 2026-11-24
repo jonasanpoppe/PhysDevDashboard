@@ -35,7 +35,7 @@ macrofactor_export_type <- function(path) {
 # "Newest" is taken from the timestamp in the file name, not the file's
 # modification time, so copying or restoring files does not change the result.
 find_macrofactor_exports <- function(
-    dir = "data/raw_data",
+    dir = "data/landing/macrofactor",
     types = c("summary", "food_log", "workout_log")
 ) {
   files <- list.files(
