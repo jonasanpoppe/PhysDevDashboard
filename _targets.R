@@ -117,9 +117,22 @@ list(
     distance_daily,
     load_distance(dir = physical_activity_dir, db_path = "db/health.db")
   ),
+  # SQL layer (sql/, run by R/run_sql.R). The landing files and the .sql file
+  # are tracked, so a new export or an edited query reruns the step.
+  tar_target(
+    fitbit_calories_files,
+    list.files(physical_activity_dir, "^calories_[0-9].*\\.csv$", full.names = TRUE),
+    format = "file"
+  ),
+  tar_target(sql_fitbit_calories, "sql/staging/fitbit_calories_daily.sql", format = "file"),
   tar_target(
     calories_daily,
-    load_calories(dir = physical_activity_dir, db_path = "db/health.db")
+    {
+      fitbit_calories_files
+      run_sql(sql_fitbit_calories, params = list(fitbit_activity_dir = physical_activity_dir),
+              read_back = "fitbit_calories_daily", db_path = "db/health.db") %>%
+        mutate(date = as.Date(date))
+    }
   ),
   tar_target(
     hrv_daily,
