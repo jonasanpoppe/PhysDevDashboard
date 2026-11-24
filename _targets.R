@@ -38,6 +38,7 @@ list(
   tar_target(readiness_dir, "data/landing/fitbit/Takeout/Fitbit/Daily Readiness", format = "file"),
   tar_target(sleep_score_dir, "data/landing/fitbit/Takeout/Fitbit/Health Fitness Data_GoogleData", format = "file"),
   tar_target(stress_score_dir, "data/landing/fitbit/Takeout/Fitbit/Stress Score", format = "file"),
+  tar_target(fitbit_sleep_dir, "data/landing/fitbit/Takeout/Fitbit/Global Export Data", format = "file"),
   tar_target(garmin_wellness_dir, "data/landing/garmin_export/DI_CONNECT/DI-Connect-Wellness", format = "file"),
   tar_target(garmin_api_dir, "data/landing/garmin", format = "file"),
   # Strava: summaries are one file per fetch, so re-list them every run
@@ -134,6 +135,10 @@ list(
   tar_target(
     sleep_score_daily,
     load_sleep_score(dir = sleep_score_dir, db_path = "db/health.db")
+  ),
+  tar_target(
+    fitbit_sleep_daily,
+    load_fitbit_sleep(dir = fitbit_sleep_dir, db_path = "db/health.db")
   ),
   tar_target(
     stress_score_daily,
