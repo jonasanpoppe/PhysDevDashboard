@@ -14,6 +14,8 @@ analytics_ui <- function(id) {
       conditionalPanel("input.view != 'matrix'", ns = ns,
                        selectInput(ns("x"), "X", choices = NULL),
                        selectInput(ns("y"), "Y", choices = NULL)),
+      conditionalPanel("input.view == 'scatter'", ns = ns,
+                       selectInput(ns("fit"), "Fit", choices = analytics_fits)),
       conditionalPanel("input.view != 'time'", ns = ns,
                        sliderInput(ns("lag"), "Y how many days after X", min = 0, max = 14, value = 0, step = 1)),
       radioButtons(ns("smooth"), "Smoothing",
@@ -80,7 +82,8 @@ analytics_server <- function(id) {
         "so a Fitbit series and a Garmin series have no days in common.")))
       p
     })
-    stat <- reactive(analytics_fit_stats(pair()$x, pair()$y, block = analytics_block_len(smooth())))
+    fit <- reactive(input$fit %||% "linear")
+    stat <- reactive(analytics_fit_stats(pair()$x, pair()$y, fit = fit(), block = analytics_block_len(smooth())))
     matrix_data <- reactive(analytics_matrix(daily, series, lag = lag(), smooth = smooth(), from = from()))
 
     output$stat <- renderUI({
@@ -88,15 +91,23 @@ analytics_server <- function(id) {
       s <- stat()
       unit <- if (smooth() == "weekly") "weeks" else "days"
       eff_lag <- if (smooth() == "weekly") 7L * round(lag() / 7) else lag()
-      ci <- function(lo, hi, fmt) if (is.na(lo)) "" else sprintf(paste0(" (95%% interval ", fmt, " to ", fmt, ")"), lo, hi)
-      fmt_slope <- function(v) format(signif(v, 2), big.mark = ",", scientific = FALSE, trim = TRUE)
-      slope_ci <- if (is.na(s$slope_low)) "" else
-        sprintf(" (95%% interval %s to %s)", fmt_slope(s$slope_low), fmt_slope(s$slope_high))
+      num <- function(v) format(signif(v, 2), big.mark = ",", scientific = FALSE, trim = TRUE)
+      interval <- function(lo, hi, f = num) if (is.na(lo)) "" else sprintf(" (95%% interval %s to %s)", f(lo), f(hi))
+      two <- function(v) sprintf("%.2f", v)
+      fit_line <- switch(s$fit,
+        linear = list(sprintf("Straight line: %s %s per %s", num(s$effect), sy()$unit, sx()$unit),
+                      paste0(interval(s$effect_low, s$effect_high), sprintf(" · R\u00B2 %.2f", s$r2))),
+        log = if (!is.na(s$note)) list("Log of X", paste(" ·", s$note)) else
+          list(sprintf("Log of X: %s %s per doubling of X", num(s$effect), sy()$unit),
+               paste0(interval(s$effect_low, s$effect_high), sprintf(" · R\u00B2 %.2f", s$r2))),
+        quadratic = list(sprintf("Quadratic: R\u00B2 %.2f", s$r2),
+                         if (is.na(s$turn)) " · no turning point within the data"
+                         else sprintf(" · turns at X = %s %s", num(s$turn), sx()$unit)),
+        loess = list("LOESS", " · drawn for the eye only, no numbers"))
       div(class = "px-3 pt-3",
           div(tags$strong(sprintf("Spearman's rho %.2f", s$rho)),
-              span(class = "text-muted", ci(s$rho_low, s$rho_high, "%.2f"))),
-          div(tags$strong(sprintf("Straight line: %s %s per %s", fmt_slope(s$slope), sy()$unit, sx()$unit)),
-              span(class = "text-muted", slope_ci, sprintf(" · R\u00B2 %.2f", s$r2))),
+              span(class = "text-muted", interval(s$rho_low, s$rho_high, two))),
+          div(tags$strong(fit_line[[1]]), span(class = "text-muted", fit_line[[2]])),
           div(class = "small text-muted",
               sprintf("n = %d %s · Y %d days after X%s", s$n, unit, eff_lag,
                       if (is.na(s$rho_low)) " · too few values for intervals" else "")))
@@ -104,7 +115,7 @@ analytics_server <- function(id) {
 
     output$plot <- renderPlot({
       switch(input$view %||% "scatter",
-        scatter = plot_analytics_scatter(pair(), analytics_axis_label(sx()), analytics_axis_label(sy())),
+        scatter = plot_analytics_scatter(pair(), analytics_axis_label(sx()), analytics_axis_label(sy()), fit()),
         time = {
           get <- function(s) daily %>% filter(variable == s$variable, era == s$era) %>%
             smooth_series(s$agg, smooth()) %>% mutate(panel = analytics_axis_label(s))
@@ -139,7 +150,7 @@ analytics_server <- function(id) {
     output$footer <- renderText({
       base <- paste(
         "Associations, not causes: a third thing (season, a training block) often drives both.",
-        "Rho measures any steady rise or fall; the straight line gives Y's change per unit of X and R\u00B2 how much of Y it explains.",
+        "Rho measures any steady rise or fall, whatever the fit. Straight line: Y's change per unit of X; log of X: per doubling of X (diminishing returns); quadratic: a curve that can turn; R\u00B2: how much of Y the fit explains. LOESS follows the points and is for the eye only.",
         "Neighbouring days are alike, so the intervals come from a block bootstrap and are wider than naive ones.",
         "Smoothing: levels take a 7-day mean, hours and sessions a 7-day total, e1RM and W/kg the mean of what falls in the window.",
         "Devices are separate series, never pooled; model outputs are marked (model).")

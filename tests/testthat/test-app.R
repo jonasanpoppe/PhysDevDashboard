@@ -139,6 +139,14 @@ test_that("the app starts and renders the Vitals plot", {
     expect_gt(nchar(output$`analytics-plot`$src), 1000)
     expect_match(as.character(output$`analytics-stat`$html), "Spearman's rho 0\\.[89]")
     expect_match(as.character(output$`analytics-stat`$html), "Straight line: [0-9.]+ ms per h")
+    for (f in c("quadratic", "log", "loess")) {
+      session$setInputs(`analytics-fit` = f)
+      expect_gt(nchar(output$`analytics-plot`$src), 1000)
+    }
+    expect_match(as.character(output$`analytics-stat`$html), "for the eye only")
+    session$setInputs(`analytics-fit` = "log")
+    expect_match(as.character(output$`analytics-stat`$html), "per doubling of X")
+    session$setInputs(`analytics-fit` = "linear")
     session$setInputs(`analytics-y` = "hrv@fitbit")       # devices never overlap
     expect_error(output$`analytics-plot`, "Two devices never overlap")
     session$setInputs(`analytics-x` = "sleep_h@garmin", `analytics-y` = "sleep_h@garmin")

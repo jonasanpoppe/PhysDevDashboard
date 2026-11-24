@@ -10,6 +10,9 @@ test_that("analytics charts build", {
   sc <- plot_analytics_scatter(p, "Scale weight, kg", "Steps, steps")
   expect_s3_class(ggplot_build(sc), "ggplot_built")
   expect_equal(sc$labels$x, "Scale weight, kg")
+  for (f in analytics_fits) {
+    expect_s3_class(ggplot_build(plot_analytics_scatter(p, "X", "Y", fit = f)), "ggplot_built")
+  }
 
   td <- bind_rows(smooth_series(filter(d, variable == "scale_kg"), "level", "7d") %>% mutate(panel = "A"),
                   smooth_series(filter(d, variable == "ride_h"), "volume", "7d") %>% mutate(panel = "B"))

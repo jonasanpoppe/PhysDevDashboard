@@ -193,36 +193,68 @@ analytics_pair <- function(daily, series, x, y, lag = 0L, smooth = "7d", from = 
   out
 }
 
-# Both numbers for a pair, each with a moving-block bootstrap interval:
-#   rho    Spearman's rank correlation (monotone, robust to outliers)
-#   slope  the straight trend line drawn in the scatter (least squares):
-#          change in Y per unit of X; r2 is its share of Y's variance
+# Fits offered in the scatter. LOESS is drawn for the eye only: it has no
+# single number to report.
+analytics_fits <- c("Straight line" = "linear", "Quadratic" = "quadratic",
+                    "Log of X" = "log", "LOESS (for the eye)" = "loess")
+
+analytics_fit_formula <- function(fit) {
+  switch(fit, linear = y ~ x, quadratic = y ~ x + I(x^2), log = y ~ log(x), loess = y ~ x)
+}
+
+# The numbers for a pair, with moving-block bootstrap intervals:
+#   rho     Spearman's rank correlation (any steady rise or fall), every fit
+#   effect  linear: change in Y per unit of X (the slope)
+#           log: change in Y per doubling of X (b * ln 2, for y = a + b ln x)
+#           quadratic, loess: NA
+#   r2      share of Y's variance the fitted curve explains (not for loess)
+#   turn    quadratic only: X where the curve turns, if inside the data
 # Rows are taken in date order; blocks keep neighbouring (autocorrelated)
 # days together, so the intervals are wider than naive ones, as they should
-# be. Both statistics come from the same resamples.
-analytics_fit_stats <- function(x, y, block = 14L, reps = 1000L, level = 0.95, seed = 1L) {
+# be. rho and effect come from the same resamples.
+analytics_fit_stats <- function(x, y, fit = "linear", block = 14L, reps = 1000L, level = 0.95,
+                                seed = 1L) {
+  fit <- match.arg(fit, unname(analytics_fits))
   n <- length(x)
-  stats_of <- function(x, y) {
-    if (stats::var(x) == 0 || stats::var(y) == 0) return(c(NA_real_, NA_real_, NA_real_))
-    r <- stats::cor(x, y)
-    c(rho = stats::cor(x, y, method = "spearman"), slope = r * stats::sd(y) / stats::sd(x), r2 = r^2)
+  empty <- tibble(fit = fit, rho = NA_real_, rho_low = NA_real_, rho_high = NA_real_,
+                  effect = NA_real_, effect_low = NA_real_, effect_high = NA_real_,
+                  r2 = NA_real_, turn = NA_real_, n = n, block = as.integer(block), note = NA_character_)
+  if (fit == "log" && any(x <= 0)) {
+    return(mutate(empty, note = "The log fit needs X above 0 on every day."))
   }
-  est <- if (n >= 3) unname(stats_of(x, y)) else rep(NA_real_, 3)
-  out <- tibble(rho = est[[1]], rho_low = NA_real_, rho_high = NA_real_,
-                slope = est[[2]], slope_low = NA_real_, slope_high = NA_real_,
-                r2 = est[[3]], n = n, block = as.integer(block))
+  effect_of <- function(x, y) {
+    if (stats::var(x) == 0 || stats::var(y) == 0) return(c(NA_real_, NA_real_))
+    e <- switch(fit,
+      linear = stats::cor(x, y) * stats::sd(y) / stats::sd(x),
+      log    = { lx <- log(x); stats::cov(lx, y) / stats::var(lx) * log(2) },
+      NA_real_)
+    c(stats::cor(x, y, method = "spearman"), e)
+  }
+  if (n < 3) return(empty)
+  est <- effect_of(x, y)
+  out <- mutate(empty, rho = est[[1]], effect = est[[2]])
+  if (fit != "loess" && n > 3) {
+    m <- stats::lm(analytics_fit_formula(fit), data = tibble(x = x, y = y))
+    out$r2 <- 1 - sum(stats::residuals(m)^2) / sum((y - mean(y))^2)
+    if (fit == "quadratic") {
+      b <- stats::coef(m)
+      t <- -b[[2]] / (2 * b[[3]])
+      if (is.finite(t) && t > min(x) && t < max(x)) out$turn <- t
+    }
+  }
   if (n < 10 || is.na(est[[1]])) return(out)
   block <- min(as.integer(block), max(1L, n %/% 3L))
   starts <- seq_len(n - block + 1L)
   k <- ceiling(n / block)
   boot <- withr::with_seed(seed, vapply(seq_len(reps), \(i) {
     idx <- as.vector(outer(0:(block - 1L), sample(starts, k, replace = TRUE), `+`))[seq_len(n)]
-    unname(stats_of(x[idx], y[idx]))[1:2]
+    effect_of(x[idx], y[idx])
   }, numeric(2)))
   probs <- c((1 - level) / 2, 1 - (1 - level) / 2)
-  q <- function(v) stats::quantile(v, probs, na.rm = TRUE, names = FALSE)
-  qr <- q(boot[1, ]); qs <- q(boot[2, ])
-  mutate(out, rho_low = qr[[1]], rho_high = qr[[2]], slope_low = qs[[1]], slope_high = qs[[2]],
+  q <- function(v) if (all(is.na(v))) c(NA_real_, NA_real_) else
+    stats::quantile(v, probs, na.rm = TRUE, names = FALSE)
+  qr <- q(boot[1, ]); qe <- q(boot[2, ])
+  mutate(out, rho_low = qr[[1]], rho_high = qr[[2]], effect_low = qe[[1]], effect_high = qe[[2]],
          block = block)
 }
 

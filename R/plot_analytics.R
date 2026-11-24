@@ -4,7 +4,8 @@ library(ggplot2)
 # Analytics charts. Needs R/theme_physdev.R and R/plot_engine.R (year colours).
 #   plot_analytics_time     X and Y stacked on one date axis (never a dual axis)
 #   plot_analytics_scatter  X against Y (Y lagged), points coloured by year,
-#                           a straight trend line with its band
+#                           with the chosen fit and its band (straight line,
+#                           quadratic, log of X, or LOESS for the eye)
 #   plot_analytics_matrix   Spearman's rho for all pairs, diverging around 0
 
 analytics_axis_label <- function(s) {
@@ -31,12 +32,19 @@ plot_analytics_time <- function(d, sparse = character()) {
   p
 }
 
-plot_analytics_scatter <- function(pair, xlab, ylab) {
+plot_analytics_scatter <- function(pair, xlab, ylab, fit = "linear") {
   colours <- engine_year_colours(sort(unique(pair$year)))
   d <- pair %>% mutate(year = factor(year, levels = names(colours)))
+  if (fit == "log") d <- filter(d, x > 0)
+  smooth <- if (fit == "loess") {
+    geom_smooth(method = "loess", formula = y ~ x, span = 0.75, colour = physdev$fg_muted,
+                fill = physdev$fg_subtle, alpha = 0.25, linewidth = 0.7)
+  } else {
+    geom_smooth(method = "lm", formula = analytics_fit_formula(fit), colour = physdev$fg_muted,
+                fill = physdev$fg_subtle, alpha = 0.25, linewidth = 0.7)
+  }
   ggplot(d, aes(x, y)) +
-    geom_smooth(method = "lm", formula = y ~ x, colour = physdev$fg_muted, fill = physdev$fg_subtle,
-                alpha = 0.25, linewidth = 0.7) +
+    smooth +
     geom_point(aes(fill = year), shape = 21, size = 2.6, colour = physdev$bg, stroke = 0.4, alpha = 0.85) +
     scale_fill_manual(values = colours, name = NULL) +
     labs(x = xlab, y = ylab) +
