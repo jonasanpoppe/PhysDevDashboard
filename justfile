@@ -1,5 +1,5 @@
 # Task runner for PhysDevDashboard. See ROADMAP.md.
-# Recipes: doctor, fetch, build, test, backup. Still to come: build-fixture, app.
+# Recipes: doctor, fetch, build, test, app, backup. Still to come: build-fixture.
 #
 # Backups: an encrypted restic repository in a Backblaze B2 bucket, reached
 # through B2's S3-compatible API (restic's recommended route for B2).
@@ -86,6 +86,10 @@ fetch-garmin:
 # Rebuild the database from data/landing/ (R loaders in _targets.R for now)
 build:
     Rscript -e 'targets::tar_make()'
+
+# Start the Shiny app on http://localhost:3838 (reads db/ read-only)
+app:
+    Rscript -e 'shiny::runApp("app", port = 3838, launch.browser = FALSE)'
 
 # Run the R tests
 test:

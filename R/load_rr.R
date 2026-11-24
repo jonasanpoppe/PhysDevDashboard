@@ -1,10 +1,11 @@
-library(readr)
 library(dplyr)
-library(tidyr)
-library(purrr)
-library(janitor)
 library(duckdb)
 
+# Fitbit breathing rate during sleep, one row per night, dated by the wake-up
+# day (see docs/sources.md).
+#
+# Reads Fitbit's daily file. The per-sleep summaries include naps and are
+# timestamped in UTC, so averaging them by UTC date mixed naps and nights.
 load_rr <- function(
     dir = "data/landing/fitbit/Takeout/Fitbit/Physical Activity_GoogleData",
     db_path = "db/health.db"
@@ -12,29 +13,15 @@ load_rr <- function(
   con <- DBI::dbConnect(duckdb(), db_path)
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
 
-  csv_files <- list.files(
-    dir,
-    pattern    = "^respiratory_rate_sleep_summary_.*\\.csv$",
-    full.names = TRUE
-  )
+  path <- file.path(dir, "daily_respiratory_rate.csv")
+  if (!file.exists(path)) return(invisible(NULL))
 
-  if (length(csv_files) == 0) return(invisible(NULL))
-
-  raw_data <- csv_files %>%
-    map(read_csv, show_col_types = FALSE) %>%
-    list_rbind() %>%
-    clean_names()
-
-  daily_data <- raw_data %>%
-    mutate(date = as.Date(substr(timestamp, 1, 10))) %>%
-    summarise(
-      .by = date,
-      respiratory_rate = mean(full_sleep_stats_milli_breaths_per_minute, na.rm = TRUE)
-    ) %>%
+  daily_data <- read_fitbit_daily(path) %>%
+    select(date, respiratory_rate = breaths_per_minute) %>%
     arrange(date)
 
   DBI::dbWriteTable(con, "fitbit_rr_daily", daily_data, overwrite = TRUE)
-  message("\u2713 fitbit_rr_daily written (", nrow(daily_data), " rows)")
+  message("✓ fitbit_rr_daily written (", nrow(daily_data), " rows)")
 
   invisible(daily_data)
 }

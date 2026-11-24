@@ -25,12 +25,15 @@ load_temperature <- function(
     list_rbind() %>%
     clean_names()
 
-  # Note: The column is "nightly temperature celsius" -> nightly_temperature_celsius
+  # Note: The column is "nightly temperature celsius" -> nightly_temperature_celsius.
+  # Fitbit's baseline is the median nightly value over the past 30 days; the
+  # deviation from it is what Garmin reports directly.
   daily_data <- raw_data %>%
     mutate(date = as.Date(substr(timestamp, 1, 10))) %>%
     summarise(
       .by = date,
-      temperature_celsius = mean(nightly_temperature_celsius, na.rm = TRUE)
+      temperature_celsius = mean(nightly_temperature_celsius, na.rm = TRUE),
+      baseline_temperature_celsius = mean(baseline_temperature_celsius, na.rm = TRUE)
     ) %>%
     arrange(date)
 
