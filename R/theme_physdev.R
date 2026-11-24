@@ -1,27 +1,27 @@
 # ============================================================
-#  theme_anthropic.R
-#  A clean, modern ggplot2 + bslib theme inspired by Anthropic's
-#  visual identity: warm off-whites, charcoal, coral accent,
-#  generous whitespace, refined typography.
+#  theme_physdev.R
+#  The PhysDevDashboard ggplot2 + bslib theme (placeholder style,
+#  to be reworked): warm off-whites, charcoal, coral accent,
+#  generous whitespace.
 #
 #  Usage:
-#    source("theme_anthropic.R")
-#    ggplot(...) + theme_anthropic()
+#    source("R/theme_physdev.R")
+#    ggplot(...) + theme_physdev()
 # ============================================================
 
 # ── Palette ──────────────────────────────────────────────────────────────────
 
-anthropic <- list(
+physdev <- list(
 
   # Core
-  bg          = "#F5F4EF",   # Warm off-white (Anthropic page bg)
+  bg          = "#F5F4EF",   # Warm off-white page background
   bg_card     = "#ECEAE3",   # Slightly deeper card surface
   fg          = "#1A1A1A",   # Near-black body text
   fg_muted    = "#6B6860",   # Secondary / axis labels
   fg_subtle   = "#A8A49E",   # Gridlines, borders
 
   # Accent
-  coral       = "#C96442",   # Primary Anthropic coral/terracotta
+  coral       = "#C96442",   # Primary accent: coral/terracotta
   coral_light = "#E8957A",   # Lighter variant
   coral_dark  = "#9E4A2E",   # Darker variant
 
@@ -42,7 +42,7 @@ anthropic <- list(
 
 # ── ggplot2 theme ─────────────────────────────────────────────────────────────
 
-theme_anthropic <- function(base_size = 12, grid = "y") {
+theme_physdev <- function(base_size = 12, grid = "y") {
 
   # Requires: ggplot2, optionally sysfonts/showtext for web fonts
   # Fallback font if showtext not loaded: "sans"
@@ -60,52 +60,52 @@ theme_anthropic <- function(base_size = 12, grid = "y") {
   t <- ggplot2::theme_minimal(base_size = base_size, base_family = base_family) +
     ggplot2::theme(
       # ── Plot area
-      plot.background  = ggplot2::element_rect(fill = anthropic$bg,      colour = NA),
-      panel.background = ggplot2::element_rect(fill = anthropic$bg,      colour = NA),
+      plot.background  = ggplot2::element_rect(fill = physdev$bg,      colour = NA),
+      panel.background = ggplot2::element_rect(fill = physdev$bg,      colour = NA),
       panel.border     = ggplot2::element_blank(),
 
       # ── Grid
       panel.grid.major.x = if (grid %in% c("x", "both"))
-        ggplot2::element_line(colour = anthropic$fg_subtle, linewidth = 0.35)
+        ggplot2::element_line(colour = physdev$fg_subtle, linewidth = 0.35)
       else ggplot2::element_blank(),
       panel.grid.major.y = if (grid %in% c("y", "both"))
-        ggplot2::element_line(colour = anthropic$fg_subtle, linewidth = 0.35)
+        ggplot2::element_line(colour = physdev$fg_subtle, linewidth = 0.35)
       else ggplot2::element_blank(),
       panel.grid.minor   = ggplot2::element_blank(),
 
       # ── Axes
       axis.line        = ggplot2::element_blank(),
       axis.ticks       = ggplot2::element_blank(),
-      axis.text        = ggplot2::element_text(colour = anthropic$fg_muted, size = ggplot2::rel(0.85)),
-      axis.title       = ggplot2::element_text(colour = anthropic$fg,       size = ggplot2::rel(0.9),
+      axis.text        = ggplot2::element_text(colour = physdev$fg_muted, size = ggplot2::rel(0.85)),
+      axis.title       = ggplot2::element_text(colour = physdev$fg,       size = ggplot2::rel(0.9),
                                                margin = ggplot2::margin(t = half_line)),
       axis.title.x     = ggplot2::element_text(margin = ggplot2::margin(t = half_line)),
       axis.title.y     = ggplot2::element_text(margin = ggplot2::margin(r = half_line), angle = 90),
 
       # ── Titles
-      plot.title       = ggplot2::element_text(colour = anthropic$fg,      size = ggplot2::rel(1.3),
+      plot.title       = ggplot2::element_text(colour = physdev$fg,      size = ggplot2::rel(1.3),
                                                face = "bold",
                                                margin = ggplot2::margin(b = half_line * 0.75)),
-      plot.subtitle    = ggplot2::element_text(colour = anthropic$fg_muted, size = ggplot2::rel(0.95),
+      plot.subtitle    = ggplot2::element_text(colour = physdev$fg_muted, size = ggplot2::rel(0.95),
                                                margin = ggplot2::margin(b = half_line * 1.5)),
-      plot.caption     = ggplot2::element_text(colour = anthropic$fg_subtle, size = ggplot2::rel(0.75),
+      plot.caption     = ggplot2::element_text(colour = physdev$fg_subtle, size = ggplot2::rel(0.75),
                                                hjust = 0,
                                                margin = ggplot2::margin(t = half_line)),
       plot.title.position   = "plot",
       plot.caption.position = "plot",
 
       # ── Legend
-      legend.background = ggplot2::element_rect(fill = anthropic$bg, colour = NA),
-      legend.key        = ggplot2::element_rect(fill = anthropic$bg, colour = NA),
-      legend.title      = ggplot2::element_text(colour = anthropic$fg,      size = ggplot2::rel(0.85), face = "bold"),
-      legend.text       = ggplot2::element_text(colour = anthropic$fg_muted, size = ggplot2::rel(0.82)),
+      legend.background = ggplot2::element_rect(fill = physdev$bg, colour = NA),
+      legend.key        = ggplot2::element_rect(fill = physdev$bg, colour = NA),
+      legend.title      = ggplot2::element_text(colour = physdev$fg,      size = ggplot2::rel(0.85), face = "bold"),
+      legend.text       = ggplot2::element_text(colour = physdev$fg_muted, size = ggplot2::rel(0.82)),
       legend.position   = "top",
       legend.justification = "left",
       legend.key.size   = ggplot2::unit(0.9, "lines"),
 
       # ── Facets
-      strip.background = ggplot2::element_rect(fill = anthropic$bg_card, colour = NA),
-      strip.text       = ggplot2::element_text(colour = anthropic$fg, size = ggplot2::rel(0.88), face = "bold"),
+      strip.background = ggplot2::element_rect(fill = physdev$bg_card, colour = NA),
+      strip.text       = ggplot2::element_text(colour = physdev$fg, size = ggplot2::rel(0.88), face = "bold"),
 
       # ── Spacing
       plot.margin = ggplot2::margin(half_line * 2, half_line * 2, half_line * 2, half_line * 2)
@@ -117,31 +117,31 @@ theme_anthropic <- function(base_size = 12, grid = "y") {
 # ── ggplot2 colour/fill scales ────────────────────────────────────────────────
 
 #' Categorical colour scale (up to 6 series)
-scale_colour_anthropic <- function(...) {
-  ggplot2::scale_colour_manual(values = anthropic$cat, ...)
+scale_colour_physdev <- function(...) {
+  ggplot2::scale_colour_manual(values = physdev$cat, ...)
 }
-scale_color_anthropic <- scale_colour_anthropic   # alias
+scale_color_physdev <- scale_colour_physdev   # alias
 
 #' Categorical fill scale
-scale_fill_anthropic <- function(...) {
-  ggplot2::scale_fill_manual(values = anthropic$cat, ...)
+scale_fill_physdev <- function(...) {
+  ggplot2::scale_fill_manual(values = physdev$cat, ...)
 }
 
 #' Sequential fill scale (single variable, e.g. heatmap)
-scale_fill_anthropic_seq <- function(...) {
+scale_fill_physdev_seq <- function(...) {
   ggplot2::scale_fill_gradient(
-    low  = anthropic$seq_low,
-    high = anthropic$seq_high,
+    low  = physdev$seq_low,
+    high = physdev$seq_high,
     ...
   )
 }
 
 #' Diverging fill scale (e.g. correlation matrix)
-scale_fill_anthropic_div <- function(midpoint = 0, ...) {
+scale_fill_physdev_div <- function(midpoint = 0, ...) {
   ggplot2::scale_fill_gradient2(
-    low      = anthropic$coral_dark,
-    mid      = anthropic$bg,
-    high     = anthropic$steel_blue %||% "#5B7FA6",
+    low      = physdev$coral_dark,
+    mid      = physdev$bg,
+    high     = physdev$steel_blue %||% "#5B7FA6",
     midpoint = midpoint,
     ...
   )
@@ -153,11 +153,11 @@ scale_fill_anthropic_div <- function(midpoint = 0, ...) {
 #
 # library(bslib)
 #
-# shiny_theme_anthropic <- bs_theme(
-#   bg         = anthropic$bg,
-#   fg         = anthropic$fg,
-#   primary    = anthropic$coral,
-#   secondary  = anthropic$fg_muted,
+# shiny_theme_physdev <- bs_theme(
+#   bg         = physdev$bg,
+#   fg         = physdev$fg,
+#   primary    = physdev$coral,
+#   secondary  = physdev$fg_muted,
 #   success    = "#7A9E7E",
 #   warning    = "#D97706",
 #   danger     = "#C0392B",
@@ -172,12 +172,12 @@ scale_fill_anthropic_div <- function(midpoint = 0, ...) {
 # Run this to preview the theme:
 #
 # library(ggplot2)
-# source("theme_anthropic.R")
+# source("R/theme_physdev.R")
 #
 # ggplot(mpg, aes(displ, hwy, colour = class)) +
 #   geom_point(size = 2.5, alpha = 0.85) +
-#   scale_colour_anthropic() +
-#   theme_anthropic() +
+#   scale_colour_physdev() +
+#   theme_physdev() +
 #   labs(
 #     title    = "Engine displacement vs fuel efficiency",
 #     subtitle = "Each point is a car model; colour encodes vehicle class",
