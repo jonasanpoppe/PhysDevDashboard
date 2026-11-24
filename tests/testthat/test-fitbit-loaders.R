@@ -33,6 +33,17 @@ test_that("daily HRV keeps Fitbit's date label in any session timezone", {
   expect_named(out, c("date", "hrv_rmssd"))
 })
 
+test_that("daily HRV of 0 is read as missing", {
+  dir <- withr::local_tempdir()
+  write_lines_to(dir, "daily_heart_rate_variability.csv", c(
+    "timestamp,average heart rate variability milliseconds,non rem heart rate beats per minute,entropy,deep sleep root mean square of successive differences milliseconds,data source",
+    "2024-04-01T00:00:00Z,0,56.0,0,0,Fitbit",
+    "2024-04-02T00:00:00Z,41.0,55.0,3.0,45.0,Fitbit"
+  ))
+  out <- load_hrv(dir = dir, db_path = file.path(dir, "test.duckdb"))
+  expect_equal(out$hrv_rmssd, c(NA, 41.0))
+})
+
 test_that("daily breathing rate comes from the daily file, not per-sleep summaries", {
   dir <- withr::local_tempdir()
   db <- file.path(dir, "test.duckdb")

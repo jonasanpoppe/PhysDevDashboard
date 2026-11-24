@@ -18,6 +18,9 @@ load_hrv <- function(
 
   daily_data <- read_fitbit_daily(path) %>%
     select(date, hrv_rmssd = average_heart_rate_variability_milliseconds) %>%
+    # Fitbit writes 0 when a night was recorded but HRV could not be computed
+    # (the same rows have a normal non-REM heart rate). 0 means missing.
+    mutate(hrv_rmssd = if_else(hrv_rmssd == 0, NA_real_, hrv_rmssd)) %>%
     arrange(date)
 
   DBI::dbWriteTable(con, "fitbit_hrv_daily", daily_data, overwrite = TRUE)
