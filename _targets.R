@@ -64,6 +64,12 @@ list(
   # Personal settings (HR zones); gitignored, see config/athlete.example.yml
   tar_target(athlete_config_file, "config/athlete.yml", format = "file"),
   tar_target(athlete_config, yaml::read_yaml(athlete_config_file)),
+  # Climb library and bikes (gitignored; see the *.example.csv twins)
+  tar_target(climbs_file, "config/climbs.csv", format = "file"),
+  tar_target(climbs, read_climbs(climbs_file)),
+  tar_target(bikes_file, "config/bikes.csv", format = "file"),
+  tar_target(bike_overrides_file, "config/bike_overrides.csv", format = "file"),
+  tar_target(effort_overrides_file, "config/effort_overrides.csv", format = "file"),
 
   # ── Load raw data ────────────────────────────────────────────────────────────
   tar_target(
@@ -172,6 +178,32 @@ list(
       activities = strava_activities,
       zones      = athlete_config$hr_zones,
       db_path    = "db/health.db"
+    )
+  ),
+
+  # ── Analysis: climbs ─────────────────────────────────────────────────────────
+  # One branch per stream file; all rerun when the climb list or the matching
+  # settings change (about half a minute for all rides).
+  tar_target(
+    strava_climb_effort_branches,
+    climb_efforts(
+      read_strava_stream(strava_stream_files),
+      climbs,
+      activity_id = sub("\\.json$", "", basename(strava_stream_files)),
+      settings    = athlete_config$climbs
+    ),
+    pattern = map(strava_stream_files)
+  ),
+  tar_target(
+    strava_climb_efforts,
+    build_strava_climb_efforts(
+      efforts          = strava_climb_effort_branches,
+      activities       = strava_activities,
+      bikes            = read_config_csv(bikes_file),
+      bike_overrides   = read_config_csv(bike_overrides_file),
+      effort_overrides = read_config_csv(effort_overrides_file),
+      scope_min_gain_m = athlete_config$climbs$scope_min_gain_m,
+      db_path          = "db/health.db"
     )
   ),
 

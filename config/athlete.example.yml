@@ -12,3 +12,16 @@ hr_zones:
     ride:  [120, 135, 145, 155, 160, 165]
     run:   [125, 140, 150, 158, 163, 168]
     other: [125, 140, 150, 158, 163, 168]
+
+# Climb matching and effort status (R/climb_matching.R). Method settings.
+climbs:
+  match_radius_m: 30          # start and end must be passed this close
+  path_window: [0.75, 1.35]   # path distance start→end, × climb length …
+  path_pad_m: 40              # … + this on the upper bound
+  stop_speed_ms: 0.5          # slower than this = stopped
+  max_stop_s: 2               # clean: stops add up to at most this
+  top_frac: 0.95              # top: every stop at or after this share of the climb
+  foot_max_s: 10              # foot: no single stop longer than this
+  walk_speed_ms: [0.6, 1.5]   # walk: this speed …
+  walk_min_s: 30              # … for at least this long in a row (restarting after a stop creeps ~20 s)
+  scope_min_gain_m: 120       # climb record counts rides with at least this much climbing

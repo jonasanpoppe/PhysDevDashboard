@@ -73,7 +73,8 @@ match_climb <- function(stream, climb, radius_m = 30,
 # - crawl10_kmh: slowest 10 s, on the stream resampled to 1 s
 # - hr_avg: time-weighted; hr_end: time-weighted over the last 30 s
 # - status, first match wins:
-#     walk   a stretch of >= walk_min_s at walking speed (pushing the bike)
+#     walk   a stretch of >= walk_min_s at walking speed (pushing the bike;
+#            restarting after a stop also creeps at that speed for ~20 s)
 #     clean  stop_s <= max_stop_s
 #     top    every stop at or after top_frac of the climb
 #     foot   no stop longer than foot_max_s (a foot down, then on)
@@ -81,7 +82,7 @@ match_climb <- function(stream, climb, radius_m = 30,
 effort_metrics <- function(stream, i0, i1,
                            stop_speed_ms = 0.5, max_stop_s = 2, top_frac = 0.95,
                            foot_max_s = 10, walk_speed_ms = c(0.6, 1.5),
-                           walk_min_s = 20) {
+                           walk_min_s = 30) {
   s  <- stream[i0:i1, ]
   n  <- nrow(s)
   dt <- diff(s$t)
@@ -137,21 +138,45 @@ effort_metrics <- function(stream, i0, i1,
 }
 
 # All efforts on all climbs in one ride. `climbs` has a name column plus the
-# columns match_climb() needs; `...` goes to effort_metrics().
-climb_efforts <- function(stream, climbs, activity_id, radius_m = 30, ...) {
+# columns match_climb() needs. `settings` is the climbs block of
+# config/athlete.yml (see climb_settings()); empty = the defaults above.
+climb_efforts <- function(stream, climbs, activity_id, settings = list()) {
   empty <- tibble(activity_id = character(), climb = character(),
                   i0 = integer(), i1 = integer())
   if (is.null(stream) || nrow(stream) < 2) return(empty)
+  args <- climb_settings(settings)
   climbs %>%
     split(seq_len(nrow(.))) %>%
     map(\(cl) {
-      m <- match_climb(stream, cl, radius_m = radius_m)
+      m <- do.call(match_climb, c(list(stream, cl), args$match))
       if (nrow(m) == 0) return(NULL)
       m %>%
         mutate(activity_id = as.character(activity_id), climb = cl$name, .before = 1) %>%
-        bind_cols(map(seq_len(nrow(m)), \(k) effort_metrics(stream, m$i0[k], m$i1[k], ...)) %>%
-                    list_rbind())
+        bind_cols(map(seq_len(nrow(m)), \(k) {
+          do.call(effort_metrics, c(list(stream, m$i0[k], m$i1[k]), args$effort))
+        }) %>%
+          list_rbind())
     }) %>%
     list_rbind() %>%
     bind_rows(empty, .)
+}
+
+# The climbs block of config/athlete.yml -> arguments for match_climb() and
+# effort_metrics(). Missing keys keep the function defaults.
+climb_settings <- function(cfg = list()) {
+  pick <- function(map) {
+    out <- lapply(map, \(key) cfg[[key]])
+    out[!vapply(out, is.null, logical(1))]
+  }
+  window <- cfg$path_window
+  match <- c(
+    pick(list(radius_m = "match_radius_m", pad_m = "path_pad_m")),
+    if (!is.null(window)) list(min_frac = window[1], max_frac = window[2])
+  )
+  effort <- pick(list(
+    stop_speed_ms = "stop_speed_ms", max_stop_s = "max_stop_s",
+    top_frac = "top_frac", foot_max_s = "foot_max_s",
+    walk_speed_ms = "walk_speed_ms", walk_min_s = "walk_min_s"
+  ))
+  list(match = match, effort = effort)
 }
