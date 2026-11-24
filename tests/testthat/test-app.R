@@ -44,5 +44,12 @@ test_that("the app starts and renders the Vitals plot", {
     expect_equal(output$`climbs-summary`, "2 climbs \u00B7 3 ascents \u00B7 2 clean")
     session$setInputs(`climbs-surface` = "asphalt")
     expect_match(as.character(output$`climbs-table`$html), "No ascents with these filters")
+
+    # Engine tab: clean ascents only, filters by year and short efforts
+    session$setInputs(`engine-years` = "2024", `engine-range` = TRUE, `engine-short` = TRUE)
+    expect_gt(nchar(output$`engine-plot`$src), 1000)
+    expect_equal(output$`engine-summary`, "3 ascents \u00B7 2 climbs")
+    session$setInputs(`engine-range` = FALSE)
+    expect_gt(nchar(output$`engine-plot`$src), 1000)
   })
 })

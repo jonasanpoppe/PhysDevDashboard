@@ -44,7 +44,8 @@ climbs_ui <- function(id) {
         })),
         br(),
         "Clean = no stop, or a stop only at the very top. Best = shortest moving time",
-        "of a clean ascent. History runs oldest to newest; hover an icon for its date."
+        "of a clean ascent; W/kg is an estimate (\u00B115%, see Engine).",
+        "History runs oldest to newest; hover an icon for its date."
       )
     )
   )
@@ -112,7 +113,9 @@ climb_row <- function(x) {
     tags$td(class = "text-end", sprintf("%d (%d)", x$ascents, x$clean)),
     tags$td(
       if (is.na(x$best_s)) span(class = "text-muted", "none yet")
-      else tagList(strong(fmt_mmss(x$best_s)), br(),
+      else tagList(strong(fmt_mmss(x$best_s)),
+                   if (!is.na(x$best_wkg)) span(class = "text-muted", sprintf(" \u00B7 ~%.1f W/kg", x$best_wkg)),
+                   br(),
                    span(class = "small text-muted", format(x$best_date, "%d %b %Y"), "·", x$best_bike))
     ),
     tags$td(status_icon(x$last_status), format(x$last_date, "%d %b %Y")),
