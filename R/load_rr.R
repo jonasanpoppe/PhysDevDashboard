@@ -16,8 +16,8 @@ load_rr <- function(
   path <- file.path(dir, "daily_respiratory_rate.csv")
   if (!file.exists(path)) return(invisible(NULL))
 
-  daily_data <- read_fitbit_daily(path) |>
-    select(date, respiratory_rate = breaths_per_minute) |>
+  daily_data <- read_fitbit_daily(path) %>%
+    select(date, respiratory_rate = breaths_per_minute) %>%
     arrange(date)
 
   DBI::dbWriteTable(con, "fitbit_rr_daily", daily_data, overwrite = TRUE)
