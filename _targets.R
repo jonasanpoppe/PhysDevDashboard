@@ -70,6 +70,8 @@ list(
   tar_target(bikes_file, "config/bikes.csv", format = "file"),
   tar_target(bike_overrides_file, "config/bike_overrides.csv", format = "file"),
   tar_target(effort_overrides_file, "config/effort_overrides.csv", format = "file"),
+  tar_target(goals_config_file, "config/goals.yml", format = "file"),
+  tar_target(goals_config, yaml::read_yaml(goals_config_file)),
 
   # ── Load raw data ────────────────────────────────────────────────────────────
   tar_target(
@@ -204,6 +206,17 @@ list(
       effort_overrides = read_config_csv(effort_overrides_file),
       scope_min_gain_m = athlete_config$climbs$scope_min_gain_m,
       db_path          = "db/health.db"
+    )
+  ),
+
+  # Climb list and bike names for the app (it reads only the database)
+  tar_target(
+    climb_config_tables,
+    write_climb_config_tables(
+      climbs  = climbs,
+      bikes   = read_config_csv(bikes_file),
+      pinned  = unlist(goals_config$pinned_climbs),
+      db_path = "db/health.db"
     )
   ),
 
