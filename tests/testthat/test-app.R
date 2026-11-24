@@ -23,6 +23,15 @@ test_that("the app starts and renders the Vitals plot", {
   DBI::dbWriteTable(con, "fitness_load_check", ft$check)
   DBI::dbWriteTable(con, "strava_daily_load", ft$load)
   DBI::dbWriteTable(con, "rider_weight", ft$weight)
+  source(testthat::test_path("..", "..", "R", "weight_plan.R"), local = TRUE)
+  wd <- build_weight_daily(fake_macrofactor_daily(), fake_goal())
+  ws <- tibble::tibble(date = max(wd$date) - 1, kind = "bjj", source = "strava")
+  DBI::dbWriteTable(con, "weight_daily", wd)
+  DBI::dbWriteTable(con, "weight_weekly", build_weight_weekly(wd, ws, fake_goal()))
+  DBI::dbWriteTable(con, "weight_status", compute_weight_status(
+    wd, ws, fake_goal(), list(protein_g_per_day = 140),
+    list(bjj = list(per_week = 2), lifting = list(per_week = 3))))
+  DBI::dbWriteTable(con, "weight_goal", tibble::as_tibble(fake_goal()))
   DBI::dbDisconnect(con, shutdown = TRUE)
   withr::local_envvar(PDD_DB = db)
 
@@ -65,5 +74,14 @@ test_that("the app starts and renders the Vitals plot", {
       expect_gt(nchar(output[[o]]$src), 1000)
     }
     expect_match(as.character(output$`fitness-notes`$html), "No clear effect")
+
+    # Weight tab: tiles judged against the goals, three charts
+    session$setInputs(`weight-period` = "plan", `weight-metric` = "protein_g")
+    tiles <- as.character(output$`weight-tiles`$html)
+    expect_match(tiles, "Trend weight")
+    expect_match(tiles, "Goal: 140 g")
+    for (o in c("weight-trend", "weight-weeks", "weight-intake")) {
+      expect_gt(nchar(output[[o]]$src), 1000)
+    }
   })
 })
