@@ -41,3 +41,21 @@ power:
   g_ms2: 9.81
   uncertainty: 0.15           # shown as ± on every estimate
   min_duration_s: 90          # shorter efforts read high (run-up momentum): flagged
+
+# Heart-rate device eras: Strava device_name -> era. HR models filter on era,
+# never on year (no silent splicing). Devices not listed get "unknown".
+hr_device_eras:
+  "Example Bike Computer": chest_strap
+  "Example Watch": wrist
+
+# Fitness: watts at the same heart rate per season (R/fitness_model.R)
+fitness:
+  hr_era: chest_strap         # only efforts with this HR era
+  bike_ids: [roadie]          # one bike, so its mass and position don't vary
+  min_duration_s: 90          # shorter efforts read high
+  ref_hr_bpm: 150             # predict watts at this hr_end …
+  ref_duration_s: 180         # … on a climb this long …
+  ref_hours_into_ride: 1.5    # … this far into the ride
+  min_efforts_per_season: 5
+  bootstrap: 1000
+  seed: 1
