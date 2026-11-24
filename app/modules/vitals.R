@@ -1,0 +1,60 @@
+# Vitals module: resting HR, HRV with its band, sleep, breathing rate, SpO2
+# and skin temperature, with Fitbit and Garmin as separate series.
+# The chart itself is plot_vitals() in R/plot_vitals.R.
+
+vitals_ui <- function(id) {
+  ns <- NS(id)
+  layout_sidebar(
+    sidebar = sidebar(
+      title = "Vitals",
+      radioButtons(
+        ns("range"), "Period",
+        choices = c("Last 90 days" = "90", "Last year" = "365", "Everything" = "all"),
+        selected = "90"
+      ),
+      checkboxGroupInput(
+        ns("metrics"), "Metrics",
+        choices = setNames(vitals_panels$metric, vitals_panels$label),
+        selected = vitals_panels$metric
+      ),
+      checkboxInput(ns("points"), "Show nightly values", value = TRUE)
+    ),
+    card(
+      full_screen = TRUE,
+      plotOutput(ns("plot"), height = "auto"),
+      card_footer(
+        class = "small text-muted",
+        "Points are nightly values; lines are 7-day means within one device.",
+        "HRV band: Garmin's own baseline in the Garmin era; in the Fitbit era a",
+        "derived band (mean ± 1 SD of ln RMSSD over the previous 60 nights).",
+        "Fitbit skin temperature is a deviation from Fitbit's 30-day baseline",
+        "(derived). Devices are never spliced: the dashed line marks the switch."
+      )
+    )
+  )
+}
+
+vitals_server <- function(id) {
+  moduleServer(id, function(input, output, session) {
+    # Read once per session; the build replaces the database, not the app.
+    vitals <- query("SELECT * FROM vitals_daily")
+    switch_date <- vitals_switch_date(vitals)
+    last_day <- max(as.Date(vitals$date))
+
+    metrics <- reactive({
+      validate(need(length(input$metrics) > 0, "Pick at least one metric."))
+      input$metrics
+    })
+
+    output$plot <- renderPlot(
+      {
+        from <- if (input$range == "all") NULL else last_day - as.numeric(input$range) + 1
+        plot_vitals(vitals, from = from, switch_date = switch_date,
+                    metrics = metrics(), show_points = isTRUE(input$points))
+      },
+      # Two panels per row, ~250 px per row plus room for the legend
+      height = function() 60 + 250 * ceiling(max(length(input$metrics), 1) / 2),
+      res = 96
+    )
+  })
+}
