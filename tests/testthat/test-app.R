@@ -46,6 +46,10 @@ test_that("the app starts and renders the Vitals plot", {
   DBI::dbWriteTable(con, "riding_benchmark", tibble::tibble(benchmark_climb = "Example Berg"))
   DBI::dbWriteTable(con, "riding_plan_bands", tibble::tibble(z2_low = 125, z2_high = 135, ss_low = 145,
                                                              ss_high = 152, cap = 155))
+  source(testthat::test_path("..", "..", "R", "analytics.R"), local = TRUE)
+  ad <- fake_analytics_daily()
+  DBI::dbWriteTable(con, "analytics_daily", ad)
+  DBI::dbWriteTable(con, "analytics_variables", analytics_variables(ad))
   DBI::dbDisconnect(con, shutdown = TRUE)
   withr::local_envvar(PDD_DB = db)
 
@@ -127,5 +131,22 @@ test_that("the app starts and renders the Vitals plot", {
     }
     expect_match(output$`strength-summary`, "3 session bests \u00B7 Wathen formula")
     expect_match(as.character(output$`strength-footer`$html), "back squat")
+
+    # Analytics: scatter with its statistic, over time, the overview matrix
+    session$setInputs(`analytics-view` = "scatter", `analytics-x` = "sleep_h@garmin",
+                      `analytics-y` = "hrv@garmin", `analytics-lag` = 0,
+                      `analytics-smooth` = "daily", `analytics-period` = "all")
+    expect_gt(nchar(output$`analytics-plot`$src), 1000)
+    expect_match(as.character(output$`analytics-stat`$html), "Spearman's rho 0\\.[89]")
+    session$setInputs(`analytics-y` = "hrv@fitbit")       # devices never overlap
+    expect_error(output$`analytics-plot`, "Two devices never overlap")
+    session$setInputs(`analytics-x` = "sleep_h@garmin", `analytics-y` = "sleep_h@garmin")
+    expect_error(output$`analytics-plot`, "same quantity")
+    session$setInputs(`analytics-view` = "time", `analytics-smooth` = "7d")
+    expect_gt(nchar(output$`analytics-plot`$src), 1000)
+    session$setInputs(`analytics-view` = "matrix", `analytics-lag` = 3)
+    expect_gt(nchar(output$`analytics-plot`$src), 1000)
+    expect_match(as.character(output$`analytics-top`$html), "Strongest pairs")
+    expect_match(output$`analytics-footer`, "by chance")
   })
 })
