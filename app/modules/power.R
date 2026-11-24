@@ -1,17 +1,20 @@
 # Power by duration: estimated W/kg against duration for every clean ascent,
 # against Garmin's FTP categories. Chart: plot_engine() in R/plot_engine.R.
 
+power_controls <- function(id) {
+  ns <- NS(id)
+  tagList(
+    uiOutput(ns("year_filter")),
+    checkboxInput(ns("range"), "Show the ±15% range", value = TRUE),
+    checkboxInput(ns("short"), "Include efforts under 90 s", value = TRUE)
+  )
+}
+
 power_ui <- function(id) {
   ns <- NS(id)
   card(
     full_screen = TRUE,
-    card_header(
-      class = "d-flex flex-wrap align-items-center gap-4",
-      uiOutput(ns("year_filter")),
-      checkboxInput(ns("range"), "Show the ±15% range", value = TRUE),
-      checkboxInput(ns("short"), "Include efforts under 90 s", value = TRUE),
-      textOutput(ns("summary"), inline = TRUE) %>% tagAppendAttributes(class = "small text-muted")
-    ),
+    card_header(textOutput(ns("summary"), inline = TRUE) %>% tagAppendAttributes(class = "small text-muted")),
     plotOutput(ns("plot"), height = "520px"),
     card_footer(
       class = "small text-muted",
@@ -32,7 +35,7 @@ power_server <- function(id) {
     colours <- engine_year_colours(years)
 
     output$year_filter <- renderUI({
-      checkboxGroupInput(ns("years"), NULL, choices = years, selected = years, inline = TRUE)
+      checkboxGroupInput(ns("years"), "Years", choices = years, selected = years, inline = TRUE)
     })
     shown <- reactive({
       req(input$years)

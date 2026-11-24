@@ -13,40 +13,41 @@ climb_status_icons <- list(
 climb_surface_labels <- c(cobbles = "Cobbles", part_cobbles = "Part cobbles",
                           asphalt = "Asphalt", unknown = "Not set yet")
 
+climbs_controls <- function(id) {
+  ns <- NS(id)
+  tagList(
+    checkboxGroupInput(
+      ns("surface"), "Surface",
+      choices = setNames(names(climb_surface_labels), climb_surface_labels),
+      selected = names(climb_surface_labels)
+    ),
+    uiOutput(ns("bike_filter")),
+    checkboxInput(ns("scope"), "Only rides that count for the record", value = FALSE),
+    helpText("The record counts rides with enough climbing in total",
+             "(scope_min_gain_m in config/athlete.yml).")
+  )
+}
+
 climbs_ui <- function(id) {
   ns <- NS(id)
-  layout_sidebar(
-    sidebar = sidebar(
-      title = "Climbs",
-      checkboxGroupInput(
-        ns("surface"), "Surface",
-        choices = setNames(names(climb_surface_labels), climb_surface_labels),
-        selected = names(climb_surface_labels)
-      ),
-      uiOutput(ns("bike_filter")),
-      checkboxInput(ns("scope"), "Only rides that count for the record", value = FALSE),
-      helpText("The record counts rides with enough climbing in total",
-               "(scope_min_gain_m in config/athlete.yml).")
+  card(
+    full_screen = TRUE,
+    card_header(
+      class = "d-flex justify-content-between align-items-baseline flex-wrap gap-2",
+      "Climb record",
+      textOutput(ns("summary"), inline = TRUE) %>% tagAppendAttributes(class = "small text-muted")
     ),
-    card(
-      full_screen = TRUE,
-      card_header(
-        class = "d-flex justify-content-between align-items-baseline flex-wrap gap-2",
-        "Climb record",
-        textOutput(ns("summary"), inline = TRUE) %>% tagAppendAttributes(class = "small text-muted")
-      ),
-      div(class = "table-responsive", uiOutput(ns("table"))),
-      card_footer(
-        class = "small text-muted",
-        tagList(lapply(names(climb_status_icons), \(s) {
-          i <- climb_status_icons[[s]]
-          span(class = "me-3", span(class = i$class, i$icon), " ", i$label)
-        })),
-        br(),
-        "Clean = no stop, or a stop only at the very top. Best = shortest moving time",
-        "of a clean ascent; W/kg is an estimate (\u00B115%, see Engine).",
-        "History runs oldest to newest; hover an icon for its date."
-      )
+    div(class = "table-responsive", uiOutput(ns("table"))),
+    card_footer(
+      class = "small text-muted",
+      tagList(lapply(names(climb_status_icons), \(s) {
+        i <- climb_status_icons[[s]]
+        span(class = "me-3", span(class = i$class, i$icon), " ", i$label)
+      })),
+      br(),
+      "Clean = no stop, or a stop only at the very top. Best = shortest moving time",
+      "of a clean ascent; W/kg is an estimate (\u00B115%, see Engine).",
+      "History runs oldest to newest; hover an icon for its date."
     )
   )
 }

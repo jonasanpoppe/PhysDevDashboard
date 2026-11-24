@@ -16,24 +16,24 @@ weight_heights <- c(trend = 340, weeks = 300, intake = 280)
 
 weight_ui <- function(id) {
   ns <- NS(id)
-  tagList(
+  layout_sidebar(
+    sidebar = sidebar(
+      title = "Weight",
+      selectInput(ns("figure"), "Figure", choices = weight_figures),
+      conditionalPanel(
+        "input.figure == 'trend'", ns = ns,
+        radioButtons(ns("period"), "Period",
+                     choices = c("Since 90 days before the plan" = "plan", "Everything" = "all"))
+      ),
+      conditionalPanel(
+        "input.figure == 'intake'", ns = ns,
+        selectInput(ns("metric"), "Metric",
+                    choices = setNames(names(weight_intake_metrics), weight_intake_metrics))
+      )
+    ),
     uiOutput(ns("tiles")),
     card(
       full_screen = TRUE,
-      card_header(
-        class = "d-flex flex-wrap align-items-center gap-3",
-        selectInput(ns("figure"), NULL, choices = weight_figures, width = "280px"),
-        conditionalPanel(
-          "input.figure == 'trend'", ns = ns,
-          radioButtons(ns("period"), NULL, inline = TRUE,
-                       choices = c("Since 90 days before the plan" = "plan", "Everything" = "all"))
-        ),
-        conditionalPanel(
-          "input.figure == 'intake'", ns = ns,
-          selectInput(ns("metric"), NULL, width = "220px",
-                      choices = setNames(names(weight_intake_metrics), weight_intake_metrics))
-        )
-      ),
       plotOutput(ns("plot"), height = "auto"),
       card_footer(class = "small text-muted", textOutput(ns("footer"), inline = TRUE))
     )

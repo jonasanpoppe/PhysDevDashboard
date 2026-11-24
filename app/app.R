@@ -38,13 +38,13 @@ ui <- page_navbar(
     primary = physdev$coral,
     secondary = physdev$fg_muted
   ),
-  nav_panel("Weight", weight_ui("weight")),
-  nav_panel("Strength", strength_ui("strength")),
-  nav_panel("Vitals", vitals_ui("vitals")),
+  nav_panel("⚖️ Weight", weight_ui("weight")),
+  nav_panel("🏋️ Strength", strength_ui("strength")),
+  nav_panel("❤️ Vitals", vitals_ui("vitals")),
   # Engine: everything on the bike (climbs, fitness, riding)
-  nav_panel("Engine", engine_ui("engine")),
+  nav_panel("🚴 Engine", engine_ui("engine")),
   # Analytics: any two variables side by side
-  nav_panel("Analytics", analytics_ui("analytics"))
+  nav_panel("🔍 Analytics", analytics_ui("analytics"))
 )
 
 server <- function(input, output, session) {

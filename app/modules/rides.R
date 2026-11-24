@@ -2,17 +2,20 @@
 # rides. Data: strava_rides, riding_targets (R/riding.R); charts:
 # R/plot_riding.R.
 
+rides_controls <- function(id) {
+  ns <- NS(id)
+  tagList(
+    radioButtons(ns("view"), "Show",
+                 choices = c("Km so far this year" = "cumulative", "Month by month" = "monthly",
+                             "Best rides" = "best")),
+    uiOutput(ns("year_filter"))
+  )
+}
+
 rides_ui <- function(id) {
   ns <- NS(id)
   card(
     full_screen = TRUE,
-    card_header(
-      class = "d-flex flex-wrap align-items-center gap-3",
-      radioButtons(ns("view"), NULL, inline = TRUE,
-                   choices = c("Km so far this year" = "cumulative", "Month by month" = "monthly",
-                               "Best rides" = "best")),
-      uiOutput(ns("year_filter"))
-    ),
     conditionalPanel("input.view != 'best'", ns = ns, plotOutput(ns("plot"), height = "380px")),
     conditionalPanel("input.view == 'best'", ns = ns, div(class = "table-responsive", uiOutput(ns("best")))),
     card_footer(class = "small text-muted", textOutput(ns("footer"), inline = TRUE))
@@ -28,7 +31,7 @@ rides_server <- function(id) {
     years <- sort(unique(rides$year), decreasing = TRUE)
 
     output$year_filter <- renderUI({
-      checkboxGroupInput(ns("years"), NULL, choices = years, selected = head(years, 2), inline = TRUE)
+      checkboxGroupInput(ns("years"), "Years", choices = years, selected = head(years, 2), inline = TRUE)
     })
     shown_years <- reactive(as.integer(input$years %||% head(years, 2)))
 
