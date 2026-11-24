@@ -1,4 +1,4 @@
-name,segment_id,start_lat,start_lon,end_lat,end_lon,length_m,gain_m,surface,notes
-Example Hill,1234567,50.8000,3.8000,50.8010,3.8030,950,65,cobbles,
-Second Example,7654321,50.7500,3.6000,50.7480,3.6050,1600,80,part_cobbles,
-Third Example,1111111,50.7000,3.9000,50.6990,3.9100,1200,55,asphalt,
+name,segment_id,start_lat,start_lon,end_lat,end_lon,length_m,gain_m,surface,surface_source,reviewed,variants,notes
+Example Hill,1234567,50.8000,3.8000,50.8010,3.8030,950,65,cobbles,rider,TRUE,Example Hill ¦ Example Hill (steep part),
+Second Example,7654321,50.7500,3.6000,50.7480,3.6050,1600,80,part_cobbles,rider,TRUE,Second Example,
+Third Example,1111111,50.7000,3.9000,50.6990,3.9100,1200,55,,,FALSE,Third Example ¦ Third Example full,surface still unknown: the power model assumes asphalt
