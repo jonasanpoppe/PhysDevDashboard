@@ -27,6 +27,7 @@ fake_climb_tables <- function() {
   efforts$power_high <- efforts$power_w * 1.15
   efforts$wkg <- efforts$power_w / 80
   efforts$short <- efforts$moving_s < 90
+  efforts$hr_end <- 160
   climbs$engine_label <- climbs$name == "Example Berg"
   list(efforts = efforts, climbs = climbs, bikes = bikes)
 }

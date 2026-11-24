@@ -27,8 +27,9 @@ test_that("short efforts are hollow, ranges can be hidden, labels are opt-in", {
   expect_equal(sum(vapply(labelled$layers, \(l) class(l$geom)[1], "") == "GeomText"), 2)
 })
 
-test_that("a year keeps its colour whatever is shown", {
+test_that("a year has the same colour in every view, whatever is shown", {
   cols <- engine_year_colours(c(2023, 2025, 2026))
   expect_equal(names(cols), c("2023", "2025", "2026"))
-  expect_equal(unname(cols["2026"]), physdev$cat[[3]])
+  expect_equal(unname(cols["2026"]), physdev$cat[[4]])
+  expect_equal(unname(engine_year_colours(2022:2026)["2026"]), unname(cols["2026"]))
 })

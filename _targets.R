@@ -270,6 +270,14 @@ list(
   tar_target(strength_goals, strength_goal_tables(lifts, goals_config$strength)),
   tar_target(strength_tables, write_strength_tables(strength_sessions, strength_goals, db_path = "db/health.db")),
 
+  # ── Riding (targets in goals.yml, plan bands in athlete.yml) ──────────────────
+  tar_target(strava_rides, build_rides(strava_activities)),
+  tar_target(strava_plan_bands,
+             build_plan_bands(strava_hr_histogram_branches, strava_rides, athlete_config$plan_bands)),
+  tar_target(riding_tables,
+             write_riding_tables(strava_rides, strava_plan_bands, goals_config$riding,
+                                 bands = athlete_config$plan_bands, db_path = "db/health.db")),
+
   # ── Marts ────────────────────────────────────────────────────────────────────
   tar_target(
     vitals_daily,

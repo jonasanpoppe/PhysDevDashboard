@@ -65,3 +65,11 @@ fitness:
 strength:
   e1rm_formula: wathen
   max_rir: 3
+
+# Training-plan heart-rate bands (bpm, inclusive), for plan compliance only.
+# The descriptive zones are hr_zones above; the two sets are never mixed.
+plan_bands:
+  z2: [125, 135]
+  sweet_spot: [145, 152]
+  sweet_spot_cap: 155
+  controlled_climb_cap: 158

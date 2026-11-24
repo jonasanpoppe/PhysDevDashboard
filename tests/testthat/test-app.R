@@ -39,6 +39,13 @@ test_that("the app starts and renders the Vitals plot", {
     fake_sets(), fake_lifts(), tibble::tibble(date = as.Date("2030-01-01"), trend_kg = 80)))
   DBI::dbWriteTable(con, "strength_targets", sg$targets)
   DBI::dbWriteTable(con, "strength_ceilings", sg$ceilings)
+  rt <- fake_riding_tables()
+  DBI::dbWriteTable(con, "strava_rides", rt$rides)
+  DBI::dbWriteTable(con, "strava_plan_bands", rt$bands)
+  DBI::dbWriteTable(con, "riding_targets", rt$targets)
+  DBI::dbWriteTable(con, "riding_benchmark", tibble::tibble(benchmark_climb = "Example Berg"))
+  DBI::dbWriteTable(con, "riding_plan_bands", tibble::tibble(z2_low = 125, z2_high = 135, ss_low = 145,
+                                                             ss_high = 152, cap = 155))
   DBI::dbDisconnect(con, shutdown = TRUE)
   withr::local_envvar(PDD_DB = db)
 
@@ -55,37 +62,52 @@ test_that("the app starts and renders the Vitals plot", {
     session$setInputs(`vitals-metrics` = character(0))
     expect_error(output$`vitals-plot`, "at least one metric")
 
-    # Climbs tab: the record table and its filters
-    session$setInputs(`climbs-surface` = c("cobbles", "part_cobbles", "asphalt", "unknown"),
-                      `climbs-bikes` = c("hybrid", "roadie"), `climbs-scope` = FALSE)
-    html <- as.character(output$`climbs-table`$html)
+    # Engine: one view at a time. Climb record: the table and its filters
+    session$setInputs(`engine-view` = "climbs",
+                      `engine-climbs-surface` = c("cobbles", "part_cobbles", "asphalt", "unknown"),
+                      `engine-climbs-bikes` = c("hybrid", "roadie"), `engine-climbs-scope` = FALSE)
+    html <- as.character(output$`engine-climbs-table`$html)
     expect_match(html, "Pinned Muur")
     expect_match(html, "none yet")
-    expect_equal(output$`climbs-summary`, "3 climbs \u00B7 5 ascents \u00B7 3 clean")
-    session$setInputs(`climbs-scope` = TRUE)
-    expect_equal(output$`climbs-summary`, "2 climbs \u00B7 3 ascents \u00B7 2 clean")
-    session$setInputs(`climbs-surface` = "asphalt")
-    expect_match(as.character(output$`climbs-table`$html), "No ascents with these filters")
+    expect_equal(output$`engine-climbs-summary`, "3 climbs \u00B7 5 ascents \u00B7 3 clean")
+    session$setInputs(`engine-climbs-scope` = TRUE)
+    expect_equal(output$`engine-climbs-summary`, "2 climbs \u00B7 3 ascents \u00B7 2 clean")
+    session$setInputs(`engine-climbs-surface` = "asphalt")
+    expect_match(as.character(output$`engine-climbs-table`$html), "No ascents with these filters")
 
-    # Engine tab, one figure at a time. Power by duration: clean ascents
-    # only, filters by year and short efforts
-    session$setInputs(`engine-figure` = "power", `engine-years` = "2024",
-                      `engine-range` = TRUE, `engine-short` = TRUE)
-    expect_gt(nchar(output$`engine-plot`$src), 1000)
-    expect_equal(output$`engine-summary`, "3 ascents \u00B7 2 climbs")
-    expect_match(as.character(output$`engine-footer`$html), "FTP categories")
-    session$setInputs(`engine-range` = FALSE)
-    expect_gt(nchar(output$`engine-plot`$src), 1000)
+    # Power by duration: clean ascents only, filters by year and short efforts
+    session$setInputs(`engine-view` = "power", `engine-power-years` = "2024",
+                      `engine-power-range` = TRUE, `engine-power-short` = TRUE)
+    expect_gt(nchar(output$`engine-power-plot`$src), 1000)
+    expect_equal(output$`engine-power-summary`, "3 ascents \u00B7 2 climbs")
+    session$setInputs(`engine-power-range` = FALSE)
+    expect_gt(nchar(output$`engine-power-plot`$src), 1000)
+
+    # Benchmark: the attempts on the benchmark climb
+    expect_gt(nchar(output$`engine-benchmark-plot`$src), 1000)
+    expect_match(output$`engine-benchmark-title`, "Example Berg \u00B7 3 attempts")
+
     # Watts at the same heart rate: headline and notes follow the numbers
-    session$setInputs(`engine-figure` = "fitness")
-    expect_gt(nchar(output$`engine-plot`$src), 1000)
-    expect_match(as.character(output$`engine-headline`$html), "340 W in 2031 against 360 W in 2030")
-    expect_match(as.character(output$`engine-headline`$html), "includes zero")
-    expect_match(as.character(output$`engine-footer`$html), "bootstrap intervals")
+    expect_gt(nchar(output$`engine-fitness-plot`$src), 1000)
+    expect_match(as.character(output$`engine-fitness-headline`$html), "340 W in 2031 against 360 W in 2030")
+    expect_match(as.character(output$`engine-fitness-headline`$html), "includes zero")
+    expect_match(as.character(output$`engine-fitness-footer`$html), "bootstrap intervals")
     # Training load, with the load check
-    session$setInputs(`engine-figure` = "load")
-    expect_gt(nchar(output$`engine-plot`$src), 1000)
-    expect_match(as.character(output$`engine-footer`$html), "No clear effect")
+    expect_gt(nchar(output$`engine-load-plot`$src), 1000)
+    expect_match(as.character(output$`engine-load-footer`$html), "No clear effect")
+
+    # Rides: cumulative, monthly, best rides
+    session$setInputs(`engine-rides-years` = c("2030", "2031"))
+    for (v in c("cumulative", "monthly")) {
+      session$setInputs(`engine-rides-view` = v)
+      expect_gt(nchar(output$`engine-rides-plot`$src), 1000)
+    }
+    session$setInputs(`engine-rides-view` = "best")
+    expect_match(as.character(output$`engine-rides-best`$html), "Longest")
+    # Plan: weekly hours in the bands, the band limits in the footer
+    session$setInputs(`engine-plan-period` = "all")
+    expect_gt(nchar(output$`engine-plan-plot`$src), 1000)
+    expect_match(output$`engine-plan-footer`, "125\u2013135 bpm")
 
     # Weight tab: tiles judged against the goals, then each figure in turn
     session$setInputs(`weight-figure` = "trend", `weight-period` = "plan", `weight-metric` = "protein_g")
