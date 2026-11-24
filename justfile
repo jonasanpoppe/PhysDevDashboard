@@ -1,5 +1,5 @@
 # Task runner for PhysDevDashboard. See ROADMAP.md.
-# Recipes: doctor, fetch, build, test, app, backup. Still to come: build-fixture.
+# Recipes: doctor, fetch, build, build-fixture, test, app, backup.
 #
 # Backups: an encrypted restic repository in a Backblaze B2 bucket, reached
 # through B2's S3-compatible API (restic's recommended route for B2).
@@ -35,9 +35,11 @@ doctor:
     warn() { printf '  warn  %s\n' "$*"; }
     bad()  { printf '  FAIL  %s\n' "$*"; fail=1; }
     echo "Tools"
-    for t in R Rscript uv restic; do
+    for t in R Rscript uv; do
         command -v "$t" >/dev/null && ok "$t" || bad "$t not found"
     done
+    # Only needed for backups
+    command -v restic >/dev/null && ok "restic" || warn "restic not found (needed for just backup)"
     r_duckdb=$(Rscript -e 'cat(as.character(packageVersion("duckdb")))' 2>/dev/null | tail -n1) \
         && ok "R duckdb $r_duckdb (decides the database file format)" \
         || bad "R package duckdb not installed"
@@ -61,7 +63,7 @@ doctor:
     if [[ -f .env ]]; then
         [[ "$(stat -c %a .env)" == 600 ]] && ok ".env (600)" || bad ".env should be chmod 600"
     else
-        bad ".env missing"
+        warn ".env missing (needed for just fetch and just backup)"
     fi
     [[ -f ~/.strava/tokens.json ]] && ok "Strava tokens" \
         || warn "no Strava tokens: uv run python/fetch_strava_api.py auth"
@@ -86,6 +88,10 @@ fetch-garmin:
 # Rebuild the database from data/landing/ (R loaders in _targets.R for now)
 build:
     Rscript -e 'targets::tar_make()'
+
+# Build db/fixture.db from a synthetic MacroFactor export (no personal data)
+build-fixture:
+    Rscript fixtures/build_fixture.R
 
 # Start the Shiny app on http://localhost:3838 (reads db/ read-only)
 app:
