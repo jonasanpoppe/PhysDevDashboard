@@ -7,12 +7,14 @@ library(dplyr)
 # 1. Candidates: ride segments in `countries`, not flagged elev_suspect, that
 #    look like a climb (grade, gain, length) and that you have ridden.
 # 2. Segments whose start AND end lie within `same_m` of each other describe
-#    the same climb; they form one group. The representative is the segment
-#    ridden on most activities (then the longest); the others are listed in
-#    `alt_segment_ids` and `alt_names`.
-# 3. `suggest_keep` pre-marks groups whose name looks like a named climb
+#    the same climb (e.g. the classic segment and a "from the river" one);
+#    they share a `group`. Every segment keeps its own row, so the review can
+#    pick any variant.
+# 3. `suggest_keep` pre-marks groups where a name looks like a named climb
 #    (Strava climb category, or a word like "berg", "muur", "kwaremont").
 #    It is a hint for the review, nothing more.
+# 4. Rows are sorted so a group's variants sit together, longest first, and
+#    groups by the first word of their best-known name.
 
 seed_climb_candidates <- function(
     segments, efforts,
@@ -40,39 +42,24 @@ seed_climb_candidates <- function(
   cand$group <- group_same_climb(cand, same_m)
 
   cand %>%
-    summarise(
-      .by = group,
-      # Alternates first: below, name and segment_id are overwritten by the
-      # representative's value, and later expressions would see only that.
-      alt_segment_ids = paste(as.character(segment_id)[-1], collapse = " "),
-      alt_names       = paste(setdiff(unique(name), name[1]), collapse = " | "),
-      name            = first(name),
-      segment_id      = first(as.character(segment_id)),
-      start_lat       = first(start_lat),
-      start_lon       = first(start_lng),
-      end_lat         = first(end_lat),
-      end_lon         = first(end_lng),
-      length_m        = round(first(distance_m)),
-      gain_m          = round(first(elev_gain_m)),
-      avg_grade_pct   = first(avg_grade_pct),
-      max_grade_pct   = first(max_grade_pct),
-      climb_category  = max(climb_category, na.rm = TRUE),
-      rides           = max(rides),
-      first_ridden    = min(first_ridden),
-      last_ridden     = max(last_ridden)
-    ) %>%
-    relocate(alt_segment_ids, alt_names, .after = last_ridden) %>%
     mutate(
-      suggest_keep = climb_category > 0 | looks_like_named_climb(paste(name, alt_names)),
-      keep = NA,           # to fill in: TRUE / FALSE
-      surface = NA_character_  # to fill in: cobbles / part_cobbles / asphalt
+      .by = group,
+      group_size   = n(),
+      # The most-ridden variant names the group (cand is sorted that way)
+      group_key    = climb_name_key(first(name)),
+      suggest_keep = any(climb_category > 0 | looks_like_named_climb(name))
     ) %>%
-    select(-group) %>%
-    # Variants of one climb (full, partial, "last 300 m") usually share the
-    # first word of their name: sort them together, longest first, so the
-    # review is a matter of picking one row per climb.
-    mutate(name_key = climb_name_key(name), .before = 1) %>%
-    arrange(desc(suggest_keep), name_key, desc(length_m))
+    transmute(
+      keep = NA,               # to fill in: TRUE on one row per climb
+      surface = NA_character_, # to fill in: cobbles / part_cobbles / asphalt
+      name, segment_id = as.character(segment_id),
+      group, group_size, group_key, suggest_keep,
+      start_lat, start_lon = start_lng, end_lat, end_lon = end_lng,
+      length_m = round(distance_m), gain_m = round(elev_gain_m),
+      avg_grade_pct, max_grade_pct, climb_category,
+      rides, first_ridden, last_ridden
+    ) %>%
+    arrange(desc(suggest_keep), group_key, group, desc(length_m))
 }
 
 # Single-linkage grouping on start and end points, in projected metres
