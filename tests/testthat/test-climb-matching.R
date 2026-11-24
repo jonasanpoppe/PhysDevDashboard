@@ -1,3 +1,4 @@
+source(testthat::test_path("..", "..", "R", "geo.R"))
 source(testthat::test_path("..", "..", "R", "climb_matching.R"))
 
 # A synthetic climb: 1000 m due east from an invented start point.

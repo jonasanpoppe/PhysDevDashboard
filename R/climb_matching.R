@@ -9,6 +9,8 @@ library(purrr)
 #   match_climb(stream, climb)      -> index pairs (i0, i1), one per ascent
 #   effort_metrics(stream, i0, i1)  -> stops, speeds, heart rate, status
 #   climb_efforts(stream, climbs)   -> all efforts of one ride
+#
+# Needs project_xy() from R/geo.R.
 
 read_strava_stream <- function(path) {
   s <- jsonlite::read_json(path, simplifyVector = TRUE)
@@ -23,15 +25,6 @@ read_strava_stream <- function(path) {
     dist = as.numeric(s$distance$data),
     alt  = if (is.null(s$altitude)) NA_real_ else as.numeric(s$altitude$data),
     hr   = if (is.null(s$heartrate)) NA_real_ else as.numeric(s$heartrate$data)
-  )
-}
-
-# Metres east (x) and north (y) of an origin: equirectangular projection
-# around the origin's latitude, accurate to well under a metre over a few km.
-project_xy <- function(lat, lon, lat0, lon0) {
-  list(
-    x = (lon - lon0) * 111320 * cos(lat0 * pi / 180),
-    y = (lat - lat0) * 111320
   )
 }
 
