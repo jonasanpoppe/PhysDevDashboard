@@ -14,7 +14,7 @@ engine_ui <- function(id) {
       full_screen = TRUE,
       card_header(
         class = "d-flex justify-content-between align-items-baseline flex-wrap gap-2",
-        "Engine: estimated W/kg by duration",
+        "Estimated W/kg by duration",
         textOutput(ns("summary"), inline = TRUE) %>% tagAppendAttributes(class = "small text-muted")
       ),
       plotOutput(ns("plot"), height = "520px"),

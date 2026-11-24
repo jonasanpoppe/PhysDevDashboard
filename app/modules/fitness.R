@@ -6,7 +6,7 @@ fitness_ui <- function(id) {
   ns <- NS(id)
   card(
     full_screen = TRUE,
-    card_header("Fitness: watts at the same heart rate"),
+    card_header("Watts at the same heart rate, per season"),
     uiOutput(ns("headline")),
     plotOutput(ns("seasons"), height = "260px"),
     plotOutput(ns("load"), height = "220px"),
