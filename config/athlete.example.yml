@@ -25,3 +25,19 @@ climbs:
   walk_speed_ms: [0.6, 1.5]   # walk: this speed …
   walk_min_s: 30              # … for at least this long in a row (restarting after a stop creeps ~20 s)
   scope_min_gain_m: 120       # climb record counts rides with at least this much climbing
+
+# Power model (R/power_model.R): an estimate from the physics of the climb,
+# for comparing efforts. Method settings except kit mass.
+power:
+  kit_mass_kg: 2              # clothing, shoes, bottles, tools
+  crr:                        # rolling resistance by climb surface
+    cobbles: 0.018
+    part_cobbles: 0.012
+    asphalt: 0.006
+  crr_unknown_surface: asphalt  # used, and labelled, while a surface is not set
+  cda_m2: 0.45
+  rho_kg_m3: 1.2
+  drivetrain_eff: 0.97
+  g_ms2: 9.81
+  uncertainty: 0.15           # shown as ± on every estimate
+  min_duration_s: 90          # shorter efforts read high (run-up momentum): flagged

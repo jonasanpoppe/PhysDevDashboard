@@ -66,7 +66,7 @@ list(
   tar_target(athlete_config, yaml::read_yaml(athlete_config_file)),
   # Climb library and bikes (gitignored; see the *.example.csv twins)
   tar_target(climbs_file, "config/climbs.csv", format = "file"),
-  tar_target(climbs, read_climbs(climbs_file)),
+  tar_target(climbs_listed, read_climbs(climbs_file)),
   tar_target(bikes_file, "config/bikes.csv", format = "file"),
   tar_target(bike_overrides_file, "config/bike_overrides.csv", format = "file"),
   tar_target(effort_overrides_file, "config/effort_overrides.csv", format = "file"),
@@ -204,10 +204,19 @@ list(
       bikes            = read_config_csv(bikes_file),
       bike_overrides   = read_config_csv(bike_overrides_file),
       effort_overrides = read_config_csv(effort_overrides_file),
+      climbs           = climbs,
+      weights          = rider_weight,
+      power            = athlete_config$power,
       scope_min_gain_m = athlete_config$climbs$scope_min_gain_m,
       db_path          = "db/health.db"
     )
   ),
+
+  # The climb list plus each segment's rise (for the power model)
+  tar_target(climbs, climb_rise(climbs_listed, strava_segments)),
+
+  # Rider weight for the power model: MacroFactor trend weight per day
+  tar_target(rider_weight, rider_weight_table(macrofactor_daily, db_path = "db/health.db")),
 
   # Climb list and bike names for the app (it reads only the database)
   tar_target(
@@ -215,7 +224,8 @@ list(
     write_climb_config_tables(
       climbs  = climbs,
       bikes   = read_config_csv(bikes_file),
-      pinned  = unlist(goals_config$pinned_climbs),
+      pinned   = unlist(goals_config$pinned_climbs),
+      labelled = unlist(goals_config$engine_labels),
       db_path = "db/health.db"
     )
   ),
