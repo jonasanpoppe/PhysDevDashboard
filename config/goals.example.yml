@@ -12,3 +12,23 @@ pinned_climbs: [Example Hill]
 
 # Climbs labelled on the Engine chart (e.g. a threshold reference), by name in config/climbs.csv
 engine_labels: [Example Hill]
+
+# Weight goal. The pace line starts at the trend weight on start_date and
+# drops rate_kg_per_week, flat for pause_weeks at pause_at_kg, flat again at
+# target_kg. catch_up: how a missed week is handled.
+weight_goal:
+  start_date: 2030-01-06
+  rate_kg_per_week: 0.4
+  target_kg: 75
+  pause_at_kg: 78
+  pause_weeks: 1
+  checkpoint: 2030-03-01
+  catch_up: false
+
+nutrition:
+  protein_g_per_day: 150
+
+# Sessions a week, and how they are recognised (one per day per kind at most).
+sessions:
+  bjj: {per_week: 2, strava_types: [Workout]}
+  lifting: {per_week: 3, strava_types: [WeightTraining], macrofactor_workouts: true}
