@@ -6,7 +6,7 @@ library(janitor)
 library(duckdb)
 
 load_stress_score <- function(
-    dir = "data/raw_data/takeout-20260310T172133Z-3-001/Takeout/Fitbit/Stress Score",
+    dir = "data/landing/fitbit/Takeout/Fitbit/Stress Score",
     db_path = "db/health.db"
 ) {
   con <- DBI::dbConnect(duckdb(), db_path)
