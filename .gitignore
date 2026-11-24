@@ -25,3 +25,7 @@ private/*
 
 # Editor settings
 .vscode/
+
+# Python (uv)
+.venv/
+__pycache__/

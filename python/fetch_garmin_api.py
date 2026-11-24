@@ -1,7 +1,3 @@
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["garminconnect>=0.3.2"]
-# ///
 """
 Fetch daily wellness data from the Garmin Connect API: RHR, HRV, intensity
 minutes, steps and other daily totals, SpO2, breathing rate, sleep and VO2max.
