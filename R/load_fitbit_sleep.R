@@ -22,16 +22,16 @@ load_fitbit_sleep <- function(
   json_files <- list.files(dir, pattern = "^sleep-.*\\.json$", full.names = TRUE)
   if (length(json_files) == 0) return(invisible(NULL))
 
-  logs <- json_files |>
-    map(\(f) fromJSON(f, simplifyVector = FALSE)) |>
+  logs <- json_files %>%
+    map(\(f) fromJSON(f, simplifyVector = FALSE)) %>%
     list_flatten()
 
-  sleep_data <- logs |>
-    map(fitbit_sleep_row) |>
-    list_rbind() |>
-    distinct(log_id, .keep_all = TRUE) |>
-    filter(main_sleep) |>
-    select(-main_sleep) |>
+  sleep_data <- logs %>%
+    map(fitbit_sleep_row) %>%
+    list_rbind() %>%
+    distinct(log_id, .keep_all = TRUE) %>%
+    filter(main_sleep) %>%
+    select(-main_sleep) %>%
     arrange(date)
 
   if (anyDuplicated(sleep_data$date)) {

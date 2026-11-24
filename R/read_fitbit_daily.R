@@ -11,8 +11,8 @@ read_fitbit_daily <- function(path) {
     col_types = cols(timestamp = col_character(), `data source` = col_character(),
                      .default = col_double()),
     show_col_types = FALSE
-  ) |>
-    clean_names() |>
-    mutate(date = as.Date(substr(timestamp, 1, 10)), .before = 1) |>
+  ) %>%
+    clean_names() %>%
+    mutate(date = as.Date(substr(timestamp, 1, 10)), .before = 1) %>%
     select(-timestamp, -data_source)
 }

@@ -16,8 +16,8 @@ load_hrv <- function(
   path <- file.path(dir, "daily_heart_rate_variability.csv")
   if (!file.exists(path)) return(invisible(NULL))
 
-  daily_data <- read_fitbit_daily(path) |>
-    select(date, hrv_rmssd = average_heart_rate_variability_milliseconds) |>
+  daily_data <- read_fitbit_daily(path) %>%
+    select(date, hrv_rmssd = average_heart_rate_variability_milliseconds) %>%
     arrange(date)
 
   DBI::dbWriteTable(con, "fitbit_hrv_daily", daily_data, overwrite = TRUE)
