@@ -193,23 +193,37 @@ analytics_pair <- function(daily, series, x, y, lag = 0L, smooth = "7d", from = 
   out
 }
 
-# Spearman's rho with a moving-block bootstrap interval. Rows are taken in
-# date order; blocks keep neighbouring (autocorrelated) days together, so the
-# interval is wider than the naive one, as it should be.
-spearman_block <- function(x, y, block = 14L, reps = 1000L, level = 0.95, seed = 1L) {
+# Both numbers for a pair, each with a moving-block bootstrap interval:
+#   rho    Spearman's rank correlation (monotone, robust to outliers)
+#   slope  the straight trend line drawn in the scatter (least squares):
+#          change in Y per unit of X; r2 is its share of Y's variance
+# Rows are taken in date order; blocks keep neighbouring (autocorrelated)
+# days together, so the intervals are wider than naive ones, as they should
+# be. Both statistics come from the same resamples.
+analytics_fit_stats <- function(x, y, block = 14L, reps = 1000L, level = 0.95, seed = 1L) {
   n <- length(x)
-  rho <- if (n >= 3) suppressWarnings(stats::cor(x, y, method = "spearman")) else NA_real_
-  out <- tibble(rho = rho, low = NA_real_, high = NA_real_, n = n, block = block)
-  if (n < 10 || is.na(rho)) return(out)
-  block <- min(block, max(1L, n %/% 3L))
+  stats_of <- function(x, y) {
+    if (stats::var(x) == 0 || stats::var(y) == 0) return(c(NA_real_, NA_real_, NA_real_))
+    r <- stats::cor(x, y)
+    c(rho = stats::cor(x, y, method = "spearman"), slope = r * stats::sd(y) / stats::sd(x), r2 = r^2)
+  }
+  est <- if (n >= 3) unname(stats_of(x, y)) else rep(NA_real_, 3)
+  out <- tibble(rho = est[[1]], rho_low = NA_real_, rho_high = NA_real_,
+                slope = est[[2]], slope_low = NA_real_, slope_high = NA_real_,
+                r2 = est[[3]], n = n, block = as.integer(block))
+  if (n < 10 || is.na(est[[1]])) return(out)
+  block <- min(as.integer(block), max(1L, n %/% 3L))
   starts <- seq_len(n - block + 1L)
   k <- ceiling(n / block)
   boot <- withr::with_seed(seed, vapply(seq_len(reps), \(i) {
     idx <- as.vector(outer(0:(block - 1L), sample(starts, k, replace = TRUE), `+`))[seq_len(n)]
-    suppressWarnings(stats::cor(x[idx], y[idx], method = "spearman"))
-  }, numeric(1)))
-  q <- stats::quantile(boot, c((1 - level) / 2, 1 - (1 - level) / 2), na.rm = TRUE, names = FALSE)
-  mutate(out, low = q[[1]], high = q[[2]], block = block)
+    unname(stats_of(x[idx], y[idx]))[1:2]
+  }, numeric(2)))
+  probs <- c((1 - level) / 2, 1 - (1 - level) / 2)
+  q <- function(v) stats::quantile(v, probs, na.rm = TRUE, names = FALSE)
+  qr <- q(boot[1, ]); qs <- q(boot[2, ])
+  mutate(out, rho_low = qr[[1]], rho_high = qr[[2]], slope_low = qs[[1]], slope_high = qs[[2]],
+         block = block)
 }
 
 analytics_block_len <- function(smooth) if (smooth == "weekly") 3L else 14L

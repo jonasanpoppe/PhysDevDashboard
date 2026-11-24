@@ -80,7 +80,7 @@ analytics_server <- function(id) {
         "so a Fitbit series and a Garmin series have no days in common.")))
       p
     })
-    stat <- reactive(spearman_block(pair()$x, pair()$y, block = analytics_block_len(smooth())))
+    stat <- reactive(analytics_fit_stats(pair()$x, pair()$y, block = analytics_block_len(smooth())))
     matrix_data <- reactive(analytics_matrix(daily, series, lag = lag(), smooth = smooth(), from = from()))
 
     output$stat <- renderUI({
@@ -88,10 +88,18 @@ analytics_server <- function(id) {
       s <- stat()
       unit <- if (smooth() == "weekly") "weeks" else "days"
       eff_lag <- if (smooth() == "weekly") 7L * round(lag() / 7) else lag()
-      ci <- if (is.na(s$low)) "too few values for an interval"
-            else sprintf("95%% interval %.2f to %.2f", s$low, s$high)
-      div(class = "px-3 pt-3", tags$strong(sprintf("Spearman's rho %.2f", s$rho)),
-          span(class = "text-muted", sprintf(" · %s · n = %d %s · Y %d days after X", ci, s$n, unit, eff_lag)))
+      ci <- function(lo, hi, fmt) if (is.na(lo)) "" else sprintf(paste0(" (95%% interval ", fmt, " to ", fmt, ")"), lo, hi)
+      fmt_slope <- function(v) format(signif(v, 2), big.mark = ",", scientific = FALSE, trim = TRUE)
+      slope_ci <- if (is.na(s$slope_low)) "" else
+        sprintf(" (95%% interval %s to %s)", fmt_slope(s$slope_low), fmt_slope(s$slope_high))
+      div(class = "px-3 pt-3",
+          div(tags$strong(sprintf("Spearman's rho %.2f", s$rho)),
+              span(class = "text-muted", ci(s$rho_low, s$rho_high, "%.2f"))),
+          div(tags$strong(sprintf("Straight line: %s %s per %s", fmt_slope(s$slope), sy()$unit, sx()$unit)),
+              span(class = "text-muted", slope_ci, sprintf(" · R\u00B2 %.2f", s$r2))),
+          div(class = "small text-muted",
+              sprintf("n = %d %s · Y %d days after X%s", s$n, unit, eff_lag,
+                      if (is.na(s$rho_low)) " · too few values for intervals" else "")))
     })
 
     output$plot <- renderPlot({
@@ -131,7 +139,8 @@ analytics_server <- function(id) {
     output$footer <- renderText({
       base <- paste(
         "Associations, not causes: a third thing (season, a training block) often drives both.",
-        "Neighbouring days are alike, so the interval comes from a block bootstrap and is wider than a naive one.",
+        "Rho measures any steady rise or fall; the straight line gives Y's change per unit of X and R\u00B2 how much of Y it explains.",
+        "Neighbouring days are alike, so the intervals come from a block bootstrap and are wider than naive ones.",
         "Smoothing: levels take a 7-day mean, hours and sessions a 7-day total, e1RM and W/kg the mean of what falls in the window.",
         "Devices are separate series, never pooled; model outputs are marked (model).")
       if (identical(input$view, "matrix"))

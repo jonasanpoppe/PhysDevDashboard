@@ -79,20 +79,24 @@ test_that("pairs: the lag finds the delayed relationship", {
   expect_error(analytics_pair(d, s, "hrv", "rhr@garmin"), "unknown series")
 })
 
-test_that("spearman_block: rho, an interval around it, none for tiny samples", {
+test_that("fit stats: rho and the line's slope, each with an interval; none for tiny samples", {
   d <- fake_analytics_daily()
   s <- analytics_series(d, analytics_variables(d))
   p <- analytics_pair(d, s, "sleep_h@fitbit", "hrv@fitbit", smooth = "daily")
-  r <- spearman_block(p$x, p$y, block = 14, reps = 300)
+  r <- analytics_fit_stats(p$x, p$y, block = 14, reps = 300)
   expect_gt(r$rho, 0.8)
-  expect_true(r$low <= r$rho && r$rho <= r$high)
+  expect_true(r$rho_low <= r$rho && r$rho <= r$rho_high)
+  expect_equal(r$slope, unname(coef(lm(y ~ x, p))[2]))        # the line in the scatter
+  expect_true(r$slope_low <= r$slope && r$slope <= r$slope_high)
+  expect_equal(r$slope, 8, tolerance = 0.1)                     # hrv = 40 + 8 * sleep + noise
+  expect_equal(r$r2, summary(lm(y ~ x, p))$r.squared)
   noise <- analytics_pair(d, s, "steps", "scale_kg", smooth = "7d")
-  rn <- spearman_block(noise$x, noise$y, reps = 300)
-  expect_true(rn$high - rn$low > 0.1)
-  tiny <- spearman_block(1:5, c(2, 1, 4, 3, 5))
+  rn <- analytics_fit_stats(noise$x, noise$y, reps = 300)
+  expect_true(rn$rho_high - rn$rho_low > 0.1)
+  tiny <- analytics_fit_stats(1:5, c(2, 1, 4, 3, 5))
   expect_equal(tiny$n, 5)
-  expect_true(is.na(tiny$low))
-  expect_identical(spearman_block(p$x, p$y, reps = 100), spearman_block(p$x, p$y, reps = 100))
+  expect_true(is.na(tiny$rho_low) && is.na(tiny$slope_low))
+  expect_identical(analytics_fit_stats(p$x, p$y, reps = 100), analytics_fit_stats(p$x, p$y, reps = 100))
 })
 
 test_that("matrix: no variable against itself or its family, eras never pooled, thin pairs blank", {
