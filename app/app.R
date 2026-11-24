@@ -35,13 +35,7 @@ ui <- page_navbar(
   nav_panel("Vitals", vitals_ui("vitals")),
   nav_panel("Climbs", climbs_ui("climbs")),
   # Engine: how strong (power by duration) and whether it's changing (fitness)
-  nav_panel(
-    "Engine",
-    navset_underline(
-      nav_panel("Power by duration", engine_ui("engine")),
-      nav_panel("Fitness", fitness_ui("fitness"))
-    )
-  )
+  nav_panel("Engine", engine_ui("engine"))
 )
 
 server <- function(input, output, session) {
@@ -49,7 +43,6 @@ server <- function(input, output, session) {
   vitals_server("vitals")
   climbs_server("climbs")
   engine_server("engine")
-  fitness_server("fitness")
 }
 
 shinyApp(ui, server)

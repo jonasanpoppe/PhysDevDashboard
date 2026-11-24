@@ -1,13 +1,13 @@
 library(dplyr)
 library(ggplot2)
 
-# Fitness: three stacked charts on one shared date axis, each with its own
-# y-axis (never a dual axis):
+# Fitness: charts on one shared date axis, each with its own y-axis (never a
+# dual axis):
 #   plot_fitness_seasons  watts at the reference heart rate, per season: a
 #                         band over the season's dates (its interval) with
 #                         the estimate as a line
 #   plot_fitness_load     6-week riding and running hours per week
-#   plot_fitness_weight   MacroFactor trend weight (a model output)
+# (Weight has its own tab: R/plot_weight.R.)
 # Needs R/theme_physdev.R.
 
 fitness_x_scale <- function(xlim) {
@@ -45,18 +45,6 @@ plot_fitness_load <- function(load, xlim) {
     labs(x = NULL, y = "Hours per week (6-week mean)") +
     theme_physdev(grid = "y") +
     theme(legend.position = "top", legend.justification = "left")
-}
-
-# Trend weight (line, a model output) and weigh-ins (dots, measurements):
-# a long stretch without dots is MacroFactor interpolating.
-plot_fitness_weight <- function(weight, xlim) {
-  d <- weight %>% mutate(date = as.Date(date)) %>% filter(date >= xlim[1], date <= xlim[2])
-  ggplot(d, aes(date)) +
-    geom_point(aes(y = scale_kg), colour = physdev$fg_subtle, size = 0.9, na.rm = TRUE) +
-    geom_line(aes(y = trend_kg), colour = physdev$fg_muted, linewidth = 0.7) +
-    fitness_x_scale(xlim) +
-    labs(x = NULL, y = "Weight (kg)") +
-    theme_physdev(grid = "y")
 }
 
 # Shared date range: from a little before the first modelled season to the
