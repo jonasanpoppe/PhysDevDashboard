@@ -17,7 +17,7 @@ library(ggpubr)
 library(here)
 
 # source the theme objects
-source("R/theme_anthropic.R")
+source("R/theme_physdev.R")
 source("R/health_palette.R")
 
 ```
@@ -55,13 +55,13 @@ coverage <- bind_rows(
 ggplot(coverage, aes(x = day_label, y = week, fill = factor(present))) +
   geom_tile( linewidth = 0.4, width = 0.9, height = 0.9) +
   scale_fill_manual(
-    values  = c("1" = anthropic$coral),
-    na.value = anthropic$bg_card,
+    values  = c("1" = physdev$coral),
+    na.value = physdev$bg_card,
     guide   = "none"
   ) +
   facet_wrap(~source, ncol = 1) +
   scale_y_date(date_labels = "%b %Y", date_breaks = "2 months") +
-  theme_anthropic(grid = "none") +
+  theme_physdev(grid = "none") +
   theme(
     axis.text.x = element_text(size = 8),
     axis.text.y = element_text(size = 7),
@@ -88,7 +88,7 @@ daily %>%
   ggplot(aes(x = weight_kg, y = azm_total)) +
   geom_point(aes(fill = year), shape = 21) +
   geom_smooth() +
-  theme_anthropic() +
+  theme_physdev() +
   stat_cor() +
   scale_fill_health()+
   labs(y = "Active zone minutes (total)",
@@ -102,7 +102,7 @@ daily %>%
   ggplot(aes(x = date, y = hrv_rmssd)) +
   geom_point(aes(fill = year), shape = 21) +
   geom_smooth() +
-  theme_anthropic() +
+  theme_physdev() +
   stat_cor() +
   scale_fill_health()+
   labs(y = "hrv (rmssd)",
@@ -117,7 +117,7 @@ daily %>%
   ggplot(aes(x = weight_kg, y = resting_heart_rate)) +
   geom_point(aes(fill = year), shape = 21) +
   geom_smooth() +
-  theme_anthropic() +
+  theme_physdev() +
   stat_cor() +
   scale_fill_health()+
   labs(y = "Resting heart rate (bpm)",
