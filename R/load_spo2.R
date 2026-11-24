@@ -6,7 +6,7 @@ library(janitor)
 library(duckdb)
 
 load_spo2 <- function(
-    dir = "data/raw_data/takeout-20260310T172133Z-3-001/Takeout/Fitbit/Physical Activity_GoogleData",
+    dir = "data/landing/fitbit/Takeout/Fitbit/Physical Activity_GoogleData",
     db_path = "db/health.db"
 ) {
   con <- DBI::dbConnect(duckdb(), db_path)

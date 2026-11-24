@@ -5,7 +5,7 @@ library(janitor)
 library(duckdb)
 
 load_garmin_hrv <- function(
-    dir     = "data/garmin",
+    dir     = "data/landing/garmin_export",
     db_path = "db/health.db"
 ) {
   con <- DBI::dbConnect(duckdb(), db_path)
