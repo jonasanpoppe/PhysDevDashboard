@@ -12,9 +12,12 @@ library(duckdb)
 #   one, so the power model never runs on a guessed mass.
 # - in_record_scope: the ride climbed at least scope_min_gain_m in total
 #   (the climb record counts those rides).
+# - Estimated power per effort (R/power_model.R): a model output with its
+#   range, using the rider's trend weight and the bike's mass on the day.
 
 build_strava_climb_efforts <- function(
     efforts, activities, bikes, bike_overrides, effort_overrides,
+    climbs, weights, power = list(),
     scope_min_gain_m = 120, db_path = "db/health.db"
 ) {
   rides <- activities %>%
@@ -47,7 +50,11 @@ build_strava_climb_efforts <- function(
            hr_avg, hr_end, hrs_into_ride,
            status, status_auto, status_source,
            bike_id, bike_source, bike_mass_kg, ride_gain_m, in_record_scope) %>%
+    estimate_power(climbs, weights, power) %>%
     arrange(date, start_local, climb)
+
+  no_weight <- sum(is.na(out$rider_kg))
+  if (no_weight > 0) warning(no_weight, " effort(s) before the first trend weight: no power estimate")
 
   stale <- anti_join(ov, out, by = c("activity_id", "climb"))
   if (nrow(stale) > 0) {

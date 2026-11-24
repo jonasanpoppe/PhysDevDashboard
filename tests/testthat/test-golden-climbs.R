@@ -28,10 +28,11 @@ golden_query <- function(sql) {
 }
 
 in_scope <- function(g) {
-  golden_query(sprintf(
+  e <- golden_query(sprintf(
     "SELECT * FROM strava_climb_efforts WHERE date >= DATE '%s' AND ride_gain_m >= %s",
     g$scope$since, g$scope$min_ride_gain_m
   ))
+  e[!e$climb %in% unlist(g$scope$exclude_climbs), ]
 }
 
 test_that("golden: the scope has the expected rides, ascents and climbs", {
@@ -64,6 +65,10 @@ test_that("golden: per climb, ascents, clean ascents and the best time", {
       expect_equal(min(got$moving_s[clean]), want$best_s,
                    tolerance = g$time_tolerance_s, info = name, scale = 1)
     }
+    if (!is.null(want$best_wkg)) {
+      best <- got[clean, ][which.min(got$moving_s[clean]), ]
+      expect_equal(best$wkg, want$best_wkg, tolerance = g$wkg_tolerance, scale = 1, info = name)
+    }
   }
 })
 
@@ -77,5 +82,8 @@ test_that("golden: single efforts", {
     expect_equal(nrow(got), 1, info = label)
     if (!is.null(want$stop_s)) expect_equal(got$stop_s, want$stop_s, tolerance = 1, scale = 1, info = label)
     if (!is.null(want$status)) expect_equal(got$status, want$status, info = label)
+    if (!is.null(want$power_w)) {
+      expect_equal(got$power_w, want$power_w, tolerance = g$power_tolerance, info = label)
+    }
   }
 })
