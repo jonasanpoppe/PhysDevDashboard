@@ -35,7 +35,7 @@ macrofactor_daily %>%
   ggplot(aes(x = calories_kcal, y = weight_kg)) +
   geom_point(aes(fill = year), shape = 21) +
   geom_smooth() +
-  theme_anthropic() +
+  theme_physdev() +
   scale_fill_health()+
   stat_cor() +
   labs(y = "Trend weight (kg)",

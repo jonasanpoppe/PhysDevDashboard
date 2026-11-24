@@ -38,7 +38,7 @@ list(
   tar_target(readiness_dir, "data/landing/fitbit/Takeout/Fitbit/Daily Readiness", format = "file"),
   tar_target(sleep_score_dir, "data/landing/fitbit/Takeout/Fitbit/Health Fitness Data_GoogleData", format = "file"),
   tar_target(stress_score_dir, "data/landing/fitbit/Takeout/Fitbit/Stress Score", format = "file"),
-  tar_target(garmin_wellness_dir, "data/landing/garmin_export/DI_CONNECT/DI-Connect-Wellness", format = "file"),
+  tar_target(fitbit_sleep_dir, "data/landing/fitbit/Takeout/Fitbit/Global Export Data", format = "file"),
   tar_target(garmin_api_dir, "data/landing/garmin", format = "file"),
   # Strava: summaries are one file per fetch, so re-list them every run
   tar_target(
@@ -136,16 +136,16 @@ list(
     load_sleep_score(dir = sleep_score_dir, db_path = "db/health.db")
   ),
   tar_target(
+    fitbit_sleep_daily,
+    load_fitbit_sleep(dir = fitbit_sleep_dir, db_path = "db/health.db")
+  ),
+  tar_target(
     stress_score_daily,
     load_stress_score(dir = stress_score_dir, db_path = "db/health.db")
   ),
   tar_target(
     rhr_daily,
     load_rhr(dir = physical_activity_dir, db_path = "db/health.db")
-  ),
-  tar_target(
-    garmin_wellness_daily,
-    load_garmin_wellness(dir = garmin_wellness_dir, db_path = "db/health.db")
   ),
   tar_target(
     garmin_api_daily,
@@ -172,6 +172,21 @@ list(
       activities = strava_activities,
       zones      = athlete_config$hr_zones,
       db_path    = "db/health.db"
+    )
+  ),
+
+  # ── Marts ────────────────────────────────────────────────────────────────────
+  tar_target(
+    vitals_daily,
+    build_vitals_daily(
+      fitbit_rhr   = rhr_daily,
+      fitbit_hrv   = hrv_daily,
+      fitbit_rr    = rr_daily,
+      fitbit_spo2  = spo2_daily,
+      fitbit_temp  = temperature_daily,
+      fitbit_sleep = fitbit_sleep_daily,
+      garmin       = garmin_api_daily,
+      db_path      = "db/health.db"
     )
   ),
 
@@ -207,7 +222,6 @@ list(
       full_join(sleep_score_daily, by = "date") %>%
       full_join(stress_score_daily, by = "date") %>%
       full_join(rhr_daily, by = "date") %>%
-      full_join(garmin_wellness_daily, by = "date") %>%
       full_join(garmin_api_daily, by = "date")
   )
 
