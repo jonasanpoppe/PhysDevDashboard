@@ -14,18 +14,19 @@ clean_statuses <- c("clean", "top")
 # Config tables the app needs: the climb list (with surface and pin flag) and
 # bike names. Written by the pipeline; the app only reads the database.
 write_climb_config_tables <- function(climbs, bikes, pinned = character(),
-                                      db_path = "db/health.db") {
+                                      labelled = character(), db_path = "db/health.db") {
   climbs_tbl <- climbs %>%
     transmute(
       name, segment_id, length_m, gain_m,
       avg_grade_pct = round(100 * gain_m / length_m, 1),
       surface = if ("surface" %in% names(.)) na_if(surface, "") else NA_character_,
       reviewed = if ("reviewed" %in% names(.)) as.logical(reviewed) else NA,
-      pinned = name %in% pinned
+      pinned = name %in% pinned,
+      engine_label = name %in% labelled
     )
-  unknown <- setdiff(pinned, climbs_tbl$name)
+  unknown <- setdiff(c(pinned, labelled), climbs_tbl$name)
   if (length(unknown) > 0) {
-    warning("pinned_climbs: not in climbs.csv: ", paste(unknown, collapse = ", "))
+    warning("goals.yml names climbs not in climbs.csv: ", paste(unknown, collapse = ", "))
   }
   bikes_tbl <- bikes %>%
     distinct(bike_id, .keep_all = TRUE) %>%
@@ -63,6 +64,7 @@ climb_record <- function(efforts, climbs, bikes,
       best_s       = if (any(status %in% clean_statuses)) min(moving_s[status %in% clean_statuses]) else NA_real_,
       best_date    = if (any(status %in% clean_statuses)) date[status %in% clean_statuses][which.min(moving_s[status %in% clean_statuses])] else as.Date(NA),
       best_bike    = if (any(status %in% clean_statuses)) bike_label[status %in% clean_statuses][which.min(moving_s[status %in% clean_statuses])] else NA_character_,
+      best_wkg     = if (any(status %in% clean_statuses)) wkg[status %in% clean_statuses][which.min(moving_s[status %in% clean_statuses])] else NA_real_,
       last_date    = last(date),
       last_status  = last(status),
       history      = list(tibble(date = date, status = status, moving_s = moving_s, stop_s = stop_s))

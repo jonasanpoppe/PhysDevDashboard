@@ -8,6 +8,7 @@ test_that("per climb: ascents, clean (top counts), best clean, last attempt", {
   expect_equal(eb$clean, 2)                       # clean + top
   expect_equal(eb$best_s, 240)                    # the top ascent is fastest
   expect_equal(eb$best_bike, "Roadie")            # nickname when there is one
+  expect_equal(eb$best_wkg, 380 / 80)             # W/kg of that same ascent
   expect_equal(eb$last_status, "top")
   expect_equal(eb$history[[1]]$status, c("early", "clean", "top"))  # oldest first
   muur <- r[r$climb == "Pinned Muur", ]

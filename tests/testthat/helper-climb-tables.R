@@ -21,5 +21,12 @@ fake_climb_tables <- function() {
     "hybrid", "Example Hybrid 2", NA,
     "roadie", "Example Road 1",   "Roadie"
   )
+  # Power columns as estimate_power() adds them (invented values)
+  efforts$power_w <- c(300, 360, 380, 330, 250)
+  efforts$power_low <- efforts$power_w * 0.85
+  efforts$power_high <- efforts$power_w * 1.15
+  efforts$wkg <- efforts$power_w / 80
+  efforts$short <- efforts$moving_s < 90
+  climbs$engine_label <- climbs$name == "Example Berg"
   list(efforts = efforts, climbs = climbs, bikes = bikes)
 }
