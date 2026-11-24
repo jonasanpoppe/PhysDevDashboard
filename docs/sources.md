@@ -60,10 +60,15 @@ is allowed only as a derived, labelled series beside the originals.
 
 ## Garmin Connect (one-off export)
 
-- **Role:** cross-check for the API data (resting HR, HRV) where both exist;
-  to be dropped once they agree.
+- **Role:** none; not loaded. The raw files stay in landing.
 - **Landing:** `data/landing/garmin_export/DI_CONNECT/`.
 - **Dates:** `calendarDate`, same convention as the API.
+- **Why it was dropped:** its `healthStatusData` files are Garmin's Health
+  Status: overnight averages of HRV, heart rate, SpO2, skin temperature and
+  breathing rate, each with Health Status's own baseline and status. On the
+  days both exist, every value matches the API exactly (HRV = last-night
+  average, HR = average sleeping HR, not resting HR). The baselines are a
+  different Garmin model from the HRV status band.
 
 ## Fitbit (Google Takeout, one-off backfill)
 
