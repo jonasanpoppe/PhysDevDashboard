@@ -17,6 +17,7 @@ source(file.path(project_root, "R", "theme_physdev.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_vitals.R"), local = TRUE)
 source(file.path(project_root, "R", "climb_record.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_engine.R"), local = TRUE)
+source(file.path(project_root, "R", "plot_fitness.R"), local = TRUE)
 source("db.R", local = TRUE)
 for (f in list.files("modules", pattern = "\\.R$", full.names = TRUE)) source(f, local = TRUE)
 
@@ -30,13 +31,15 @@ ui <- page_navbar(
   ),
   nav_panel("Vitals", vitals_ui("vitals")),
   nav_panel("Climbs", climbs_ui("climbs")),
-  nav_panel("Engine", engine_ui("engine"))
+  nav_panel("Engine", engine_ui("engine")),
+  nav_panel("Fitness", fitness_ui("fitness"))
 )
 
 server <- function(input, output, session) {
   vitals_server("vitals")
   climbs_server("climbs")
   engine_server("engine")
+  fitness_server("fitness")
 }
 
 shinyApp(ui, server)
