@@ -1,4 +1,8 @@
 # Copy to config/athlete.yml (gitignored) and fill in real values.
+# Home timezone (IANA name). A day is the local calendar date here; sources
+# that store UTC are converted with it. See docs/sources.md.
+home_timezone: Europe/Berlin
+
 hr_zones:
   names: [Recovery, Aerobic, Tempo, SubThreshold, SuperThreshold, Aerobic Capacity, Anaerobic]
   # Upper bound (bpm, inclusive) of zones 1-6; zone 7 is everything above.
