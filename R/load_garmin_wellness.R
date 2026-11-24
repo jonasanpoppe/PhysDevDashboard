@@ -4,7 +4,7 @@ library(purrr)
 library(duckdb)
 
 load_garmin_wellness <- function(
-    dir     = "data/raw_data/da0779f1-f01f-45e6-865a-e08f44f45e3c_1/DI_CONNECT/DI-Connect-Wellness",
+    dir     = "data/landing/garmin_export/DI_CONNECT/DI-Connect-Wellness",
     db_path = "db/health.db"
 ) {
   con <- DBI::dbConnect(duckdb(), db_path)

@@ -4,7 +4,7 @@ library(purrr)
 library(tidyr)
 library(duckdb)
 
-# Strava API → tables. The raw files under data/strava_api/ (written by
+# Strava API → tables. The raw files under data/landing/strava/ (written by
 # python/fetch_strava_api.py) are the source of truth; these tables are
 # rebuilt from them. Streams stay files: only derived summaries (time in HR
 # zone) reach the database.
@@ -223,8 +223,8 @@ strava_best_efforts_table <- function(details) {
 
 load_strava_api <- function(
     activity_files,
-    details_dir  = "data/strava_api/details",
-    segments_dir = "data/strava_api/segments",
+    details_dir  = "data/landing/strava/details",
+    segments_dir = "data/landing/strava/segments",
     db_path      = "db/health.db"
 ) {
   summaries <- read_strava_summaries(activity_files)

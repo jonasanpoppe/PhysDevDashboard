@@ -1,11 +1,7 @@
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["httpx>=0.27", "python-dotenv>=1.0"]
-# ///
 """
 Fetch everything the Strava API offers about the authenticated athlete.
 
-Saves API responses, unchanged, under data/strava_api/ for ingestion by the R
+Saves API responses, unchanged, under data/landing/strava/ for ingestion by the R
 targets pipeline:
 
   *_strava_activities.json  activity summaries, one new file per run
@@ -59,7 +55,7 @@ import httpx
 from dotenv import load_dotenv
 
 REPO_DIR = Path(__file__).resolve().parent.parent
-OUTPUT_DIR = REPO_DIR / "data" / "strava_api"
+OUTPUT_DIR = REPO_DIR / "data" / "landing" / "strava"
 DETAILS_DIR = OUTPUT_DIR / "details"
 STREAMS_DIR = OUTPUT_DIR / "streams"
 SEGMENTS_DIR = OUTPUT_DIR / "segments"

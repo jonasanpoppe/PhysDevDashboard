@@ -10,9 +10,16 @@ data/
 db/
 _targets/
 .env
-config/goals.yml
-config/athlete.yml
 CLAUDE.local.md
+
+# Personal config (goals, zones, bikes, climbs, overrides): only the
+# committed *.example.* twins with invented values are tracked
+config/*
+!config/*.example.*
+
+# Rendered outputs
+*.html
+*_files/
 
 # Private reports and modules: content stays local (backed up by restic)
 private/*
@@ -25,3 +32,7 @@ private/*
 
 # Editor settings
 .vscode/
+
+# Python (uv)
+.venv/
+__pycache__/

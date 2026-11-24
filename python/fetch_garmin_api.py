@@ -1,12 +1,8 @@
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["garminconnect>=0.3.2"]
-# ///
 """
 Fetch daily wellness data from the Garmin Connect API: RHR, HRV, intensity
 minutes, steps and other daily totals, SpO2, breathing rate, sleep and VO2max.
 
-Saves daily JSON files to data/garmin_api/ for ingestion by the R targets pipeline.
+Saves daily JSON files to data/landing/garmin/ for ingestion by the R targets pipeline.
 Tokens are cached in ~/.garminconnect/garmin_tokens.json after the first login
 (credentials from GARMIN_EMAIL / GARMIN_PASSWORD, or prompted; MFA is prompted).
 
@@ -27,7 +23,7 @@ from getpass import getpass
 from garminconnect import Garmin, GarminConnectTooManyRequestsError
 
 TOKEN_DIR = Path.home() / ".garminconnect"
-OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "garmin_api"
+OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "landing" / "garmin"
 RETRY_WAITS = (60, 180, 600)  # seconds to back off after a rate-limit error
 
 

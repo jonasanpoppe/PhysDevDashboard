@@ -17,42 +17,42 @@ list(
   # workout csv). Re-checks the folder every run so a new export is picked up.
   tar_target(
     macrofactor_file,
-    find_macrofactor_exports("data/raw_data")$summary,
+    find_macrofactor_exports("data/landing/macrofactor")$summary,
     format = "file",
     cue = tar_cue(mode = "always")
   ),
   tar_target(
     macrofactor_food_log_file,
-    find_macrofactor_exports("data/raw_data")$food_log,
+    find_macrofactor_exports("data/landing/macrofactor")$food_log,
     format = "file",
     cue = tar_cue(mode = "always")
   ),
   tar_target(
     macrofactor_workouts_file,
-    find_macrofactor_exports("data/raw_data")$workout_log,
+    find_macrofactor_exports("data/landing/macrofactor")$workout_log,
     format = "file",
     cue = tar_cue(mode = "always")
   ),
-  tar_target(azm_dir, "data/raw_data/takeout-20260310T172133Z-3-001/Takeout/Fitbit/Active Zone Minutes (AZM)", format = "file"),
-  tar_target(physical_activity_dir, "data/raw_data/takeout-20260310T172133Z-3-001/Takeout/Fitbit/Physical Activity_GoogleData", format = "file"),
-  tar_target(readiness_dir, "data/raw_data/takeout-20260310T172133Z-3-001/Takeout/Fitbit/Daily Readiness", format = "file"),
-  tar_target(sleep_score_dir, "data/raw_data/takeout-20260310T172133Z-3-001/Takeout/Fitbit/Health Fitness Data_GoogleData", format = "file"),
-  tar_target(stress_score_dir, "data/raw_data/takeout-20260310T172133Z-3-001/Takeout/Fitbit/Stress Score", format = "file"),
-  tar_target(garmin_wellness_dir, "data/raw_data/da0779f1-f01f-45e6-865a-e08f44f45e3c_1/DI_CONNECT/DI-Connect-Wellness", format = "file"),
-  tar_target(garmin_api_dir, "data/garmin_api", format = "file"),
+  tar_target(azm_dir, "data/landing/fitbit/Takeout/Fitbit/Active Zone Minutes (AZM)", format = "file"),
+  tar_target(physical_activity_dir, "data/landing/fitbit/Takeout/Fitbit/Physical Activity_GoogleData", format = "file"),
+  tar_target(readiness_dir, "data/landing/fitbit/Takeout/Fitbit/Daily Readiness", format = "file"),
+  tar_target(sleep_score_dir, "data/landing/fitbit/Takeout/Fitbit/Health Fitness Data_GoogleData", format = "file"),
+  tar_target(stress_score_dir, "data/landing/fitbit/Takeout/Fitbit/Stress Score", format = "file"),
+  tar_target(garmin_wellness_dir, "data/landing/garmin_export/DI_CONNECT/DI-Connect-Wellness", format = "file"),
+  tar_target(garmin_api_dir, "data/landing/garmin", format = "file"),
   # Strava: summaries are one file per fetch, so re-list them every run
   tar_target(
     strava_activity_files,
-    list.files("data/strava_api", "_strava_activities\\.json$", full.names = TRUE),
+    list.files("data/landing/strava", "_strava_activities\\.json$", full.names = TRUE),
     format = "file",
     cue = tar_cue(mode = "always")
   ),
-  tar_target(strava_details_dir, "data/strava_api/details", format = "file"),
-  tar_target(strava_segments_dir, "data/strava_api/segments", format = "file"),
+  tar_target(strava_details_dir, "data/landing/strava/details", format = "file"),
+  tar_target(strava_segments_dir, "data/landing/strava/segments", format = "file"),
   # One branch per stream file: only new activities are processed on a rebuild
   tar_target(
     strava_stream_paths,
-    list.files("data/strava_api/streams", "\\.json$", full.names = TRUE),
+    list.files("data/landing/strava/streams", "\\.json$", full.names = TRUE),
     cue = tar_cue(mode = "always")
   ),
   tar_target(
