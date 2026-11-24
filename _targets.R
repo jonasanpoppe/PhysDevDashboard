@@ -180,6 +180,21 @@ list(
     )
   ),
 
+  # ── Marts ────────────────────────────────────────────────────────────────────
+  tar_target(
+    vitals_daily,
+    build_vitals_daily(
+      fitbit_rhr   = rhr_daily,
+      fitbit_hrv   = hrv_daily,
+      fitbit_rr    = rr_daily,
+      fitbit_spo2  = spo2_daily,
+      fitbit_temp  = temperature_daily,
+      fitbit_sleep = fitbit_sleep_daily,
+      garmin       = garmin_api_daily,
+      db_path      = "db/health.db"
+    )
+  ),
+
   # ── Clean ───────────────────────────────────────────────────────────────────
   tar_target(
     macrofactor_daily,

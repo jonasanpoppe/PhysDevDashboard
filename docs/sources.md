@@ -84,6 +84,8 @@ is allowed only as a derived, labelled series beside the originals.
   averaging them by UTC date mixes two half-nights, and the per-sleep files
   include naps.
 - **Quirks:** the per-sleep breathing-rate columns are named "milli breaths
-  per minute" but hold breaths per minute. Skin temperature is an absolute
+  per minute" but hold breaths per minute. Daily HRV is 0 on nights that were
+  recorded but had no usable HRV (non-REM heart rate is normal on those
+  rows); the loader reads 0 as missing. Skin temperature is an absolute
   nightly value, with Fitbit's 30-day baseline beside it; Garmin gives a
   deviation instead.
