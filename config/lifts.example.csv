@@ -1,0 +1,6 @@
+exercise,group,main
+Barbell Bench Press,Bench,TRUE
+Barbell Back Squat,Squat,TRUE
+Barbell Romanian Deadlift,Deadlift and hinge,FALSE
+Conventional Deadlift,Deadlift and hinge,TRUE
+Pendlay Row,Pulling,FALSE

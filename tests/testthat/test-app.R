@@ -32,6 +32,13 @@ test_that("the app starts and renders the Vitals plot", {
     wd, ws, fake_goal(), list(protein_g_per_day = 140),
     list(bjj = list(per_week = 2), lifting = list(per_week = 3))))
   DBI::dbWriteTable(con, "weight_goal", tibble::as_tibble(fake_goal()))
+  source(testthat::test_path("..", "..", "R", "e1rm.R"), local = TRUE)
+  source(testthat::test_path("..", "..", "R", "strength.R"), local = TRUE)
+  sg <- strength_goal_tables(fake_lifts(), fake_strength_goal())
+  DBI::dbWriteTable(con, "strength_sessions", build_strength_sessions(
+    fake_sets(), fake_lifts(), tibble::tibble(date = as.Date("2030-01-01"), trend_kg = 80)))
+  DBI::dbWriteTable(con, "strength_targets", sg$targets)
+  DBI::dbWriteTable(con, "strength_ceilings", sg$ceilings)
   DBI::dbDisconnect(con, shutdown = TRUE)
   withr::local_envvar(PDD_DB = db)
 
@@ -90,5 +97,13 @@ test_that("the app starts and renders the Vitals plot", {
       expect_gt(nchar(output$`weight-plot`$src), 1000)
       expect_match(output$`weight-footer`, ".")
     }
+
+    # Strength tab: each figure, summary with the formula
+    for (f in c("lifts", "targets", "standards")) {
+      session$setInputs(`strength-figure` = f, `strength-group` = "Bench")
+      expect_gt(nchar(output$`strength-plot`$src), 1000)
+    }
+    expect_match(output$`strength-summary`, "3 session bests \u00B7 Wathen formula")
+    expect_match(as.character(output$`strength-footer`$html), "back squat")
   })
 })

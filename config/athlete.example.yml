@@ -59,3 +59,9 @@ fitness:
   min_efforts_per_season: 5
   bootstrap: 1000
   seed: 1
+
+# Strength (R/strength.R): e1RM formula ("wathen" or "epley") and the highest
+# RIR still trusted. Sets: working sets only (Standard or Failure).
+strength:
+  e1rm_formula: wathen
+  max_rir: 3
