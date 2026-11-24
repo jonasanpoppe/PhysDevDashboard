@@ -28,6 +28,7 @@ source(file.path(project_root, "R", "plot_riding.R"), local = TRUE)
 source(file.path(project_root, "R", "analytics.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_analytics.R"), local = TRUE)
 source("db.R", local = TRUE)
+physdev_font()   # register the web font once at start-up, not on the first figure
 for (f in list.files("modules", pattern = "\\.R$", full.names = TRUE)) source(f, local = TRUE)
 
 ui <- page_navbar(

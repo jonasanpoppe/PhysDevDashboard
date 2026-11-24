@@ -42,18 +42,29 @@ physdev <- list(
 
 # ── ggplot2 theme ─────────────────────────────────────────────────────────────
 
+# The web font, registered once per R session. font_add_google() downloads
+# the font each time it is called (seconds per figure), so the result is
+# kept; with no showtext or no network it falls back to "sans".
+physdev_font <- local({
+  family <- NULL
+  function() {
+    if (is.null(family)) {
+      family <<- tryCatch({
+        if (requireNamespace("showtext", quietly = TRUE) &&
+            requireNamespace("sysfonts", quietly = TRUE)) {
+          if (!"dm_sans" %in% sysfonts::font_families()) sysfonts::font_add_google("DM Sans", "dm_sans")
+          showtext::showtext_auto()
+          "dm_sans"
+        } else "sans"
+      }, error = function(e) "sans")
+    }
+    family
+  }
+})
+
 theme_physdev <- function(base_size = 12, grid = "y") {
 
-  # Requires: ggplot2, optionally sysfonts/showtext for web fonts
-  # Fallback font if showtext not loaded: "sans"
-  base_family <- tryCatch({
-    if (requireNamespace("showtext", quietly = TRUE) &&
-        requireNamespace("sysfonts", quietly = TRUE)) {
-      sysfonts::font_add_google("DM Sans", "dm_sans")
-      showtext::showtext_auto()
-      "dm_sans"
-    } else "sans"
-  }, error = function(e) "sans")
+  base_family <- physdev_font()
 
   half_line <- base_size / 2
 
