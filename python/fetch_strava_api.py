@@ -1,7 +1,3 @@
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["httpx>=0.27", "python-dotenv>=1.0"]
-# ///
 """
 Fetch everything the Strava API offers about the authenticated athlete.
 
