@@ -72,6 +72,8 @@ list(
   tar_target(effort_overrides_file, "config/effort_overrides.csv", format = "file"),
   tar_target(goals_config_file, "config/goals.yml", format = "file"),
   tar_target(goals_config, yaml::read_yaml(goals_config_file)),
+  tar_target(lifts_file, "config/lifts.csv", format = "file"),
+  tar_target(lifts, readr::read_csv(lifts_file, show_col_types = FALSE)),
 
   # ── Load raw data ────────────────────────────────────────────────────────────
   tar_target(
@@ -258,6 +260,23 @@ list(
     write_weight_tables(weight_daily, weight_weekly, sessions_daily, weight_status,
                         goal = goals_config$weight_goal, db_path = "db/health.db")
   ),
+
+  # ── Strength (lift groups in config/lifts.csv, targets in goals.yml) ─────────
+  tar_target(
+    strength_sessions,
+    build_strength_sessions(macrofactor_workout_sets, lifts, rider_weight,
+                            mf_exercise = macrofactor_exercise, settings = athlete_config$strength)
+  ),
+  tar_target(strength_goals, strength_goal_tables(lifts, goals_config$strength)),
+  tar_target(strength_tables, write_strength_tables(strength_sessions, strength_goals, db_path = "db/health.db")),
+
+  # ── Riding (targets in goals.yml, plan bands in athlete.yml) ──────────────────
+  tar_target(strava_rides, build_rides(strava_activities)),
+  tar_target(strava_plan_bands,
+             build_plan_bands(strava_hr_histogram_branches, strava_rides, athlete_config$plan_bands)),
+  tar_target(riding_tables,
+             write_riding_tables(strava_rides, strava_plan_bands, goals_config$riding,
+                                 bands = athlete_config$plan_bands, db_path = "db/health.db")),
 
   # ── Marts ────────────────────────────────────────────────────────────────────
   tar_target(

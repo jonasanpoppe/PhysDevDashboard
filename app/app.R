@@ -20,6 +20,11 @@ source(file.path(project_root, "R", "plot_engine.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_fitness.R"), local = TRUE)
 source(file.path(project_root, "R", "weight_plan.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_weight.R"), local = TRUE)
+source(file.path(project_root, "R", "e1rm.R"), local = TRUE)
+source(file.path(project_root, "R", "strength.R"), local = TRUE)
+source(file.path(project_root, "R", "plot_strength.R"), local = TRUE)
+source(file.path(project_root, "R", "riding.R"), local = TRUE)
+source(file.path(project_root, "R", "plot_riding.R"), local = TRUE)
 source("db.R", local = TRUE)
 for (f in list.files("modules", pattern = "\\.R$", full.names = TRUE)) source(f, local = TRUE)
 
@@ -32,16 +37,16 @@ ui <- page_navbar(
     secondary = physdev$fg_muted
   ),
   nav_panel("Weight", weight_ui("weight")),
+  nav_panel("Strength", strength_ui("strength")),
   nav_panel("Vitals", vitals_ui("vitals")),
-  nav_panel("Climbs", climbs_ui("climbs")),
-  # Engine: how strong (power by duration) and whether it's changing (fitness)
+  # Engine: everything on the bike (climbs, fitness, riding)
   nav_panel("Engine", engine_ui("engine"))
 )
 
 server <- function(input, output, session) {
   weight_server("weight")
+  strength_server("strength")
   vitals_server("vitals")
-  climbs_server("climbs")
   engine_server("engine")
 }
 

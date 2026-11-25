@@ -16,6 +16,22 @@ e1rm_wathen <- function(load, reps, rir = 0) {
   100 * load / (48.8 + 53.8 * exp(-0.075 * r))
 }
 
+#' Epley estimated one-rep max: load x (1 + r / 30), with r = reps + RIR.
+#' The reference dashboard's e1rm.py uses it; the roadmap prefers Wathen.
+e1rm_epley <- function(load, reps, rir = 0) {
+  stopifnot(is.numeric(load), is.numeric(reps), is.numeric(rir))
+  load * (1 + (reps + rir) / 30)
+}
+
+# e1RM by formula name ("wathen" or "epley", strength.e1rm_formula in
+# config/athlete.yml).
+e1rm_by <- function(formula, load, reps, rir) {
+  switch(formula,
+         wathen = e1rm_wathen(load, reps, rir),
+         epley = e1rm_epley(load, reps, rir),
+         stop("Unknown e1RM formula: ", formula, " (use wathen or epley)"))
+}
+
 # Set types that count as working sets for e1RM. Warm-Up, Myo and Mini-sets
 # are left out.
 E1RM_SET_TYPES <- c("Standard Set", "Failure Set")
@@ -37,7 +53,7 @@ E1RM_SET_TYPES <- c("Standard Set", "Failure Set")
 #' @param max_rir Highest RIR still trusted.
 #' @return `sets` with `is_assisted`, `load_kg`, `reps_to_failure` and
 #'   `e1rm_kg` added.
-add_set_e1rm <- function(sets, max_rir = 3) {
+add_set_e1rm <- function(sets, max_rir = 3, formula = "wathen") {
   if (!"bodyweight_kg" %in% names(sets)) {
     sets$bodyweight_kg <- NA_real_
   }
@@ -55,7 +71,7 @@ add_set_e1rm <- function(sets, max_rir = 3) {
           !is.na(rir) & rir <= max_rir &
           !is.na(reps) & reps >= 1 &
           !is.na(load_kg) & load_kg > 0,
-        e1rm_wathen(load_kg, reps, rir),
+        e1rm_by(formula, load_kg, reps, rir),
         NA_real_
       )
     )

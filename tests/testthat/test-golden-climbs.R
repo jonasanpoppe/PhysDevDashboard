@@ -102,3 +102,16 @@ test_that("golden: watts at the same heart rate per season", {
   d <- s$watts_ref[s$season == ch$to] - s$watts_ref[s$season == ch$from]
   expect_true(d >= ch$min && d <= ch$max, info = round(d))
 })
+
+test_that("golden: riding volume per year", {
+  skip_without_golden()
+  g <- yaml::read_yaml(golden_path)
+  skip_if(is.null(g$riding), "no riding block in the golden file")
+  r <- golden_query("SELECT * FROM strava_rides")
+  r <- r[r$sport_type %in% unlist(g$riding$sport_types), ]
+  for (want in g$riding$years) {
+    y <- r[r$year == want$year, ]
+    expect_equal(sum(y$km), want$km, tolerance = g$riding$tolerance, info = paste(want$year, "km"))
+    expect_equal(sum(y$moving_h), want$hours, tolerance = g$riding$tolerance, info = paste(want$year, "hours"))
+  }
+})

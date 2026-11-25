@@ -17,11 +17,12 @@ ftp_categories_men <- tibble::tribble(
   "Superior",  5.05,  Inf
 )
 
-# Fixed colour per year, from the first year with data: a year keeps its
-# colour whatever is filtered (colour follows the entity, not its rank).
+# Fixed colour per calendar year, anchored at 2023: a year has the same
+# colour in every view and whatever is filtered (colour follows the entity,
+# not its rank among the years shown).
 engine_year_colours <- function(years) {
-  years <- sort(unique(years))
-  stats::setNames(rep_len(physdev$cat, length(years)), years)
+  years <- sort(unique(as.integer(years)))
+  stats::setNames(physdev$cat[((years - 2023L) %% length(physdev$cat)) + 1L], years)
 }
 
 plot_engine <- function(efforts, year_colours = engine_year_colours(lubridate_year(efforts$date)),
