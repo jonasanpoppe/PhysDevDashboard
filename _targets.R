@@ -321,7 +321,14 @@ list(
                             mf_exercise = macrofactor_exercise, settings = athlete_config$strength,
                             max_bw_age_days = BODYWEIGHT_MAX_AGE_DAYS)
   ),
-  tar_target(strength_goals, strength_goal_tables(lifts, goals_config$strength)),
+  tar_target(strength_goals, strength_goal_tables(lifts, goals_config$strength, strength_forecast$params)),
+  # Forecast: plateau curves per main lift (R/forecast.R; config in goals.yml)
+  tar_target(
+    strength_forecast,
+    build_strength_forecast(strength_sessions, lifting_sets, goals_config$strength_forecast,
+                            goals_config$strength_ceilings) %>%
+      write_strength_forecast(db_path = "db/health.db")
+  ),
   tar_target(strength_tables, write_strength_tables(strength_sessions, strength_goals, db_path = "db/health.db")),
 
   # ── Riding (targets in goals.yml, plan bands in athlete.yml) ──────────────────
