@@ -12,7 +12,7 @@ plan_ui <- function(id) {
   card(
     full_screen = TRUE,
     card_header("Time in the plan's heart-rate bands"),
-    plotOutput(ns("plot"), height = "340px"),
+    fill_plot(ns("plot"), min_height = 300),
     card_footer(class = "small text-muted", textOutput(ns("footer"), inline = TRUE))
   )
 }

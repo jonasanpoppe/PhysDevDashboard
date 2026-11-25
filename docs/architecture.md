@@ -65,6 +65,7 @@ just backup    # restic snapshot; restore-test and backup-check verify it
 python/            fetchers (write files only)
 data/landing/      raw files per source (gitignored)
 R/                 loaders, marts and plot functions; sourced by _targets.R
+sql/               staging/ and marts/: loading in plain SQL, run by R/run_sql.R
 _targets.R         the pipeline
 db/                the database (gitignored, disposable)
 app/               app.R, db.R, modules/<view>.R
@@ -91,9 +92,13 @@ private/           private specs and plans (gitignored)
 4. **Analysis** (to come with the climbs module): climb matching, effort
    metrics, models.
 
-Loading through R functions is interim. After the climbs module works end to
-end, loading moves to plain SQL files run by DuckDB (`sql/staging`,
-`sql/marts`), and `targets` keeps only the analysis.
+Loading through R functions is interim: loading is moving to plain SQL files
+run by DuckDB (`sql/staging`, `sql/marts`), and `targets` keeps only the
+analysis. `R/run_sql.R` runs one file; `{{name}}` placeholders take landing
+paths as quoted literals, and a missing or unused name stops the run. The
+`.sql` file and its landing files are file targets, so either change reruns
+the step. First moved: the Fitbit calories
+(`sql/staging/fitbit_calories_daily.sql`, ~80× faster than the R loader).
 
 ## The database
 

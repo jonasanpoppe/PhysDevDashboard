@@ -34,12 +34,10 @@ sessions:
   lifting: {per_week: 3, strava_types: [WeightTraining], macrofactor_workouts: true}
 
 # Strength: targets for each group's main lift (config/lifts.csv), as bar
-# weight e1RM, and longer-term ceilings.
+# weight e1RM. Ceilings come from strength_ceilings (below).
 strength:
   target_date: 2030-12-31
   targets_kg: {Bench: 100, Squat: 140, "Deadlift and hinge": 170}
-  ceilings_kg:
-    steady: {Bench: [105, 115], Squat: [150, 160], "Deadlift and hinge": [180, 190]}
 
 # Riding: km per calendar year, the goal ride, and the benchmark climb (by
 # its name in config/climbs.csv).
@@ -47,3 +45,38 @@ riding:
   annual_km: {2030: 2000}
   goal_ride: {km: 100, gain_m: 800, by: 2030-06-30}
   benchmark_climb: Example Hill
+
+# Strength forecast: where each main lift's current round is heading, on a
+# plateau curve with ceiling = aptitude x elite line (R/forecast.R). Lift
+# keys map to exact exercise names; only the exact lift counts as training
+# time. thresholds_bw: a load to have lifted, times bodyweight.
+strength_forecast:
+  exercises:
+    squat:    "Barbell Back Squat"
+    bench:    "Barbell Bench Press"
+    deadlift: "Conventional Deadlift"
+  targets_kg: {bench: [110]}
+  thresholds_bw: {bench: 1.0, squat: 1.25, deadlift: 1.5}
+  single_ratio: {bench: 0.96, squat: 0.98, deadlift: 0.99}   # single / 2-6-rep e1RM
+  threshold_bodyweight_kg: 80
+  round_start: 2030-01-01
+  gap_cap_days: 14               # a gap between two sessions of the lift counts at most this long
+  min_sessions_fit: 8            # fewer sessions: start value and a fixed tau
+  horizon: 2032-12-31
+  start_override:
+    squat: {date: 2030-03-01, e1rm_kg: 100, note: "invented"}
+  first_round:                   # an earlier round's fit; t = months since origin
+    origin: 2025-01-01
+    fitted_until: 2026-12-31
+    squat:    {exp: {c: 130, y0: 60, tau: 9},  log: {a: 55, b: 30, s: 2}}
+    bench:    {exp: {c: 100, y0: 70, tau: 5},  log: {a: 68, b: 8,  s: 0.5}}
+    deadlift: {exp: {c: 160, y0: 90, tau: 11}, log: {a: 88, b: 30, s: 4}}
+
+# Ceilings: aptitude (fraction of the elite line, from fat-free mass per cm)
+# for p10, p50 (default) and p90.
+strength_ceilings:
+  target_body: {bodyweight_kg: 80, body_fat: 0.15, height_cm: 180}
+  aptitude:
+    squat:    [0.60, 0.75, 0.95]
+    bench:    [0.65, 0.75, 0.90]
+    deadlift: [0.65, 0.78, 0.95]

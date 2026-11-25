@@ -39,6 +39,38 @@ is allowed only as a derived, labelled series beside the originals.
 - **Quirks:** the workout CSV is double-encoded UTF-8 (BOM and text), handled
   in `load_macrofactor_workouts()`.
 
+## Lifting history (one-off backfills)
+
+- **System of record for:** lifting sets before MacroFactor's first day, from
+  two sources: training templates (spreadsheets) and the Strong app.
+- **Landing:** `data/landing/backfill/`, frozen:
+  `drive_templates_workout_log.csv` and `strong_workout_log.csv`. Both are
+  already converted to MacroFactor's workout-log layout (its 12 columns, names
+  and units), followed by provenance columns: source workout and exercise
+  name, how the MacroFactor exercise name was chosen, where the RIR came from
+  (`RIR Basis`) and how sure the date is (`Date Confidence`, with a window).
+- **Conversion rules** (done before landing): effort as RIR = 10 − RPE; AMRAP
+  and rep-out sets are failure sets at RIR 0, marked as assumed; assistance
+  weights negative, as MacroFactor stores them; template slots that don't say
+  which option was done keep a name ending in "(template slot)", so they never
+  enter a real lift's series.
+- **Loading:** `sql/staging/lifting_history_sets.sql` gives
+  `drive_templates_workout_sets` and `strong_workout_sets`; R stacks them with
+  `macrofactor_workout_sets` into `lifting_sets` (column `source`), with one
+  bodyweight join and one e1RM rule. A duplicate set stops the build.
+- **Frozen:** the two CSVs were built once, outside the pipeline, from the
+  template sheets and a Strong export, with a hand-made map from source
+  exercise names to MacroFactor names; each row's provenance columns say
+  where it came from. They are never rebuilt: corrections go in overrides.
+- **Dumbbells:** MacroFactor stores the weight of both dumbbells, Strong and
+  the templates one (the same curl reads about twice as heavy right after the
+  switch). Staging doubles two-dumbbell exercises; `source_weight_kg` keeps the
+  logged value. One-dumbbell exercises stay as logged.
+- **Overrides:** `config/lifting_overrides.csv` corrects a logged RIR, rep
+  count or weight for one set (for example an RPE typo), with the value the
+  set must have now, so a stale override stops the build. The raw files stay
+  untouched; `override_note` marks the changed sets.
+
 ## Strava (API, own fetcher)
 
 - **System of record for:** rides and runs (activities, laps, streams).
@@ -73,8 +105,16 @@ is allowed only as a derived, labelled series beside the originals.
 ## Fitbit (Google Takeout, one-off backfill)
 
 - **System of record for:** sleep, HRV, resting HR, breathing rate, SpO2, skin
-  temperature, before the switch to Garmin.
+  temperature, before the switch to Garmin; body weight before MacroFactor's
+  first weigh-in.
 - **Landing:** `data/landing/fitbit/Takeout/Fitbit/`, frozen.
+- **Weight:** `Physical Activity_GoogleData/weight.csv` (grams) and
+  `body_fat_*.csv`, read by `sql/staging/fitbit_weight.sql` into
+  `fitbit_weight`. Timestamps are real UTC instants; the day is the local date
+  in `home_timezone`. Body fat was typed in, so it is an estimate. The derived
+  `bodyweight_for_ratios` (R/bodyweight.R) uses these weigh-ins only before
+  MacroFactor starts, labelled `fitbit scale` next to `macrofactor trend`, and
+  a weight older than 45 days is not used.
 - **Dates:** two kinds of file, with different conventions:
 
   | Files | Timestamp | Wake-up day |

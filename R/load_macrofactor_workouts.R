@@ -70,9 +70,10 @@ fix_double_utf8 <- function(x) {
   x
 }
 
-# Adds bodyweight_kg: the most recent weight on or before each set's date.
-# `bodyweight` has columns date and bodyweight_kg; NULL gives an NA column.
-join_bodyweight <- function(sets, bodyweight) {
+# Adds bodyweight_kg: the most recent weight on or before each set's date, if
+# it is at most max_age_days old. `bodyweight` has columns date and
+# bodyweight_kg; NULL gives an NA column.
+join_bodyweight <- function(sets, bodyweight, max_age_days = Inf) {
   if (is.null(bodyweight)) {
     return(mutate(sets, bodyweight_kg = NA_real_))
   }
@@ -82,5 +83,6 @@ join_bodyweight <- function(sets, bodyweight) {
 
   sets |>
     left_join(bw, by = join_by(closest(date >= bw_date))) |>
+    mutate(bodyweight_kg = if_else(as.numeric(date - bw_date) <= max_age_days, bodyweight_kg, NA_real_)) |>
     select(-bw_date)
 }

@@ -15,7 +15,7 @@ power_ui <- function(id) {
   card(
     full_screen = TRUE,
     card_header(textOutput(ns("summary"), inline = TRUE) %>% tagAppendAttributes(class = "small text-muted")),
-    plotOutput(ns("plot"), height = "520px"),
+    fill_plot(ns("plot"), min_height = 420),
     card_footer(
       class = "small text-muted",
       "One dot per clean ascent; hollow dots are under 90 s and read high (run-up momentum).",

@@ -21,7 +21,9 @@ vitals_ui <- function(id) {
     ),
     card(
       full_screen = TRUE,
-      plotOutput(ns("plot"), height = "auto"),
+      fill_plot(ns("plot")),
+      # Its minimum height follows the number of panel rows (set below)
+      uiOutput(ns("plot_min_height"), fill = FALSE),
       card_footer(
         class = "small text-muted",
         "Points are nightly values; lines are 7-day means within one device.",
@@ -46,15 +48,17 @@ vitals_server <- function(id) {
       input$metrics
     })
 
-    output$plot <- renderPlot(
-      {
-        from <- if (input$range == "all") NULL else last_day - as.numeric(input$range) + 1
-        plot_vitals(vitals, from = from, switch_date = switch_date,
-                    metrics = metrics(), show_points = isTRUE(input$points))
-      },
-      # Two panels per row, ~250 px per row plus room for the legend
-      height = function() 60 + 250 * ceiling(max(length(input$metrics), 1) / 2),
-      res = 96
-    )
+    output$plot <- renderPlot({
+      from <- if (input$range == "all") NULL else last_day - as.numeric(input$range) + 1
+      plot_vitals(vitals, from = from, switch_date = switch_date,
+                  metrics = metrics(), show_points = isTRUE(input$points))
+    }, res = 96)
+
+    # Fills the card, but never below ~200 px per row of two panels plus
+    # room for the legend; past that the card scrolls.
+    output$plot_min_height <- renderUI({
+      rows <- ceiling(max(length(input$metrics), 1) / 2)
+      tags$style(sprintf("#%s { min-height: %dpx !important; }", session$ns("plot"), 60 + 200 * rows))
+    })
   })
 }
