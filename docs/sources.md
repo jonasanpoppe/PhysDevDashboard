@@ -39,6 +39,29 @@ is allowed only as a derived, labelled series beside the originals.
 - **Quirks:** the workout CSV is double-encoded UTF-8 (BOM and text), handled
   in `load_macrofactor_workouts()`.
 
+## Lifting history (one-off backfills)
+
+- **System of record for:** lifting sets before MacroFactor's first day, from
+  two sources: training templates (spreadsheets) and the Strong app.
+- **Landing:** `data/landing/backfill/`, frozen:
+  `drive_templates_workout_log.csv` and `strong_workout_log.csv`. Both are
+  already converted to MacroFactor's workout-log layout (its 12 columns, names
+  and units), followed by provenance columns: source workout and exercise
+  name, how the MacroFactor exercise name was chosen, where the RIR came from
+  (`RIR Basis`) and how sure the date is (`Date Confidence`, with a window).
+- **Conversion rules** (done before landing): effort as RIR = 10 − RPE; AMRAP
+  and rep-out sets are failure sets at RIR 0, marked as assumed; assistance
+  weights negative, as MacroFactor stores them; template slots that don't say
+  which option was done keep a name ending in "(template slot)", so they never
+  enter a real lift's series.
+- **Loading:** `sql/staging/lifting_history_sets.sql` gives
+  `drive_templates_workout_sets` and `strong_workout_sets`; R stacks them with
+  `macrofactor_workout_sets` into `lifting_sets` (column `source`), with one
+  bodyweight join and one e1RM rule. A duplicate set stops the build.
+- **Quirks:** dumbbell weights: MacroFactor appears to store both dumbbells,
+  Strong and the templates one; not yet harmonised, so compare dumbbell lifts
+  within one source only.
+
 ## Strava (API, own fetcher)
 
 - **System of record for:** rides and runs (activities, laps, streams).

@@ -78,7 +78,8 @@ against it (match on start time within a tolerance).
 
 | Data | System of record | Notes |
 |---|---|---|
-| Intake, body weight, lifting sets | MacroFactor export | Strength sessions logged elsewhere are ignored |
+| Intake, body weight, lifting sets | MacroFactor export | From its first day on, strength sessions logged elsewhere are ignored |
+| Lifting sets before MacroFactor | Strong export, training templates | One-off backfills in MacroFactor's layout; they end where MacroFactor starts |
 | Rides and runs (activities, streams) | Strava | Complete history; never sum rides across sources. intervals.icu is a settings source (HR zones), not a data source |
 | Climb efforts | Own matching on Strava GPS streams | Strava segments seed the climb list once; reduced polylines are not enough |
 | Sleep, HRV, resting HR | Garmin, via the own fetcher | |

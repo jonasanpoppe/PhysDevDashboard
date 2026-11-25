@@ -134,6 +134,25 @@ list(
         mutate(date = as.Date(date))
     }
   ),
+  # Lifting history before MacroFactor (one-off backfills in MacroFactor's
+  # layout), stacked with MacroFactor's sets into lifting_sets.
+  tar_target(drive_templates_workouts_file, "data/landing/backfill/drive_templates_workout_log.csv", format = "file"),
+  tar_target(strong_workouts_file, "data/landing/backfill/strong_workout_log.csv", format = "file"),
+  tar_target(sql_lifting_history, "sql/staging/lifting_history_sets.sql", format = "file"),
+  tar_target(
+    lifting_history_sets,
+    run_sql(sql_lifting_history,
+            params = list(drive_templates_csv = drive_templates_workouts_file, strong_csv = strong_workouts_file),
+            read_back = c("drive_templates_workout_sets", "strong_workout_sets"), db_path = "db/health.db")
+  ),
+  tar_target(
+    lifting_sets,
+    build_lifting_sets(
+      macrofactor_workout_sets, lifting_history_sets,
+      bodyweight = dplyr::select(macrofactor_daily, date, bodyweight_kg = trend_weight_kg)
+    ) %>%
+      write_lifting_sets(db_path = "db/health.db")
+  ),
   tar_target(
     hrv_daily,
     load_hrv(dir = physical_activity_dir, db_path = "db/health.db")
@@ -277,7 +296,7 @@ list(
   # ── Strength (lift groups in config/lifts.csv, targets in goals.yml) ─────────
   tar_target(
     strength_sessions,
-    build_strength_sessions(macrofactor_workout_sets, lifts, rider_weight,
+    build_strength_sessions(lifting_sets, lifts, rider_weight,
                             mf_exercise = macrofactor_exercise, settings = athlete_config$strength)
   ),
   tar_target(strength_goals, strength_goal_tables(lifts, goals_config$strength)),
