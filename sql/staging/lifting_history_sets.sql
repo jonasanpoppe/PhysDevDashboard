@@ -10,6 +10,12 @@
 -- (date, workout, exercise) in file order, as the MacroFactor loader does.
 -- Types are fixed here rather than sniffed: an empty column in a later
 -- rebuild must not change type.
+--
+-- Dumbbells: MacroFactor stores the weight of both dumbbells, Strong and the
+-- templates one (the same curl reads about twice as heavy right after the
+-- switch). Two-dumbbell exercises are doubled here, so a lift is one series;
+-- source_weight_kg keeps the logged value. Exercises done with one dumbbell
+-- stay as logged.
 
 CREATE OR REPLACE MACRO lifting_history_csv(path) AS TABLE
 SELECT *, row_number() OVER () AS file_row
@@ -36,7 +42,10 @@ SELECT
   "Exercise"                  AS exercise,
   "Exercise Base Weight (kg)" AS exercise_base_weight_kg,
   "Set Type"                  AS set_type,
-  "Weight (kg)"               AS weight_kg,
+  CASE WHEN "Exercise" ILIKE '%dumbbell%'
+        AND "Exercise" NOT IN ('Dumbbell Overhead Triceps Extension')
+       THEN 2 * "Weight (kg)" ELSE "Weight (kg)" END
+                              AS weight_kg,
   "Reps"                      AS reps,
   "RIR"                       AS rir,
   "Duration"                  AS duration,
@@ -46,6 +55,7 @@ SELECT
   CAST(row_number() OVER (PARTITION BY "Date", "Workout", "Exercise" ORDER BY file_row) AS INTEGER)
                               AS set_number,
   "Set Type" = 'Warm-Up Set'  AS is_warmup,
+  "Weight (kg)"               AS source_weight_kg,
   "Source"                    AS source,
   "Source Workout"            AS source_workout,
   "Source Exercise"           AS source_exercise,

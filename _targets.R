@@ -139,17 +139,38 @@ list(
   tar_target(drive_templates_workouts_file, "data/landing/backfill/drive_templates_workout_log.csv", format = "file"),
   tar_target(strong_workouts_file, "data/landing/backfill/strong_workout_log.csv", format = "file"),
   tar_target(sql_lifting_history, "sql/staging/lifting_history_sets.sql", format = "file"),
+  tar_target(lifting_overrides_file, "config/lifting_overrides.csv", format = "file"),
   tar_target(
     lifting_history_sets,
     run_sql(sql_lifting_history,
             params = list(drive_templates_csv = drive_templates_workouts_file, strong_csv = strong_workouts_file),
             read_back = c("drive_templates_workout_sets", "strong_workout_sets"), db_path = "db/health.db")
   ),
+  # Fitbit weigh-ins, and one labelled bodyweight series for ratios:
+  # MacroFactor trend from its first day, Fitbit weigh-ins before (R/bodyweight.R)
+  tar_target(fitbit_weight_file, file.path(physical_activity_dir, "weight.csv"), format = "file"),
+  tar_target(sql_fitbit_weight, "sql/staging/fitbit_weight.sql", format = "file"),
+  tar_target(
+    fitbit_weight,
+    {
+      fitbit_weight_file
+      run_sql(sql_fitbit_weight,
+              params = list(fitbit_activity_dir = physical_activity_dir, home_timezone = athlete_config$home_timezone),
+              read_back = "fitbit_weight", db_path = "db/health.db") %>%
+        mutate(date = as.Date(date))
+    }
+  ),
+  tar_target(
+    bodyweight_for_ratios,
+    build_bodyweight_for_ratios(macrofactor_daily, fitbit_weight) %>%
+      write_bodyweight_for_ratios(db_path = "db/health.db")
+  ),
   tar_target(
     lifting_sets,
     build_lifting_sets(
       macrofactor_workout_sets, lifting_history_sets,
-      bodyweight = dplyr::select(macrofactor_daily, date, bodyweight_kg = trend_weight_kg)
+      bodyweight = bodyweight_for_ratios,
+      overrides  = read_lifting_overrides(lifting_overrides_file)
     ) %>%
       write_lifting_sets(db_path = "db/health.db")
   ),
@@ -296,8 +317,9 @@ list(
   # ── Strength (lift groups in config/lifts.csv, targets in goals.yml) ─────────
   tar_target(
     strength_sessions,
-    build_strength_sessions(lifting_sets, lifts, rider_weight,
-                            mf_exercise = macrofactor_exercise, settings = athlete_config$strength)
+    build_strength_sessions(lifting_sets, lifts, bodyweight_for_ratios,
+                            mf_exercise = macrofactor_exercise, settings = athlete_config$strength,
+                            max_bw_age_days = BODYWEIGHT_MAX_AGE_DAYS)
   ),
   tar_target(strength_goals, strength_goal_tables(lifts, goals_config$strength)),
   tar_target(strength_tables, write_strength_tables(strength_sessions, strength_goals, db_path = "db/health.db")),

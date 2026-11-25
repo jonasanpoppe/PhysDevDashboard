@@ -26,7 +26,9 @@ strength_now <- function(sessions, window_days = 84) {
 }
 
 plot_strength_lifts <- function(sessions, group_name, target_kg = NA) {
-  d <- sessions %>% filter(group == group_name) %>% mutate(date = as.Date(date))
+  d <- sessions %>% filter(group == group_name) %>%
+    mutate(date = as.Date(date),
+           target_rpe = if ("rir_basis" %in% names(.)) coalesce(rir_basis == "target RPE", FALSE) else FALSE)
   # Fixed colour per lift: main lift first, then by number of sessions
   order <- d %>% count(lift, main) %>% arrange(desc(as.logical(main)), desc(n)) %>% pull(lift)
   colours <- stats::setNames(rep_len(physdev$cat, length(order)), order)
@@ -37,7 +39,9 @@ plot_strength_lifts <- function(sessions, group_name, target_kg = NA) {
     mutate(run = cumsum(c(TRUE, diff(date) > 42)), .by = lift)
   p <- ggplot(d, aes(date, e1rm, colour = lift)) +
     geom_line(aes(linewidth = as.logical(main), group = interaction(lift, run)), alpha = 0.8) +
-    geom_point(size = 1.8) +
+    # Hollow: the top set's RIR is the program's target, not what was logged
+    geom_point(aes(shape = target_rpe), size = 1.8, fill = physdev$bg) +
+    scale_shape_manual(values = c(`FALSE` = 16, `TRUE` = 21), guide = "none") +
     scale_linewidth_manual(values = c(`TRUE` = 1.1, `FALSE` = 0.5), guide = "none") +
     scale_colour_manual(values = colours, name = NULL) +
     scale_x_date(date_labels = "%b %Y", expand = expansion(mult = 0.02)) +

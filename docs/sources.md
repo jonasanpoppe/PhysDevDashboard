@@ -58,9 +58,18 @@ is allowed only as a derived, labelled series beside the originals.
   `drive_templates_workout_sets` and `strong_workout_sets`; R stacks them with
   `macrofactor_workout_sets` into `lifting_sets` (column `source`), with one
   bodyweight join and one e1RM rule. A duplicate set stops the build.
-- **Quirks:** dumbbell weights: MacroFactor appears to store both dumbbells,
-  Strong and the templates one; not yet harmonised, so compare dumbbell lifts
-  within one source only.
+- **Frozen:** the two CSVs were built once, outside the pipeline, from the
+  template sheets and a Strong export, with a hand-made map from source
+  exercise names to MacroFactor names; each row's provenance columns say
+  where it came from. They are never rebuilt: corrections go in overrides.
+- **Dumbbells:** MacroFactor stores the weight of both dumbbells, Strong and
+  the templates one (the same curl reads about twice as heavy right after the
+  switch). Staging doubles two-dumbbell exercises; `source_weight_kg` keeps the
+  logged value. One-dumbbell exercises stay as logged.
+- **Overrides:** `config/lifting_overrides.csv` corrects a logged RIR, rep
+  count or weight for one set (for example an RPE typo), with the value the
+  set must have now, so a stale override stops the build. The raw files stay
+  untouched; `override_note` marks the changed sets.
 
 ## Strava (API, own fetcher)
 
@@ -96,8 +105,16 @@ is allowed only as a derived, labelled series beside the originals.
 ## Fitbit (Google Takeout, one-off backfill)
 
 - **System of record for:** sleep, HRV, resting HR, breathing rate, SpO2, skin
-  temperature, before the switch to Garmin.
+  temperature, before the switch to Garmin; body weight before MacroFactor's
+  first weigh-in.
 - **Landing:** `data/landing/fitbit/Takeout/Fitbit/`, frozen.
+- **Weight:** `Physical Activity_GoogleData/weight.csv` (grams) and
+  `body_fat_*.csv`, read by `sql/staging/fitbit_weight.sql` into
+  `fitbit_weight`. Timestamps are real UTC instants; the day is the local date
+  in `home_timezone`. Body fat was typed in, so it is an estimate. The derived
+  `bodyweight_for_ratios` (R/bodyweight.R) uses these weigh-ins only before
+  MacroFactor starts, labelled `fitbit scale` next to `macrofactor trend`, and
+  a weight older than 45 days is not used.
 - **Dates:** two kinds of file, with different conventions:
 
   | Files | Timestamp | Wake-up day |

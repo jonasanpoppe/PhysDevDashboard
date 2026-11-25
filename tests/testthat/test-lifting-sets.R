@@ -21,7 +21,9 @@ stage_history <- function() {
   write_history(file.path(dir, "strong.csv"), c(
     "2030-02-01,3600,Evening Workout,Barbell Bench Press,,Standard Set,100,3,2.5,,,,strong,s1,Bench Press (Barbell),exact,RPE logged,exact,2030-02-01,2030-02-01,,,set 1",
     "2030-02-01,3600,Evening Workout,Assisted Pull-Up,,Standard Set,-20,8,2,,,,strong,s1,Assisted Pull Up,exact,RPE logged,exact,2030-02-01,2030-02-01,,,set 2",
-    "2030-02-01,3600,Evening Workout,Barbell Bench Press,,Standard Set,95,4,2,,,,strong,s1,Bench Press (Barbell),exact,RPE logged,exact,2030-02-01,2030-02-01,,,set 3"
+    "2030-02-01,3600,Evening Workout,Barbell Bench Press,,Standard Set,95,4,2,,,,strong,s1,Bench Press (Barbell),exact,RPE logged,exact,2030-02-01,2030-02-01,,,set 3",
+    "2030-02-01,3600,Evening Workout,Standing Dumbbell Biceps Curl,,Standard Set,12,8,2,,,,strong,s1,Bicep Curl (Dumbbell),exact,RPE logged,exact,2030-02-01,2030-02-01,,,set 4",
+    "2030-02-01,3600,Evening Workout,Dumbbell Overhead Triceps Extension,,Standard Set,12,8,2,,,,strong,s1,Triceps Extension (Dumbbell),exact,RPE logged,exact,2030-02-01,2030-02-01,,,set 5"
   ))
   db <- file.path(dir, "t.duckdb")
   run_sql(testthat::test_path("..", "..", "sql", "staging", "lifting_history_sets.sql"),
@@ -33,7 +35,7 @@ stage_history <- function() {
 test_that("staging keeps the sets, renames to the MacroFactor loader's columns, numbers sets in file order", {
   st <- suppressMessages(stage_history())
   s <- st$strong_workout_sets
-  expect_equal(nrow(s), 3)
+  expect_equal(nrow(s), 5)
   expect_equal(nrow(st$drive_templates_workout_sets), 2)
   expect_true(all(c("date", "workout", "exercise", "set_type", "weight_kg", "reps", "rir",
                     "exercise_base_weight_kg", "set_number", "is_warmup", "source", "rir_basis") %in% names(s)))
@@ -42,6 +44,16 @@ test_that("staging keeps the sets, renames to the MacroFactor loader's columns, 
   expect_equal(bench$weight_kg, c(100, 95))
   expect_equal(bench$rir, c(2.5, 2))         # fractional RIR survives
   expect_true(is.na(st$drive_templates_workout_sets$rir[2]))
+})
+
+test_that("staging doubles two-dumbbell weights (MacroFactor's convention), not one-dumbbell ones", {
+  s <- suppressMessages(stage_history())$strong_workout_sets
+  curl <- s[s$exercise == "Standing Dumbbell Biceps Curl", ]
+  expect_equal(c(curl$weight_kg, curl$source_weight_kg), c(24, 12))
+  ext <- s[s$exercise == "Dumbbell Overhead Triceps Extension", ]
+  expect_equal(c(ext$weight_kg, ext$source_weight_kg), c(12, 12))
+  bench <- s[s$exercise == "Barbell Bench Press", ]
+  expect_equal(bench$weight_kg, bench$source_weight_kg)
 })
 
 test_that("lifting_sets stacks the sources with one e1RM rule and bodyweight for assisted lifts", {
@@ -55,7 +67,7 @@ test_that("lifting_sets stacks the sources with one e1RM rule and bodyweight for
 
   out <- build_lifting_sets(mf, st, bodyweight = bw)
   expect_equal(sort(unique(out$source)), c("drive_templates", "macrofactor", "strong"))
-  expect_equal(nrow(out), 6)
+  expect_equal(nrow(out), 8)
   expect_equal(out$date, sort(out$date))
   # No RIR: no e1RM. The AMRAP (failure set, RIR 0) gets one.
   tmpl <- out[out$source == "drive_templates", ]
@@ -73,4 +85,21 @@ test_that("lifting_sets refuses a set that appears twice", {
   no_mf <- tibble::tibble(date = as.Date(character()), workout = character(), exercise = character(),
                           set_number = integer())
   expect_error(build_lifting_sets(no_mf, st), "appear twice")
+})
+
+test_that("an override changes one set and its e1RM, and refuses a value that no longer matches", {
+  st <- suppressMessages(stage_history())
+  no_mf <- tibble::tibble(date = as.Date(character()), workout = character(), exercise = character(),
+                          set_number = integer())
+  ov <- tibble::tibble(source = "strong", date = as.Date("2030-02-01"), exercise = "Barbell Bench Press",
+                       set_number = 1L, field = "rir", from = 2.5, to = 0.5, note = "typo")
+  out <- build_lifting_sets(no_mf, st, overrides = ov)
+  b <- out[out$exercise == "Barbell Bench Press" & out$source == "strong", ]
+  expect_equal(b$rir, c(0.5, 2))
+  expect_equal(b$override_note, c("typo", NA))
+  expect_equal(b$e1rm_kg[1], unname(e1rm_by("wathen", 100, 3, 0.5)))
+
+  expect_error(build_lifting_sets(no_mf, st, overrides = transform(ov, from = 3)), "not 3 as the override expects")
+  expect_error(build_lifting_sets(no_mf, st, overrides = transform(ov, set_number = 9L)), "matches 0 sets")
+  expect_error(build_lifting_sets(no_mf, st, overrides = transform(ov, field = "date")), "field not allowed")
 })

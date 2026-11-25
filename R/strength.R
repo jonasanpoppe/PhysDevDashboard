@@ -11,7 +11,8 @@ library(dplyr)
 #
 # An e1RM is an estimate from a submaximal set, not a tested max.
 
-build_strength_sessions <- function(sets, lifts, weights, mf_exercise = NULL, settings = list()) {
+build_strength_sessions <- function(sets, lifts, weights, mf_exercise = NULL, settings = list(),
+                                    max_bw_age_days = Inf) {
   s <- utils::modifyList(list(e1rm_formula = "wathen", max_rir = 3), settings %||% list())
   lifts <- lifts %>% mutate(main = as.logical(main))
 
@@ -20,15 +21,26 @@ build_strength_sessions <- function(sets, lifts, weights, mf_exercise = NULL, se
     add_set_e1rm(max_rir = s$max_rir, formula = s$e1rm_formula) %>%
     filter(!is.na(e1rm_kg)) %>%
     slice_max(e1rm_kg, n = 1, with_ties = FALSE, by = c(exercise, date)) %>%
+    # Where the top set's RIR came from: logged, or (backfills) the program's
+    # target RPE or an assumption. MacroFactor's sets are always logged.
+    mutate(rir_basis = if ("rir_basis" %in% names(.)) coalesce(rir_basis, "RPE logged") else "RPE logged") %>%
     transmute(date = as.Date(date), lift = exercise,
               top_set = sprintf("%g x %d @ %g RIR", load_kg, as.integer(reps), rir),
-              reps_to_failure, e1rm = round(e1rm_kg, 1))
+              reps_to_failure, e1rm = round(e1rm_kg, 1), rir_basis)
 
-  bw <- weights %>% transmute(bw_date = as.Date(date), bodyweight_kg = trend_kg)
+  # Bodyweight: `bodyweight_kg` (with its `basis`, from bodyweight_for_ratios)
+  # or MacroFactor's `trend_kg`; the latest value up to max_bw_age_days old.
+  bw <- weights %>%
+    transmute(bw_date = as.Date(date),
+              bodyweight_kg = if ("bodyweight_kg" %in% names(.)) bodyweight_kg else trend_kg,
+              bodyweight_basis = if ("basis" %in% names(.)) basis else "macrofactor trend")
   out <- best %>%
     inner_join(lifts, by = c(lift = "exercise")) %>%
     left_join(bw, by = join_by(closest(date >= bw_date))) %>%
-    select(-bw_date) %>%
+    mutate(stale = is.na(bw_date) | as.numeric(date - bw_date) > max_bw_age_days,
+           bodyweight_kg = if_else(stale, NA_real_, bodyweight_kg),
+           bodyweight_basis = if_else(stale, NA_character_, bodyweight_basis)) %>%
+    select(-bw_date, -stale) %>%
     mutate(x_bodyweight = e1rm / bodyweight_kg, formula = s$e1rm_formula)
 
   # MacroFactor's own 1-RM figure for the same day, for comparison only
