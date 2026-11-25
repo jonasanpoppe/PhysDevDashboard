@@ -19,3 +19,20 @@ fake_strength_goal <- function() {
   list(target_date = "2030-12-31", targets_kg = list(Bench = 110, Squat = 130),
        ceilings_kg = list(steady = list(Bench = c(110, 120), Squat = c(140, 150))))
 }
+
+# Synthetic forecast config (goals.yml shape): bench only, too few sessions
+# to fit, so it starts from the override.
+fake_forecast_config <- function() {
+  list(
+    strength_forecast = list(
+      exercises = list(bench = "Barbell Bench Press"), targets_kg = list(bench = 110),
+      thresholds_bw = list(bench = 1.2), single_ratio = list(bench = 0.96), threshold_bodyweight_kg = 80,
+      round_start = "2030-01-01", gap_cap_days = 14, min_sessions_fit = 8, horizon = "2032-12-31",
+      start_override = list(bench = list(date = "2030-03-01", e1rm_kg = 100, note = "invented")),
+      first_round = list(origin = "2025-01-01", fitted_until = "2026-12-31",
+                         bench = list(exp = list(c = 100, y0 = 70, tau = 5), log = list(a = 68, b = 8, s = 0.5)))
+    ),
+    strength_ceilings = list(target_body = list(bodyweight_kg = 80, body_fat = 0.15, height_cm = 180),
+                             aptitude = list(bench = c(0.65, 0.75, 0.9)))
+  )
+}

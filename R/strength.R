@@ -56,16 +56,26 @@ build_strength_sessions <- function(sets, lifts, weights, mf_exercise = NULL, se
   arrange(out, group, lift, date)
 }
 
-# Targets and ceilings from goals.yml, as tables.
-strength_goal_tables <- function(lifts, goal) {
+# Targets from goals.yml and ceilings, as tables. Ceilings: the forecast's
+# aptitude band (p10-p90 of aptitude x elite line, R/forecast.R) when given,
+# one band per main lift's group; otherwise goals.yml ceilings_kg.
+strength_goal_tables <- function(lifts, goal, forecast_params = NULL) {
   mains <- lifts %>% filter(as.logical(main)) %>% select(group, main_lift = exercise)
   targets <- tibble(group = names(goal$targets_kg), target_kg = unlist(goal$targets_kg),
                     target_date = as.Date(goal$target_date)) %>%
     left_join(mains, by = "group")
-  ceilings <- purrr::imap(goal$ceilings_kg %||% list(), \(groups, profile) {
-    tibble(profile = profile, group = names(groups),
-           low = unname(vapply(groups, `[[`, 1, 1)), high = unname(vapply(groups, `[[`, 1, 2)))
-  }) %>% purrr::list_rbind()
+  ceilings <- if (!is.null(forecast_params)) {
+    forecast_params %>%
+      filter(band %in% c("p10", "p90")) %>%
+      inner_join(lifts %>% select(exercise, group), by = "exercise") %>%
+      summarise(low = c[band == "p10"], high = c[band == "p90"], .by = group) %>%
+      mutate(profile = "aptitude p10–p90", .before = 1)
+  } else {
+    purrr::imap(goal$ceilings_kg %||% list(), \(groups, profile) {
+      tibble(profile = profile, group = names(groups),
+             low = unname(vapply(groups, `[[`, 1, 1)), high = unname(vapply(groups, `[[`, 1, 2)))
+    }) %>% purrr::list_rbind()
+  }
   list(targets = targets, ceilings = ceilings)
 }
 

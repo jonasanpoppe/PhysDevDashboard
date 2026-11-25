@@ -1,0 +1,4 @@
+match_on,pattern,type,basis,note
+program,Example Strength Program,strength,guess,"match_on: program (the backfill's Program column) or workout (prefix of the workout name)"
+program,Example Hypertrophy Template,hypertrophy,guess,
+workout,Block A,strength,plan,"Program name in the workout name, one per training phase"

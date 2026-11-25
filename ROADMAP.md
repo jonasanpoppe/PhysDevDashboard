@@ -188,6 +188,12 @@ and CI is green.
 - Golden test (local only, skipped in CI) against the reference output;
   synthetic tests run everywhere.
 - Shiny module: e1RM per canonical lift against targets from config.
+- Lifting history from before MacroFactor (one-off backfills in its layout),
+  stacked with one e1RM rule; corrections as overrides, never in raw files.
+- Forecast per main lift: a plateau curve with ceiling = aptitude × an elite
+  line (fat-free mass per cm), fitted on months spent training the lift;
+  dates to targets with a p10–p90 band, and loads actually lifted ("on the
+  bar") against thresholds. All in plain R functions with golden tests.
 
 **Done when:** the golden test matches to within rounding. If it doesn't, stop
 and resolve the difference before anything else.
@@ -249,6 +255,10 @@ golden tests pass.
 - Projection models in R, orchestrated by `targets` (analysis only).
 - Scenario inputs: rate of change, target date, adherence.
 - `shinytest2` for at least one module.
+- Quests: named goals with stages and checkpoints, defined in config (a new
+  quest is a config entry, not code). An overview of all quests plus one tab
+  each, with each condition checked against what was actually done. Manual
+  done flags first; automatic checks once the data is in the database.
 
 **Done when:** the app answers "am I on track?" under adjustable assumptions,
 and `mf_refresh.py` and the old Claude dashboards are no longer needed.
@@ -261,6 +271,17 @@ and `mf_refresh.py` and the old Claude dashboards are no longer needed.
 - Tailscale for access from your phone; nothing exposed to the public internet.
 
 **Done when:** the app opens on your phone over Tailscale only.
+
+### 9. Finishing touches
+
+*Learn: design systems, configurable apps.*
+
+- Styling: one visual identity across tabs, figures and tables.
+- Integration: modules share selections and dates where it helps.
+- Customisability: what is shown, and how, set from config rather than code.
+
+**Done when:** the app looks and behaves as one product, and changing what it
+shows needs no code change.
 
 ## Checklist for every PR
 

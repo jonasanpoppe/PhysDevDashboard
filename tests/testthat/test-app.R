@@ -37,6 +37,14 @@ test_that("the app starts and renders the Vitals plot", {
   sg <- strength_goal_tables(fake_lifts(), fake_strength_goal())
   DBI::dbWriteTable(con, "strength_sessions", build_strength_sessions(
     fake_sets(), fake_lifts(), tibble::tibble(date = as.Date("2030-01-01"), trend_kg = 80)))
+  source(testthat::test_path("..", "..", "R", "forecast.R"), local = TRUE)
+  fcc <- fake_forecast_config()
+  fct <- build_strength_forecast(
+    build_strength_sessions(fake_sets(), fake_lifts(), tibble::tibble(date = as.Date("2030-01-01"), trend_kg = 80)),
+    dplyr::mutate(fake_sets(), is_warmup = set_type == "Warm-Up Set"),
+    fcc$strength_forecast, fcc$strength_ceilings
+  )
+  for (n in names(fct)) DBI::dbWriteTable(con, paste0("strength_forecast_", n), fct[[n]])
   DBI::dbWriteTable(con, "strength_targets", sg$targets)
   DBI::dbWriteTable(con, "strength_ceilings", sg$ceilings)
   rt <- fake_riding_tables()
@@ -131,6 +139,14 @@ test_that("the app starts and renders the Vitals plot", {
     }
     expect_match(output$`strength-summary`, "3 session bests \u00B7 Wathen formula")
     expect_match(as.character(output$`strength-footer`$html), "back squat")
+    # Forecast: chart, both tables, the start value named in the footer
+    session$setInputs(`strength-figure` = "forecast", `strength-fc_lift` = "bench", `strength-fc_aptitude` = 0.8,
+                      `strength-fc_period` = "all", `strength-fc_history` = "monthly", `strength-fc_gap` = "14")
+    expect_gt(nchar(output$`strength-plot`$src), 1000)
+    below <- as.character(output$`strength-below`$html)
+    expect_match(below, "Target 110 kg")
+    expect_match(below, "96 kg \\(1.2 × 80 kg\\)")
+    expect_match(as.character(output$`strength-footer`$html), "starts at 100 kg")
 
     # Analytics: scatter with its statistic, over time, the overview matrix
     session$setInputs(`analytics-view` = "scatter", `analytics-x` = "sleep_h@garmin",
