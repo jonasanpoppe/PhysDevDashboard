@@ -230,6 +230,20 @@ list(
     )
   ),
 
+  # ── Analysis: fitness ────────────────────────────────────────────────────────
+  tar_target(strava_daily_load, daily_load(strava_activities)),
+  tar_target(
+    fitness_input,
+    fitness_efforts(strava_climb_efforts, strava_activities,
+                    eras = athlete_config$hr_device_eras, settings = athlete_config$fitness)
+  ),
+  tar_target(fitness_model, fit_efficiency(fitness_input, athlete_config$fitness)),
+  tar_target(fitness_check, load_check(fitness_model, strava_daily_load)),
+  tar_target(
+    fitness_tables,
+    write_fitness_tables(fitness_model, strava_daily_load, fitness_check, db_path = "db/health.db")
+  ),
+
   # ── Marts ────────────────────────────────────────────────────────────────────
   tar_target(
     vitals_daily,

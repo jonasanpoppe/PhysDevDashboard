@@ -87,3 +87,18 @@ test_that("golden: single efforts", {
     }
   }
 })
+
+test_that("golden: watts at the same heart rate per season", {
+  skip_without_golden()
+  g <- yaml::read_yaml(golden_path)
+  skip_if(is.null(g$fitness), "no fitness block in the golden file")
+  s <- golden_query("SELECT * FROM fitness_seasons")
+  for (want in g$fitness$seasons) {
+    w <- s$watts_ref[s$season == want$season]
+    expect_true(length(w) == 1 && w >= want$watts_min && w <= want$watts_max,
+                info = paste(want$season, round(w)))
+  }
+  ch <- g$fitness$season_change
+  d <- s$watts_ref[s$season == ch$to] - s$watts_ref[s$season == ch$from]
+  expect_true(d >= ch$min && d <= ch$max, info = round(d))
+})

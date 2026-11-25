@@ -74,10 +74,12 @@ power_settings <- function(cfg = list()) {
   s
 }
 
-# MacroFactor's trend weight per day (a model output, see docs/sources.md).
+# MacroFactor's trend weight per day (a model output, see docs/sources.md),
+# with the scale weight of that day where there was a weigh-in (a
+# measurement). Between sparse weigh-ins the trend is a straight line.
 rider_weight_table <- function(macrofactor_daily, db_path = "db/health.db") {
   out <- macrofactor_daily %>%
-    transmute(date = as.Date(date), trend_kg = trend_weight_kg) %>%
+    transmute(date = as.Date(date), trend_kg = trend_weight_kg, scale_kg = weight_kg) %>%
     filter(!is.na(trend_kg)) %>%
     arrange(date)
   con <- DBI::dbConnect(duckdb::duckdb(), db_path)

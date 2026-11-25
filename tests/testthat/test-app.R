@@ -17,6 +17,12 @@ test_that("the app starts and renders the Vitals plot", {
   DBI::dbWriteTable(con, "strava_climb_efforts", ct$efforts)
   DBI::dbWriteTable(con, "climbs", ct$climbs)
   DBI::dbWriteTable(con, "bikes", ct$bikes)
+  ft <- fake_fitness_tables()
+  DBI::dbWriteTable(con, "fitness_seasons", ft$seasons)
+  DBI::dbWriteTable(con, "fitness_coefficients", ft$coefs)
+  DBI::dbWriteTable(con, "fitness_load_check", ft$check)
+  DBI::dbWriteTable(con, "strava_daily_load", ft$load)
+  DBI::dbWriteTable(con, "rider_weight", ft$weight)
   DBI::dbDisconnect(con, shutdown = TRUE)
   withr::local_envvar(PDD_DB = db)
 
@@ -51,5 +57,13 @@ test_that("the app starts and renders the Vitals plot", {
     expect_equal(output$`engine-summary`, "3 ascents \u00B7 2 climbs")
     session$setInputs(`engine-range` = FALSE)
     expect_gt(nchar(output$`engine-plot`$src), 1000)
+
+    # Fitness tab: headline, three charts, notes that follow the numbers
+    expect_match(as.character(output$`fitness-headline`$html), "340 W in 2031 against 360 W in 2030")
+    expect_match(as.character(output$`fitness-headline`$html), "includes zero")
+    for (o in c("fitness-seasons", "fitness-load", "fitness-weight")) {
+      expect_gt(nchar(output[[o]]$src), 1000)
+    }
+    expect_match(as.character(output$`fitness-notes`$html), "No clear effect")
   })
 })
