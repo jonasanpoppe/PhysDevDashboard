@@ -215,6 +215,11 @@ and resolve the difference before anything else.
 - Own climb matching on full GPS streams; effort metrics and a status per
   effort (clean or with stops), with manual overrides.
 - Power model per effort (estimate, see data conventions).
+- Later: fill each climb's surface (cobbles, part cobbles, asphalt) by
+  matching the climb library against an external climb database such as
+  Climbfinder, instead of by hand. Check its terms of use before any
+  automated access; until then the surface stays empty and the power model
+  says which rolling resistance it assumed.
 - Golden tests on known efforts (local only, skipped in CI).
 - Shiny module: climb record.
 
