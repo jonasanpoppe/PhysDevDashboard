@@ -10,16 +10,18 @@ strength_heights <- c(lifts = 380, targets = 340, standards = 340)
 
 strength_ui <- function(id) {
   ns <- NS(id)
-  card(
-    full_screen = TRUE,
-    card_header(
-      class = "d-flex flex-wrap align-items-center gap-3",
-      selectInput(ns("figure"), NULL, choices = strength_figures, width = "320px"),
-      conditionalPanel("input.figure == 'lifts'", ns = ns, uiOutput(ns("group_select"))),
-      textOutput(ns("summary"), inline = TRUE) %>% tagAppendAttributes(class = "small text-muted")
+  layout_sidebar(
+    sidebar = sidebar(
+      title = "Strength",
+      selectInput(ns("figure"), "Figure", choices = strength_figures),
+      conditionalPanel("input.figure == 'lifts'", ns = ns, uiOutput(ns("group_select")))
     ),
-    plotOutput(ns("plot"), height = "auto"),
-    card_footer(class = "small text-muted", uiOutput(ns("footer")))
+    card(
+      full_screen = TRUE,
+      card_header(textOutput(ns("summary"), inline = TRUE) %>% tagAppendAttributes(class = "small text-muted")),
+      plotOutput(ns("plot"), height = "auto"),
+      card_footer(class = "small text-muted", uiOutput(ns("footer")))
+    )
   )
 }
 
@@ -34,7 +36,7 @@ strength_server <- function(id) {
     formula <- unique(sessions$formula)[1]
     groups <- unique(c(targets$group, sort(unique(sessions$group))))
 
-    output$group_select <- renderUI(selectInput(ns("group"), NULL, choices = groups, width = "200px"))
+    output$group_select <- renderUI(selectInput(ns("group"), "Lift group", choices = groups))
 
     output$summary <- renderText({
       sprintf("%d session bests · %s formula · last session %s",

@@ -278,6 +278,21 @@ list(
              write_riding_tables(strava_rides, strava_plan_bands, goals_config$riding,
                                  bands = athlete_config$plan_bands, db_path = "db/health.db")),
 
+  # ── Analytics: any two daily variables (R/analytics.R) ──────────────────────
+  tar_target(
+    analytics_daily,
+    build_analytics_daily(weight_daily, vitals_daily, strava_daily_load, sessions_daily,
+                          strava_plan_bands, strength_sessions, strava_climb_efforts)
+  ),
+  tar_target(
+    analytics_tables,
+    write_analytics_tables(
+      analytics_daily,
+      e1rm_groups = unique(strength_sessions$group[as.logical(strength_sessions$main)]),
+      db_path = "db/health.db"
+    )
+  ),
+
   # ── Marts ────────────────────────────────────────────────────────────────────
   tar_target(
     vitals_daily,

@@ -25,7 +25,10 @@ source(file.path(project_root, "R", "strength.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_strength.R"), local = TRUE)
 source(file.path(project_root, "R", "riding.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_riding.R"), local = TRUE)
+source(file.path(project_root, "R", "analytics.R"), local = TRUE)
+source(file.path(project_root, "R", "plot_analytics.R"), local = TRUE)
 source("db.R", local = TRUE)
+physdev_font()   # register the web font once at start-up, not on the first figure
 for (f in list.files("modules", pattern = "\\.R$", full.names = TRUE)) source(f, local = TRUE)
 
 ui <- page_navbar(
@@ -36,11 +39,13 @@ ui <- page_navbar(
     primary = physdev$coral,
     secondary = physdev$fg_muted
   ),
-  nav_panel("Weight", weight_ui("weight")),
-  nav_panel("Strength", strength_ui("strength")),
-  nav_panel("Vitals", vitals_ui("vitals")),
+  nav_panel("⚖️ Weight", weight_ui("weight")),
+  nav_panel("🏋️ Strength", strength_ui("strength")),
+  nav_panel("❤️ Vitals", vitals_ui("vitals")),
   # Engine: everything on the bike (climbs, fitness, riding)
-  nav_panel("Engine", engine_ui("engine"))
+  nav_panel("🚴 Engine", engine_ui("engine")),
+  # Analytics: any two variables side by side
+  nav_panel("🔍 Analytics", analytics_ui("analytics"))
 )
 
 server <- function(input, output, session) {
@@ -48,6 +53,7 @@ server <- function(input, output, session) {
   strength_server("strength")
   vitals_server("vitals")
   engine_server("engine")
+  analytics_server("analytics")
 }
 
 shinyApp(ui, server)

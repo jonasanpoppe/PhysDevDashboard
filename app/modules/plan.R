@@ -1,16 +1,17 @@
 # Plan: hours per week in the training plan's heart-rate bands (Zone 2,
 # sweet spot, above the cap). Chart: plot_plan_bands() in R/plot_riding.R.
 
+plan_controls <- function(id) {
+  ns <- NS(id)
+  radioButtons(ns("period"), "Period",
+               choices = c("Last 6 months" = "6m", "Last year" = "1y", "Everything" = "all"))
+}
+
 plan_ui <- function(id) {
   ns <- NS(id)
   card(
     full_screen = TRUE,
-    card_header(
-      class = "d-flex flex-wrap align-items-center gap-3",
-      "Time in the plan's heart-rate bands",
-      radioButtons(ns("period"), NULL, inline = TRUE,
-                   choices = c("Last 6 months" = "6m", "Last year" = "1y", "Everything" = "all"))
-    ),
+    card_header("Time in the plan's heart-rate bands"),
     plotOutput(ns("plot"), height = "340px"),
     card_footer(class = "small text-muted", textOutput(ns("footer"), inline = TRUE))
   )
