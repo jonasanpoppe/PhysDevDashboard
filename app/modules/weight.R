@@ -12,8 +12,6 @@ weight_footers <- list(
   intake = "Weekly averages over logged days. The day of the export is left out: it wasn't finished."
 )
 
-weight_heights <- c(trend = 340, weeks = 300, intake = 280)
-
 weight_ui <- function(id) {
   ns <- NS(id)
   layout_sidebar(
@@ -34,7 +32,7 @@ weight_ui <- function(id) {
     uiOutput(ns("tiles")),
     card(
       full_screen = TRUE,
-      plotOutput(ns("plot"), height = "auto"),
+      fill_plot(ns("plot"), min_height = 280),
       card_footer(class = "small text-muted", textOutput(ns("footer"), inline = TRUE))
     )
   )
@@ -57,7 +55,7 @@ weight_server <- function(id) {
         )
       }
       layout_column_wrap(
-        width = "220px", fill = FALSE, class = "mb-3",
+        width = "150px", fill = FALSE, gap = "0.6rem", class = "mb-3 tiles-compact",
         tile("Trend weight", sprintf("%.1f kg", st$trend_kg), sprintf("On %s", format(st$date, "%d %b %Y"))),
         tile("Rate, last 4 weeks", sprintf("%+.2f kg/wk", st$rate_4w),
              sprintf("Goal: %+.2f kg a week", st$goal_rate), ok = st$rate_4w <= st$goal_rate),
@@ -84,7 +82,7 @@ weight_server <- function(id) {
         intake = plot_weight_intake(weekly, input$metric %||% "kcal",
                                     if (identical(input$metric, "protein_g")) st$protein_goal else NULL)
       )
-    }, height = function() weight_heights[[input$figure %||% "trend"]], res = 96)
+    }, res = 96)
 
     output$footer <- renderText(weight_footers[[input$figure %||% "trend"]])
   })

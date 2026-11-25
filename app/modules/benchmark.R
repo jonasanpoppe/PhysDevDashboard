@@ -7,7 +7,7 @@ benchmark_ui <- function(id) {
   card(
     full_screen = TRUE,
     card_header(textOutput(ns("title"), inline = TRUE)),
-    plotOutput(ns("plot"), height = "340px"),
+    fill_plot(ns("plot"), min_height = 300),
     div(class = "table-responsive", uiOutput(ns("table"))),
     card_footer(class = "small text-muted",
                 "Filled: clean ascents; hollow: stopped on the way. Watts are estimates (±15%), wind ignored: compare attempts ridden fresh and steady. Heart rate: the last 30 s of the climb.")

@@ -6,7 +6,6 @@ strength_figures <- c("e1RM by lift" = "lifts",
                       "Main lifts against targets and ceilings" = "targets",
                       "Strength standards (× bodyweight)" = "standards")
 
-strength_heights <- c(lifts = 380, targets = 340, standards = 340)
 
 strength_ui <- function(id) {
   ns <- NS(id)
@@ -19,7 +18,7 @@ strength_ui <- function(id) {
     card(
       full_screen = TRUE,
       card_header(textOutput(ns("summary"), inline = TRUE) %>% tagAppendAttributes(class = "small text-muted")),
-      plotOutput(ns("plot"), height = "auto"),
+      fill_plot(ns("plot"), min_height = 320),
       card_footer(class = "small text-muted", uiOutput(ns("footer")))
     )
   )
@@ -51,7 +50,7 @@ strength_server <- function(id) {
         },
         targets = plot_strength_targets(now, targets, ceilings),
         standards = plot_strength_standards(now, strength_standards))
-    }, height = function() strength_heights[[figure()]], res = 96)
+    }, res = 96)
 
     output$footer <- renderUI({
       common <- sprintf("Estimated one-rep max from the best working set of each session (%s formula, RIR 3 or less, bar weight incl. machine base weight): an estimate, not a tested max.",

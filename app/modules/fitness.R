@@ -7,7 +7,7 @@ fitness_ui <- function(id, which = c("fitness", "load")) {
   card(
     full_screen = TRUE,
     if (which == "fitness") uiOutput(ns("headline")),
-    plotOutput(ns("plot"), height = if (which == "fitness") "320px" else "300px"),
+    fill_plot(ns("plot"), min_height = 300),
     card_footer(class = "small text-muted", uiOutput(ns("footer")))
   )
 }

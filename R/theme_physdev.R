@@ -85,8 +85,10 @@ theme_physdev <- function(base_size = 12, grid = "y") {
       panel.grid.minor   = ggplot2::element_blank(),
 
       # ── Axes
-      axis.line        = ggplot2::element_blank(),
-      axis.ticks       = ggplot2::element_blank(),
+      # Both axes drawn, with short ticks, so each panel reads as a frame
+      axis.line        = ggplot2::element_line(colour = physdev$fg_muted, linewidth = 0.4),
+      axis.ticks       = ggplot2::element_line(colour = physdev$fg_muted, linewidth = 0.4),
+      axis.ticks.length = grid::unit(3, "pt"),
       axis.text        = ggplot2::element_text(colour = physdev$fg_muted, size = ggplot2::rel(0.85)),
       axis.title       = ggplot2::element_text(colour = physdev$fg,       size = ggplot2::rel(0.9),
                                                margin = ggplot2::margin(t = half_line)),
