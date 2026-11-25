@@ -244,6 +244,21 @@ list(
     write_fitness_tables(fitness_model, strava_daily_load, fitness_check, db_path = "db/health.db")
   ),
 
+  # ── Weight against the plan (goals in config/goals.yml) ───────────────────────
+  tar_target(weight_daily, build_weight_daily(macrofactor_daily, goals_config$weight_goal)),
+  tar_target(sessions_daily, build_sessions(strava_activities, macrofactor_workout_sets, goals_config$sessions)),
+  tar_target(weight_weekly, build_weight_weekly(weight_daily, sessions_daily, goals_config$weight_goal)),
+  tar_target(
+    weight_status,
+    compute_weight_status(weight_daily, sessions_daily, goals_config$weight_goal,
+                  goals_config$nutrition, goals_config$sessions)
+  ),
+  tar_target(
+    weight_tables,
+    write_weight_tables(weight_daily, weight_weekly, sessions_daily, weight_status,
+                        goal = goals_config$weight_goal, db_path = "db/health.db")
+  ),
+
   # ── Marts ────────────────────────────────────────────────────────────────────
   tar_target(
     vitals_daily,

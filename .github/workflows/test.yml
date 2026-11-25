@@ -1,0 +1,52 @@
+# Runs the M1 gate on synthetic data for every pull request and every push
+# to main: just doctor && just build-fixture && just test.
+# Real data never leaves the machine: data/, config/ and private/ are
+# gitignored, so CI only has the committed fixture generator and the
+# *.example.* configs. Golden tests skip without private/golden_climbs.yml.
+
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "4.6.2"          # as in renv.lock
+          use-public-rspm: true       # binary packages, so duckdb isn't compiled
+
+      # System libraries the R packages link against. The binaries come
+      # prebuilt, but load only if these are present (igraph needs libglpk,
+      # which the runner image lacks). The list is the one renv prints.
+      - name: System libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libcurl4-openssl-dev libfontconfig1-dev libfreetype6-dev libfribidi-dev libglpk-dev \
+            libharfbuzz-dev libjpeg-dev libpng-dev libtiff-dev libuv1-dev libwebp-dev libx11-dev pandoc
+
+      - uses: r-lib/actions/setup-renv@v2   # renv::restore(), cached between runs
+
+      - uses: astral-sh/setup-uv@v6         # just doctor checks the Python env
+
+      - uses: extractions/setup-just@v3
+
+      - name: Doctor
+        run: just doctor
+
+      - name: Build the fixture database
+        run: just build-fixture
+
+      - name: Test
+        run: just test
