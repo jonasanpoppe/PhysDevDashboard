@@ -123,3 +123,91 @@
 .oath-corporate .oath-main-label { text-transform: none; }
 .oath-corporate .oath-card-headline, .oath-corporate .oath-main-quest { font-size: clamp(20px, 2.2vw, 26px); }
 .oath-corporate .oath-link:hover, .oath-corporate .oath-link:focus { background: #E9EDF2; }
+
+/* Home: a relic unlocked without its card art yet */
+.oath-relic-note { border: 1px solid var(--oath-gold); background: var(--oath-card); padding: 10px 16px;
+  font-size: clamp(16px, 1.7vw, 20px); font-style: italic; color: var(--oath-purple); }
+
+/* The Reliquary: the design's 6-column grid of cards, the level path in the
+   last cell; 3 columns on tablets, 2 on phones */
+.oath-frame-wide { max-width: 1600px; }
+.relic-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px 32px; }
+.relic-head h1 { font-size: clamp(30px, 4vw, 46px); }
+.relic-head .oath-cap { font-size: 1.35em; }
+.relic-intro { font-size: clamp(17px, 1.9vw, 22px); font-style: italic; color: var(--oath-muted); max-width: 640px; text-align: right; }
+.relic-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 20px; }
+.relic-card { background: #FBF5E6; border: 2px solid var(--oath-gold); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.relic-sealed { opacity: 0.92; }
+.relic-art { height: 170px; display: flex; align-items: center; justify-content: center; position: relative;
+  background-size: cover; background-position: center; }
+.relic-has-art { height: auto; aspect-ratio: 2 / 3; }
+.relic-num { width: 88px; height: 88px; border-radius: 50%; border: 2px solid #E6D3A3; display: flex;
+  align-items: center; justify-content: center; font-family: UnifrakturMaguntia, serif; font-size: 40px; color: #F4EBD6; }
+.relic-state { position: absolute; top: 8px; right: 8px; font-family: Cinzel, Georgia, serif; font-size: 12px;
+  letter-spacing: 2px; color: #F4EBD6; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.relic-unlocked { border-color: var(--oath-purple); box-shadow: 0 0 0 1px var(--oath-gold); }
+.relic-pt { font-family: Cinzel, Georgia, serif; font-weight: 700; font-size: 17px; line-height: 1.2; }
+.relic-en { font-size: 18px; font-style: italic; color: var(--oath-muted); margin-top: -6px; }
+.relic-unlock { font-size: 17px; line-height: 1.3; }
+.relic-hint { font-size: 15px; line-height: 1.3; color: var(--oath-muted); }
+.relic-unlocked .relic-hint { color: var(--oath-purple); font-weight: 600; }
+.relic-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  border-top: 1px solid #D9C69A; padding-top: 8px; }
+.relic-palette { font-size: 15px; color: var(--oath-muted); }
+.relic-level { font-family: Cinzel, Georgia, serif; font-size: 13px; letter-spacing: 1px; color: var(--oath-purple); white-space: nowrap; }
+.relic-path { background: var(--oath-purple); color: var(--oath-on-purple); padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.relic-path-title { font-family: Cinzel, Georgia, serif; font-size: 15px; letter-spacing: 3px; color: var(--oath-on-purple-label); text-transform: uppercase; }
+.relic-path-now { font-size: 34px; font-weight: 700; line-height: 1.1; }
+.relic-path-head { font-size: 20px; font-weight: 600; color: var(--oath-on-purple-muted); }
+.relic-path-body { font-size: 18px; line-height: 1.35; }
+.relic-path-note { margin-top: auto; font-size: 17px; font-style: italic; line-height: 1.35; color: var(--oath-on-purple-muted); }
+.relic-motto { text-transform: none; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; letter-spacing: 0; font-size: 19px; }
+@media (max-width: 1200px) { .relic-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 720px) {
+  .relic-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .relic-intro { text-align: left; }
+  .relic-art { height: 120px; }
+  .relic-num { width: 64px; height: 64px; font-size: 30px; }
+}
+.oath-corporate .relic-card { background: #FFFFFF; border: 1px solid var(--oath-gold); }
+.oath-corporate .relic-pt, .oath-corporate .relic-level, .oath-corporate .relic-path-title { font-family: inherit; letter-spacing: 0; }
+.oath-corporate .relic-art { background: var(--oath-purple) !important; height: 56px; }
+.oath-corporate .relic-num { display: none; }
+.oath-corporate .relic-unlocked .relic-art { background: #1A7F37 !important; }
+
+/* The Roadmap: a label column plus 12 months; on narrow screens the grid
+   keeps its width and scrolls sideways */
+.road-scroll { overflow-x: auto; }
+.road-grid { --road-label: 180px; position: relative; display: grid; min-width: 1100px;
+  grid-template-columns: var(--road-label) repeat(12, minmax(0, 1fr)); column-gap: 6px; row-gap: 14px; align-items: stretch; }
+.road-month { font-family: Cinzel, Georgia, serif; font-size: 16px; padding: 8px 0; text-align: center; color: var(--oath-purple);
+  grid-row: 1; border-top: 2px solid var(--oath-purple); border-bottom: 1px solid var(--oath-gold); }
+.road-corner { grid-column: 1; }
+.road-lane { grid-column: 1; font-family: Cinzel, Georgia, serif; font-size: 17px; letter-spacing: 2px; align-self: center;
+  text-transform: uppercase; }
+.road-phase { padding: 10px 12px; font-size: 18px; line-height: 1.25; transition: opacity 0.15s; }
+.road-dark { background: #4B2A6B; color: #F4EBD6; }
+.road-ink { background: #2A1E14; color: #F4EBD6; font-weight: 700; }
+.road-dashed { border: 1px dashed #4B2A6B; color: #4B2A6B; }
+.road-lilac { background: #E3D3EA; }
+.road-lilac2 { background: #D2BEDC; }
+.road-pale { background: #EFE3C8; }
+.road-tan { background: #E8D6C4; }
+.road-tan2 { background: #D9BFA6; }
+.road-ride { background: #EFE3C8; border-top: 3px solid #7A4A22; }
+.road-ride2 { background: #E8D6C4; border-top: 3px solid #7A4A22; }
+.road-accent { background: #7A4A22; color: #F4EBD6; font-weight: 700; }
+.road-outline { border: 1px solid var(--oath-gold); }
+.road-done { opacity: 0.45; }
+.road-current { outline: 2px solid var(--oath-gold); outline-offset: 2px; }
+.road-today { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid #9B2C2C; pointer-events: none; z-index: 2; }
+.road-today span { position: absolute; top: -1.6em; left: 4px; white-space: nowrap; font-size: 14px; font-style: italic; color: #9B2C2C; }
+.road-gates { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 18px; color: var(--oath-muted);
+  border-top: 1px solid var(--oath-gold); padding-top: 12px; }
+.road-gates b { color: var(--oath-ink); }
+.road-gate-done { color: var(--oath-purple); font-weight: 600; }
+.roadmap .road-scroll { padding-top: 1.6em; }
+.oath-corporate .road-month, .oath-corporate .road-lane { font-family: inherit; letter-spacing: 0; }
+.oath-corporate .road-dark, .oath-corporate .road-ink, .oath-corporate .road-accent { background: #24364B; }
+.oath-corporate .road-lilac, .oath-corporate .road-lilac2, .oath-corporate .road-tan, .oath-corporate .road-tan2,
+.oath-corporate .road-pale, .oath-corporate .road-ride, .oath-corporate .road-ride2 { background: #F4F5F7; border-top-color: #57606A; }

@@ -59,8 +59,12 @@ oath_server <- function(id) {
       pc <- copy$plain %||% list()
       main <- board %>% filter(role == "main")
       side <- board %>% filter(role != "main")
-      # Level: the base plus levels earned in the Reliquary (not built yet)
-      level <- cfg$level_base %||% 1
+      # Level: the base plus levels earned in the Reliquary
+      relics <- relic_table()
+      level <- if (is.null(relics)) cfg$level_base %||% 1 else relic_level(relics, cfg)
+      # Unlocked relics without card art yet: a note to make the card
+      no_art <- if (is.null(relics)) character(0) else
+        relics$id[relics$unlocked & !vapply(relics$id, \(i) !is.null(relic_art(i)), logical(1))]
       tenets <- if (plain) character(0) else unlist(copy$tenets)
       rules <- if (plain) pc$rules %||% copy$rules else copy$rules
       div(
@@ -72,6 +76,9 @@ oath_server <- function(id) {
               h1(if (plain) pc$title %||% "Goals" else copy$title),
               div(class = "oath-subtitle", if (plain) pc$subtitle %||% "" else copy$subtitle),
               if (!plain) div(class = "oath-rule")),
+          if (length(no_art)) div(class = "oath-relic-note", role = "status",
+              sprintf("New relic unlocked: %s. Generate its card (config/relics/%s.jpg).",
+                      paste(no_art, collapse = ", "), no_art[1])),
           if (length(tenets)) div(class = "oath-tenets",
               lapply(seq_along(tenets), \(i) oath_tenet(tenets[i], late = i > ceiling(length(tenets) / 2)))),
           div(class = "oath-main",

@@ -4,69 +4,11 @@
 
 test_that("the app starts and renders the Vitals plot", {
   dir <- withr::local_tempdir()
-  db <- file.path(dir, "app.duckdb")
-  days <- as.Date("2024-01-01") + 0:199
-  vitals <- tibble::tibble(
-    date = days, metric = "rhr", era = ifelse(days < as.Date("2024-04-01"), "fitbit", "garmin"),
-    value = 55, derived = FALSE, mean_7d = 55,
-    band_low = NA_real_, band_high = NA_real_, band_source = NA_character_
-  )
-  ct <- fake_climb_tables()
-  con <- DBI::dbConnect(duckdb::duckdb(), db)
-  DBI::dbWriteTable(con, "vitals_daily", vitals)
-  DBI::dbWriteTable(con, "strava_climb_efforts", ct$efforts)
-  DBI::dbWriteTable(con, "climbs", ct$climbs)
-  DBI::dbWriteTable(con, "bikes", ct$bikes)
-  ft <- fake_fitness_tables()
-  DBI::dbWriteTable(con, "fitness_seasons", ft$seasons)
-  DBI::dbWriteTable(con, "fitness_coefficients", ft$coefs)
-  DBI::dbWriteTable(con, "fitness_load_check", ft$check)
-  DBI::dbWriteTable(con, "strava_daily_load", ft$load)
-  DBI::dbWriteTable(con, "rider_weight", ft$weight)
-  source(testthat::test_path("..", "..", "R", "weight_plan.R"), local = TRUE)
-  wd <- build_weight_daily(fake_macrofactor_daily(), fake_goal())
-  ws <- tibble::tibble(date = max(wd$date) - 1, kind = "bjj", source = "strava")
-  DBI::dbWriteTable(con, "weight_daily", wd)
-  DBI::dbWriteTable(con, "weight_weekly", build_weight_weekly(wd, ws, fake_goal()))
-  DBI::dbWriteTable(con, "weight_status", compute_weight_status(
-    wd, ws, fake_goal(), list(protein_g_per_day = 140),
-    list(bjj = list(per_week = 2), lifting = list(per_week = 3))))
-  DBI::dbWriteTable(con, "weight_goal", tibble::as_tibble(fake_goal()))
-  source(testthat::test_path("..", "..", "R", "e1rm.R"), local = TRUE)
-  source(testthat::test_path("..", "..", "R", "strength.R"), local = TRUE)
-  sg <- strength_goal_tables(fake_lifts(), fake_strength_goal())
-  DBI::dbWriteTable(con, "strength_sessions", build_strength_sessions(
-    fake_sets(), fake_lifts(), tibble::tibble(date = as.Date("2030-01-01"), trend_kg = 80)))
-  source(testthat::test_path("..", "..", "R", "forecast.R"), local = TRUE)
-  fcc <- fake_forecast_config()
-  fct <- build_strength_forecast(
-    build_strength_sessions(fake_sets(), fake_lifts(), tibble::tibble(date = as.Date("2030-01-01"), trend_kg = 80)),
-    dplyr::mutate(fake_sets(), is_warmup = set_type == "Warm-Up Set"),
-    fcc$strength_forecast, fcc$strength_ceilings
-  )
-  for (n in names(fct)) DBI::dbWriteTable(con, paste0("strength_forecast_", n), fct[[n]])
-  DBI::dbWriteTable(con, "strength_targets", sg$targets)
-  DBI::dbWriteTable(con, "strength_ceilings", sg$ceilings)
-  rt <- fake_riding_tables()
-  DBI::dbWriteTable(con, "strava_rides", rt$rides)
-  DBI::dbWriteTable(con, "strava_plan_bands", rt$bands)
-  DBI::dbWriteTable(con, "riding_targets", rt$targets)
-  DBI::dbWriteTable(con, "riding_benchmark", tibble::tibble(benchmark_climb = "Example Berg"))
-  DBI::dbWriteTable(con, "riding_plan_bands", tibble::tibble(z2_low = 125, z2_high = 135, ss_low = 145,
-                                                             ss_high = 152, cap = 155))
-  source(testthat::test_path("..", "..", "R", "analytics.R"), local = TRUE)
-  ad <- fake_analytics_daily()
-  DBI::dbWriteTable(con, "analytics_daily", ad)
-  DBI::dbWriteTable(con, "analytics_variables", analytics_variables(ad))
-  source(testthat::test_path("..", "..", "R", "quests.R"), local = TRUE)
-  oath <- yaml::read_yaml(testthat::test_path("..", "..", "config", "oath.example.yml"))
-  DBI::dbWriteTable(con, "quest_board", quest_board(oath, as_of = max(wd$date), data = list(
-    weight = wd, strength = DBI::dbReadTable(con, "strength_sessions"), rides = rt$rides,
-    sessions = ws, climbs = ct$efforts)))
-  DBI::dbWriteTable(con, "oath_config", tibble::tibble(json = as.character(
-    jsonlite::toJSON(oath, auto_unbox = TRUE, null = "null"))))
-  DBI::dbDisconnect(con, shutdown = TRUE)
-  withr::local_envvar(PDD_DB = db)
+  fake <- write_fake_app_db(dir)
+  oath <- fake$oath
+  level <- fake$level
+  db <- fake$db
+  withr::local_envvar(PDD_DB = db, PDD_RELIC_ART = file.path(dir, "relics"))
 
   app <- shiny::shinyAppDir(testthat::test_path("..", "..", "app"))
   shiny::testServer(app, {
@@ -74,7 +16,22 @@ test_that("the app starts and renders the Vitals plot", {
     home <- as.character(output$`oath-page`$html)
     expect_match(home, "The Wandering Squire")
     expect_match(home, "Judo now:")
-    expect_match(home, "level 1")
+    expect_match(home, sprintf("level %d<", level))
+    expect_match(home, "New relic unlocked: [^<]*III")
+    # Reliquary: a card per relic, sealed and unlocked, and the level path
+    rel <- as.character(output$`reliquary-page`$html)
+    expect_equal(lengths(regmatches(rel, gregexpr("class=\"relic-card ", rel))), length(oath$relics))
+    expect_match(rel, "relic-card relic-unlocked")
+    expect_match(rel, "relic-card relic-sealed")
+    expect_match(rel, sprintf("Level %d", level))
+    expect_match(rel, "the Chalice")
+    # Roadmap: a block per phase, the today line, gates
+    road <- as.character(output$`roadmap-page`$html)
+    expect_equal(lengths(regmatches(road, gregexpr("class=\"road-phase ", road))), length(oath$roadmap$phases))
+    expect_match(road, "road-today")
+    expect_match(road, "road-done")
+    expect_match(road, "<b>78 kg</b>")
+    expect_match(road, "Gates:")
     expect_equal(lengths(regmatches(home, gregexpr("class=\"oath-card( oath-link)?\"", home))), 6)
     expect_equal(lengths(regmatches(home, gregexpr("oath-card oath-link", home))), 5)  # the Ledger has no tab
     expect_match(home, "of the way from")
@@ -87,7 +44,10 @@ test_that("the app starts and renders the Vitals plot", {
     expect_match(home, "2030 goals")
     expect_match(home, "oath-corporate")
     expect_no_match(home, "The Wandering Squire")
-    expect_no_match(home, "level 1")
+    expect_no_match(home, sprintf("level %d<", level))
+    rel <- as.character(output$`reliquary-page`$html)
+    expect_match(rel, "Milestones")
+    expect_no_match(rel, "the Chalice")
     expect_match(home, "Example Hill without stopping")
     session$setInputs(`vitals-metrics` = "rhr", `vitals-points` = TRUE, `vitals-range` = "all")
     expect_gt(nchar(output$`vitals-plot`$src), 1000)

@@ -349,10 +349,31 @@ list(
     write_quest_tables(
       quest_board(oath_config, as_of = Sys.Date(), data = list(
         weight = weight_daily, strength = strength_sessions, rides = strava_rides,
-        sessions = sessions_daily, climbs = strava_climb_efforts
+        sessions = sessions_daily, climbs = strava_climb_efforts, events = relic_events
       )),
       oath_config, db_path = "db/health.db"
     ),
+    cue = tar_cue(mode = "always")
+  ),
+
+  # ── Reliquary: relics unlocked by rules in oath.yml (R/relics.R) ────────────
+  # The manual log is optional (no file: nothing logged yet), so it is read
+  # on every run rather than tracked as a file target.
+  tar_target(relic_events, read_relic_events("config/relic_events.csv"), cue = tar_cue(mode = "always")),
+  tar_target(
+    relics,
+    relic_status(oath_config, as_of = Sys.Date(), data = list(
+      weight = weight_daily, weekly = weight_weekly, sets = lifting_sets,
+      rides = strava_rides, climbs = strava_climb_efforts, events = relic_events
+    )),
+    cue = tar_cue(mode = "always")
+  ),
+  tar_target(relic_tables, write_relic_tables(relics, db_path = "db/health.db")),
+  # Roadmap: phases against today, gates ticked by the relics (R/roadmap.R)
+  tar_target(
+    roadmap_tables,
+    write_roadmap_tables(roadmap_phases(oath_config, as_of = Sys.Date()),
+                         roadmap_gates(oath_config, relics), db_path = "db/health.db"),
     cue = tar_cue(mode = "always")
   ),
 
