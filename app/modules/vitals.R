@@ -49,6 +49,7 @@ vitals_server <- function(id) {
     })
 
     output$plot <- renderPlot({
+      ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       from <- if (input$range == "all") NULL else last_day - as.numeric(input$range) + 1
       plot_vitals(vitals, from = from, switch_date = switch_date,
                   metrics = metrics(), show_points = isTRUE(input$points))

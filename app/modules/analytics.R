@@ -164,6 +164,7 @@ analytics_server <- function(id) {
 
     # No height: the plot is drawn at the size its (filling) container has.
     output$plot <- renderPlot({
+      ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       switch(input$view %||% "scatter",
         scatter = plot_analytics_scatter(pair(), label_of(sx()), label_of(sy()), fit()),
         time = {
@@ -194,6 +195,7 @@ analytics_server <- function(id) {
     }, res = 96)
 
     output$matrix <- renderPlot({
+      ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       req(identical(input$view, "matrix"))
       m <- matrix_data()
       validate(need(any(!is.na(m$rho)), "Too few overlapping days in this period."))

@@ -75,6 +75,7 @@ weight_server <- function(id) {
     })
 
     output$plot <- renderPlot({
+      ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       switch(input$figure,
         trend = plot_weight_trend(daily, goal,
                                   from = if (identical(input$period, "all")) NULL else as.Date(goal$start_date) - 90),

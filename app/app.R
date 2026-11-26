@@ -36,34 +36,21 @@ source("fill_plot.R", local = TRUE)
 physdev_font()   # register the web font once at start-up, not on the first figure
 for (f in list.files("modules", pattern = "\\.R$", full.names = TRUE)) source(f, local = TRUE)
 
-ui <- page_navbar(
-  id = "main",
-  title = "PhysDevDashboard",
-  # The Oath of Glory scheme on every tab (palette in R/theme_physdev.R).
-  # Fonts linked from Google, not downloaded: Cinzel for headings,
-  # Cormorant Garamond for text.
-  theme = bs_add_rules(
-    bs_theme(
-      bg = physdev$bg,
-      fg = physdev$fg,
-      primary = physdev$purple,
-      secondary = physdev$bronze,
-      base_font = font_google("Cormorant Garamond", wght = c(500, 600, 700), local = FALSE),
-      heading_font = font_google("Cinzel", wght = c(500, 700), local = FALSE),
-      font_scale = 1.1,
-      "navbar-bg" = physdev$purple,
-      "card-bg" = physdev$bg_card,
-      "border-color" = physdev$fg_subtle
-    ),
-    # Compact status tiles: a row of eight fits on a laptop screen
-    ".tiles-compact .value-box-area { padding: 0.6rem 0.75rem !important; }
+# Two looks, switched in the navbar: the Oath of Glory scheme (parchment,
+# Cinzel and Cormorant Garamond, linked from Google) and corporate mode
+# (white and slate, system sans). Charts take their colours from `physdev`,
+# swapped with the mode; ui_mode() makes every figure redraw. Both are
+# app-wide, not per session: fine for a one-person app, but two browsers in
+# different modes would follow the last switch.
+ui_mode <- reactiveVal("oath")
+
+app_rules <- function(mode) {
+  shared <- "
+     .tiles-compact .value-box-area { padding: 0.6rem 0.75rem !important; }
      .tiles-compact .value-box-title { font-size: 0.8rem; margin-bottom: 0.15rem; }
      .tiles-compact .value-box-value { font-size: 1.25rem; line-height: 1.2; margin-bottom: 0.25rem; }
      .tiles-compact p { font-size: 0.7rem; line-height: 1.25; }
-     .card { border-color: #C9B48C; }
-     .navbar .navbar-brand { font-family: Cinzel, Georgia, serif; letter-spacing: 1px; font-size: 1.5rem; }
-     /* Tab names half as large again: Cormorant runs small */
-     .navbar .nav-link { font-size: 1.5rem; }
+     .navbar .form-switch { margin: 0 0.5rem; }
      /* Phones: smaller type, and wide tables scroll inside their card
         instead of pushing the page past its margins */
      @media (max-width: 576px) {
@@ -72,7 +59,53 @@ ui <- page_navbar(
        .card-body, .bslib-sidebar-layout > .main { overflow-x: auto; }
        table { font-size: 0.85rem; }
      }"
-  ),
+  look <- if (mode == "oath") "
+     .navbar .navbar-brand { font-family: Cinzel, Georgia, serif; letter-spacing: 1px; font-size: 1.5rem; }
+     /* Tab names half as large again: Cormorant runs small */
+     .navbar .nav-link { font-size: 1.5rem; }" else "
+     .navbar .navbar-brand { font-size: 1.25rem; }
+     .navbar .nav-link { font-size: 1.1rem; }"
+  paste(shared, look, sprintf(".card { border-color: %s; }", physdev_palettes[[mode]]$fg_subtle))
+}
+
+app_theme <- function(mode) {
+  p <- physdev_palettes[[mode]]
+  fonts <- if (mode == "oath") list(
+    base_font = font_google("Cormorant Garamond", wght = c(500, 600, 700), local = FALSE),
+    heading_font = font_google("Cinzel", wght = c(500, 700), local = FALSE),
+    font_scale = 1.1
+  ) else list(
+    base_font = font_collection("system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"),
+    heading_font = font_collection("system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"),
+    font_scale = 1
+  )
+  bs_add_rules(
+    do.call(bs_theme, c(list(
+      bg = p$bg, fg = p$fg, primary = p$purple, secondary = p$bronze,
+      "navbar-bg" = p$purple, "card-bg" = p$bg_card, "border-color" = p$fg_subtle
+    ), fonts)),
+    app_rules(mode)
+  )
+}
+app_themes <- list(oath = app_theme("oath"), corporate = app_theme("corporate"))
+
+# The switch remembers its state in this browser (localStorage; without it,
+# the app opens in the oath look)
+corporate_js <- "
+$(document).on('shiny:connected', function() {
+  var on = false;
+  try { on = localStorage.getItem('pdd-corporate') === '1'; } catch (e) {}
+  if (on) $('#corporate').prop('checked', true).trigger('change');
+});
+$(document).on('change', '#corporate', function() {
+  try { localStorage.setItem('pdd-corporate', this.checked ? '1' : '0'); } catch (e) {}
+});"
+
+ui <- page_navbar(
+  id = "main",
+  title = "PhysDevDashboard",
+  theme = app_themes$oath,
+  header = tags$head(tags$script(HTML(corporate_js))),
   # Home: the oath and the Quest Board (config/oath.yml)
   nav_panel("🛡️ Home", value = "oath", oath_ui("oath")),
   nav_panel("⚖️ Weight", value = "weight", weight_ui("weight")),
@@ -81,10 +114,20 @@ ui <- page_navbar(
   # Engine: everything on the bike (climbs, fitness, riding)
   nav_panel("🚴 Engine", value = "engine", engine_ui("engine")),
   # Analytics: any two variables side by side
-  nav_panel("🔍 Analytics", value = "analytics", analytics_ui("analytics"))
+  nav_panel("🔍 Analytics", value = "analytics", analytics_ui("analytics")),
+  nav_spacer(),
+  nav_item(input_switch("corporate", "Corporate mode", value = FALSE))
 )
 
 server <- function(input, output, session) {
+  # Corporate mode: theme, chart colours and the Home tab's words
+  observeEvent(input$corporate, {
+    mode <- if (isTRUE(input$corporate)) "corporate" else "oath"
+    physdev <<- physdev_palettes[[mode]]
+    session$setCurrentTheme(app_themes[[mode]])
+    ui_mode(mode)
+  }, ignoreInit = TRUE)
+
   # A click on a quest card opens the tab with its data
   oath_follow(oath_server("oath"), session)
   weight_server("weight")

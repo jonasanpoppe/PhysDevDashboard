@@ -48,6 +48,7 @@ power_server <- function(id) {
       e <- shown(); sprintf("%d ascents · %d climbs", nrow(e), length(unique(e$climb)))
     })
     output$plot <- renderPlot({
+      ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       plot_engine(shown(), year_colours = colours, show_range = isTRUE(input$range),
                   label_climbs = labelled)
     }, res = 96)

@@ -96,3 +96,30 @@
 /* Clickable cards: they lead to the data behind the quest */
 .oath-link { cursor: pointer; transition: background 0.15s; }
 .oath-link:hover, .oath-link:focus { background: #E6D6B4; outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Corporate mode: the same layout in white and slate, system sans, no
+   double border or blackletter */
+.oath.oath-corporate {
+  --oath-bg: #FFFFFF;
+  --oath-card: #F4F5F7;
+  --oath-ink: #1F2328;
+  --oath-muted: #57606A;
+  --oath-purple: #24364B;
+  --oath-bronze: #57606A;
+  --oath-gold: #D0D7DE;
+  --oath-on-purple: #FFFFFF;
+  --oath-on-purple-muted: #E6EAEF;
+  --oath-on-purple-label: #C9D1D9;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+.oath-corporate .oath-frame { border: 1px solid var(--oath-gold); outline: none; }
+.oath-corporate h1, .oath-corporate h2, .oath-corporate .oath-subtitle, .oath-corporate .oath-card-label,
+.oath-corporate .oath-main-label {
+  font-family: inherit; letter-spacing: 0;
+}
+.oath-corporate h1 { font-size: clamp(26px, 3.5vw, 40px); }
+.oath-corporate .oath-card { --accent: #24364B !important; }
+.oath-corporate .oath-card-label { text-transform: none; font-weight: 600; }
+.oath-corporate .oath-main-label { text-transform: none; }
+.oath-corporate .oath-card-headline, .oath-corporate .oath-main-quest { font-size: clamp(20px, 2.2vw, 26px); }
+.oath-corporate .oath-link:hover, .oath-corporate .oath-link:focus { background: #E9EDF2; }

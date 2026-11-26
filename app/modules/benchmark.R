@@ -21,6 +21,7 @@ benchmark_server <- function(id) {
                       params = list(climb))
     output$title <- renderText(sprintf("Benchmark: %s · %d attempts", climb, nrow(attempts)))
     output$plot <- renderPlot({
+      ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       validate(need(nrow(attempts) > 0, "No attempts on the benchmark climb yet."))
       plot_benchmark(attempts)
     }, res = 96)

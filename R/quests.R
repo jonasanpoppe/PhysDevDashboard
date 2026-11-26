@@ -288,8 +288,10 @@ quest_board <- function(cfg, data, as_of = Sys.Date()) {
       none = "")
     tibble::tibble(
       ord = i, id = q$id, label = q$label, role = q$role %||% "side", kind = q$kind,
+      # Corporate mode: plain wording, from the config (the label otherwise)
+      plain = q$plain %||% q$label,
       accent = as.integer(q$accent %||% min(4L, 1L + (i - 1L) %/% 2L)),
-      headline = headline, by = q$by %||% "",
+      headline = headline, plain_headline = q$plain_headline %||% headline, by = q$by %||% "",
       progress = pr$label, share = pr$share, source = now$source, source_note = source_note,
       link_tab = quest_link(q)$tab, link_inputs = quest_link(q)$inputs,
       extras = quest_extras(q, data, now, as_of, cfg),

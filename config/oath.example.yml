@@ -13,7 +13,8 @@
 # baseline, an e1RM, scaled the same way),
 # ride_km_ytd, bjj_sessions_per_week, and for stages climb_clean / manual /
 # milestones_done. role: main (the panel at the top) or side (a card).
-# accent: 1-4, the card's colour from purple to bronze. link: {tab, inputs}
+# plain / plain_headline: the wording in corporate mode (default: label,
+# headline). accent: 1-4, the card's colour from purple to bronze. link: {tab, inputs}
 # opens a tab with inputs set when the card is clicked (default by metric:
 # weight, strength, engine); link: none for no link.
 
@@ -38,10 +39,18 @@ copy:
   rules: "0.4 kg a week · no catch-up after a missed week · 150 g protein a day."
   sworn: "Sworn on 1 January 2030"
   footer: "The Squire · level {level}"
+  # Corporate mode: plain words (anything left out keeps the text above;
+  # the kicker, tenets and footer are hidden)
+  plain:
+    title: "2030 goals"
+    subtitle: "Health and training"
+    main_label: "Main goal"
+    board_title: "Goals"
 
 quests:
   - id: judo
     label: Judo
+    plain: "Judo sessions"
     role: main
     kind: rate
     metric: bjj_sessions_per_week   # sessions recognised as in goals.yml `sessions: bjj`
@@ -59,6 +68,7 @@ quests:
     by: "By summer · serves the main quest"
   - id: squat
     label: Back squat
+    plain: Squat
     kind: increasing
     metric: e1rm_bar_kg
     exercise: "Barbell Back Squat"
@@ -80,6 +90,7 @@ quests:
     by: "Hold all year"
   - id: riding
     label: The Long Road
+    plain: Cycling distance
     kind: cumulative
     metric: ride_km_ytd
     accent: 3
@@ -88,6 +99,8 @@ quests:
     by: "Plus one 100 km / 800 m ride"
   - id: hill
     label: Hillclimber
+    plain: Climbs
+    plain_headline: "Example Hill without stopping"
     kind: event
     metric: climb_clean
     accent: 4
@@ -97,6 +110,7 @@ quests:
     by: "Spring"
   - id: dashboard
     label: The Ledger
+    plain: Dashboard project
     kind: steps
     metric: milestones_done
     accent: 4

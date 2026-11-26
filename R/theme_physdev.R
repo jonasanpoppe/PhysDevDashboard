@@ -49,6 +49,22 @@ physdev <- list(
   div_high = "#1F7FB8"
 )
 
+# Corporate mode: the same series colours (checked on white as well), with
+# neutral surfaces and text. The app swaps `physdev` for one of these.
+physdev_palettes <- list(
+  oath = physdev,
+  corporate = utils::modifyList(physdev, list(
+    bg        = "#FFFFFF",
+    bg_card   = "#F4F5F7",
+    fg        = "#1F2328",
+    fg_muted  = "#57606A",
+    fg_subtle = "#D0D7DE",
+    purple    = "#24364B",   # navbar and primary: slate
+    bronze    = "#57606A",
+    gold      = "#D0D7DE"
+  ))
+)
+
 # ── ggplot2 theme ─────────────────────────────────────────────────────────────
 
 # The web font, registered once per R session. font_add_google() downloads

@@ -23,6 +23,7 @@ plan_server <- function(id) {
     limits <- query("SELECT * FROM riding_plan_bands")
     last <- max(as.Date(bands$date))
     output$plot <- renderPlot({
+      ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       from <- switch(input$period %||% "6m", "6m" = last - 182, "1y" = last - 365, all = NULL)
       plot_plan_bands(bands, from)
     }, res = 96)
