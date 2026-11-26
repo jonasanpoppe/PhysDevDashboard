@@ -2,7 +2,8 @@ library(dplyr)
 library(ggplot2)
 
 # Analytics charts. Needs R/theme_physdev.R and R/plot_engine.R (year colours).
-#   plot_analytics_time     X and Y stacked on one date axis (never a dual axis)
+#   plot_analytics_time     up to three series stacked on one date axis (never a
+#                           dual axis), or z-scores overlaid in one panel
 #   plot_analytics_scatter  X against Y (Y lagged), points coloured by year,
 #                           with the chosen fit and its band (straight line,
 #                           quadratic, log of X, or LOESS for the eye)
@@ -13,23 +14,54 @@ analytics_axis_label <- function(s) {
   sprintf("%s%s, %s", s$series_label, model, s$unit)
 }
 
-# d: date, value, panel (one or two panels). Lines break at gaps over a week;
-# sparse series (e1RM, W/kg) are drawn as points.
-plot_analytics_time <- function(d, sparse = character()) {
+# d: date, value, panel (up to three panels, stacked, never a dual axis).
+# Lines break at gaps over a week; sparse series (e1RM, W/kg) are drawn as
+# points. Optional columns:
+#   trend  drawn thin and grey over the series (the trend a detrend removes)
+#   edge   TRUE where a detrend's window was cut short: drawn lighter (the
+#          trend line when one is shown, else the series)
+# detrended: panels that get a zero line. overlay: all series in one panel,
+# one colour each (for z-scores, which share a scale), ylab on the axis.
+plot_analytics_time <- function(d, sparse = character(), detrended = character(),
+                                overlay = FALSE, ylab = NULL) {
+  if (!"trend" %in% names(d)) d$trend <- NA_real_
+  if (!"edge" %in% names(d)) d$edge <- FALSE
   d <- d %>%
-    mutate(panel = factor(panel, levels = unique(panel))) %>%   # X on top, as given
+    mutate(panel = factor(panel, levels = unique(panel)), edge = edge %in% TRUE) %>%   # X on top, as given
     arrange(panel, date) %>%
     mutate(run = cumsum(c(TRUE, diff(date) > 7)), .by = panel)
+  has_trend <- any(!is.na(d$trend))
+  d$fade <- if (has_trend) FALSE else d$edge
   dense <- filter(d, !panel %in% sparse)
-  p <- ggplot(d, aes(date, value)) +
-    geom_point(data = filter(d, panel %in% sparse), colour = physdev$coral, size = 2) +
-    geom_line(data = dense, aes(group = run), colour = physdev$coral, linewidth = 0.7) +
-    facet_wrap(~panel, ncol = 1, scales = "free_y") +
-    scale_x_date(date_labels = "%b %Y") +
-    labs(x = NULL, y = NULL) +
-    theme_physdev(grid = "y") +
-    theme(strip.text = element_text(hjust = 0, face = "bold"))
-  p
+  alpha <- scale_alpha_manual(values = c(`FALSE` = 1, `TRUE` = 0.35), guide = "none")
+  p <- ggplot(d, aes(date, value))
+  zero <- if (overlay) unique(d$panel) else intersect(detrended, unique(as.character(d$panel)))
+  if (length(zero) > 0) {
+    p <- p + geom_hline(data = tibble(panel = factor(zero, levels = levels(d$panel))),
+                        aes(yintercept = 0), colour = physdev$fg_muted, linewidth = 0.4)
+  }
+  if (overlay) {
+    cols <- setNames(physdev$cat[seq_along(levels(d$panel))], levels(d$panel))
+    p <- p +
+      geom_point(data = filter(d, panel %in% sparse), aes(colour = panel), size = 2) +
+      geom_line(data = dense, aes(group = interaction(panel, run), colour = panel, alpha = fade),
+                linewidth = 0.6) +
+      scale_colour_manual(values = cols, name = NULL) +
+      theme_physdev(grid = "y") +
+      theme(legend.position = "top", legend.justification = "left")
+  } else {
+    p <- p +
+      geom_point(data = filter(d, panel %in% sparse), colour = physdev$coral, size = 2) +
+      geom_line(data = dense, aes(group = run, alpha = fade), colour = physdev$coral, linewidth = 0.7) +
+      facet_wrap(~panel, ncol = 1, scales = "free_y") +
+      theme_physdev(grid = "y") +
+      theme(strip.text = element_text(hjust = 0, face = "bold"))
+  }
+  if (has_trend) {
+    p <- p + geom_line(data = filter(d, !is.na(trend)), aes(y = trend, group = run, alpha = edge),
+                       colour = physdev$fg_muted, linewidth = 0.6)
+  }
+  p + alpha + scale_x_date(date_labels = "%b %Y") + labs(x = NULL, y = ylab)
 }
 
 plot_analytics_scatter <- function(pair, xlab, ylab, fit = "linear") {
