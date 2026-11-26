@@ -1,6 +1,7 @@
-# Analytics: compare any two daily variables. Three views, one at a time:
-# over time (stacked), scatter (with lag and Spearman's rho), and an overview
-# matrix of all pairs. Data: analytics_daily, analytics_variables
+# Analytics: compare daily variables. Three views, one at a time: over time
+# (up to three series stacked), scatter (X against Y, with lag and Spearman's
+# rho), and an overview matrix of all pairs. The X and Y selectors double as
+# Series 1 and 2 in the time view, so switching views keeps the choice. Data: analytics_daily, analytics_variables
 # (R/analytics.R); charts: R/plot_analytics.R.
 
 analytics_ui <- function(id) {
@@ -14,25 +15,42 @@ analytics_ui <- function(id) {
       conditionalPanel("input.view != 'matrix'", ns = ns,
                        selectInput(ns("x"), "X", choices = NULL),
                        selectInput(ns("y"), "Y", choices = NULL)),
+      conditionalPanel("input.view == 'time'", ns = ns,
+                       selectInput(ns("s3"), "Series 3", choices = NULL)),
       conditionalPanel("input.view == 'scatter'", ns = ns,
                        selectInput(ns("fit"), "Fit", choices = analytics_fits)),
       conditionalPanel("input.view != 'time'", ns = ns,
                        sliderInput(ns("lag"), "Y how many days after X", min = 0, max = 14, value = 0, step = 1)),
       radioButtons(ns("smooth"), "Smoothing",
                    choices = c("Daily" = "daily", "7-day" = "7d", "Weekly" = "weekly"), selected = "7d"),
+      # One detrend setting for all three views.
+      selectInput(ns("detrend"), "Detrend", choices = analytics_detrends, selected = "none"),
+      conditionalPanel("input.detrend == 'rolling'", ns = ns,
+                       radioButtons(ns("window"), "Window",
+                                    choices = setNames(analytics_detrend_windows,
+                                                       paste(analytics_detrend_windows, "days")),
+                                    selected = 56L, inline = TRUE)),
+      conditionalPanel("input.view == 'time'", ns = ns,
+                       checkboxInput(ns("overlay"), "One panel, in SDs (z-scores)", FALSE)),
+      conditionalPanel("input.view == 'time' && (input.detrend == 'rolling' || input.detrend == 'loess') && !input.overlay",
+                       ns = ns,
+                       checkboxInput(ns("show_trend"), "Show the trend instead of removing it", FALSE)),
       radioButtons(ns("period"), "Period",
                    choices = c("Last 90 days" = "90", "Last year" = "365", "Everything" = "all"),
                    selected = "all")
     ),
     card(
       full_screen = TRUE,
-      # Not fillable: the chart keeps its own height and the table goes below
-      # it (a fillable body squeezes the chart and the table lands on top).
+      # Scatter and time fill the card's height. The overview keeps a fixed,
+      # tall matrix with the table below it and scrolls inside the card body
+      # (filling would squeeze the matrix and put the table on top of it).
       card_body(
-        fillable = FALSE,
         uiOutput(ns("stat")),
-        plotOutput(ns("plot"), height = "auto"),
-        conditionalPanel("input.view == 'matrix'", ns = ns, uiOutput(ns("top")))
+        as_fill_carrier(conditionalPanel("input.view != 'matrix'", ns = ns,
+                                         fill_plot(ns("plot"), min_height = 360))),
+        conditionalPanel("input.view == 'matrix'", ns = ns,
+                         plotOutput(ns("matrix"), height = "900px"),
+                         uiOutput(ns("top")))
       ),
       card_footer(class = "small text-muted", textOutput(ns("footer"), inline = TRUE))
     )
@@ -58,6 +76,13 @@ analytics_server <- function(id) {
     updateSelectInput(session, "preset", choices = c("Pick a preset" = "", presets$preset))
     updateSelectInput(session, "x", choices = choices, selected = first$x %||% series$series[1])
     updateSelectInput(session, "y", choices = choices, selected = first$y %||% series$series[2])
+    updateSelectInput(session, "s3", choices = c(list("None" = ""), choices), selected = "")
+
+    observeEvent(input$view, {
+      time <- identical(input$view, "time")
+      updateSelectInput(session, "x", label = if (time) "Series 1" else "X")
+      updateSelectInput(session, "y", label = if (time) "Series 2" else "Y")
+    })
 
     observeEvent(input$preset, {
       p <- presets[presets$preset == input$preset, ]
@@ -71,13 +96,18 @@ analytics_server <- function(id) {
     from <- reactive(if (identical(input$period, "all")) NULL else last_day - as.numeric(input$period) + 1)
     smooth <- reactive(input$smooth %||% "7d")
     lag <- reactive(if (identical(input$view, "time")) 0L else as.integer(input$lag %||% 0))
+    detrend <- reactive(input$detrend %||% "none")
+    window <- reactive(as.integer(input$window %||% 56L))
+    # A series' label with what was removed from it.
+    label_of <- function(s) paste0(analytics_axis_label(s), analytics_detrend_label(s, detrend(), window(), smooth()))
     sx <- reactive({ req(input$x %in% series$series); series[series$series == input$x, ] })
     sy <- reactive({ req(input$y %in% series$series); series[series$series == input$y, ] })
 
     pair <- reactive({
       validate(need(!analytics_same_family(series, sx()$series, sy()$series),
                     "These two are the same quantity, or one is part of the other: pick another pair."))
-      p <- analytics_pair(daily, series, sx()$series, sy()$series, lag = lag(), smooth = smooth(), from = from())
+      p <- analytics_pair(daily, series, sx()$series, sy()$series, lag = lag(), smooth = smooth(),
+                         from = from(), detrend = detrend(), window = window())
       validate(need(nrow(p) >= 3, paste(
         "Too few days where both have a value. Two devices never overlap in time,",
         "so a Fitbit series and a Garmin series have no days in common.")))
@@ -85,12 +115,8 @@ analytics_server <- function(id) {
     })
     fit <- reactive(input$fit %||% "linear")
     stat <- reactive(analytics_fit_stats(pair()$x, pair()$y, fit = fit(), block = analytics_block_len(smooth())))
-    matrix_data <- reactive(analytics_matrix(daily, series, lag = lag(), smooth = smooth(), from = from()))
-
-    notes <- reactive({
-      n <- unique(unlist(lapply(list(sx(), sy()), homogenised_note, steps = era_steps)))
-      if (length(n) == 0) NULL else div(class = "small text-muted", lapply(n, div))
-    })
+    matrix_data <- reactive(analytics_matrix(daily, series, lag = lag(), smooth = smooth(), from = from(),
+                                                     detrend = detrend(), window = window()))
 
     output$stat <- renderUI({
       if (identical(input$view, "time")) return(if (!is.null(notes())) div(class = "px-3 pt-3", notes()))
@@ -116,30 +142,63 @@ analytics_server <- function(id) {
               span(class = "text-muted", interval(s$rho_low, s$rho_high, two))),
           div(tags$strong(fit_line[[1]]), span(class = "text-muted", fit_line[[2]])),
           div(class = "small text-muted",
-              sprintf("n = %d %s · Y %d days after X%s", s$n, unit, eff_lag,
+              sprintf("n = %d %s · Y %d days after X%s%s", s$n, unit, eff_lag,
+                      if (detrend() == "none") "" else
+                        paste(" · both detrended:", analytics_detrend_name(detrend(), window(), smooth())),
                       if (is.na(s$rho_low)) " · too few values for intervals" else "")),
           notes())
     })
 
+    # Time view: Series 1 and 2 (the X and Y inputs) plus an optional third;
+    # a series picked twice is drawn once.
+    time_series <- reactive({
+      picked <- unique(c(input$x, input$y, input$s3))
+      lapply(picked[picked %in% series$series], \(v) series[series$series == v, ])
+    })
+
+    notes <- reactive({
+      shown <- if (identical(input$view, "time")) time_series() else list(sx(), sy())
+      n <- unique(unlist(lapply(shown, homogenised_note, steps = era_steps)))
+      if (length(n) == 0) NULL else div(class = "small text-muted", lapply(n, div))
+    })
+
+    # No height: the plot is drawn at the size its (filling) container has.
     output$plot <- renderPlot({
       switch(input$view %||% "scatter",
-        scatter = plot_analytics_scatter(pair(), analytics_axis_label(sx()), analytics_axis_label(sy()), fit()),
+        scatter = plot_analytics_scatter(pair(), label_of(sx()), label_of(sy()), fit()),
         time = {
-          get <- function(s) daily %>% filter(variable == s$variable, era == s$era) %>%
-            smooth_series(s$agg, smooth()) %>% mutate(panel = analytics_axis_label(s))
-          d <- bind_rows(get(sx()), get(sy()))
-          if (!is.null(from())) d <- filter(d, date >= from())
+          ss <- time_series()
+          validate(need(length(ss) > 0, "Pick a series."))
+          overlay <- isTRUE(input$overlay)
+          show_trend <- !overlay && isTRUE(input$show_trend) && detrend() %in% c("rolling", "loess")
+          # Titles: what was removed, or (showing the trend) what the grey line is.
+          title <- function(s) {
+            if (!show_trend || s$agg == "sparse") return(label_of(s))
+            paste0(analytics_axis_label(s), " \u00B7 grey: ", analytics_detrend_name(detrend(), window()))
+          }
+          d <- bind_rows(lapply(ss, \(s) {
+            v <- analytics_values(daily, s, smooth(), detrend(), window())
+            if (!is.null(from())) v <- filter(v, date >= from())
+            v <- if (show_trend) mutate(v, value = raw) else mutate(v, trend = NA_real_)
+            if (overlay) v <- mutate(v, value = analytics_z(value))
+            mutate(v, panel = title(s))
+          }))
           validate(need(nrow(d) > 0, "No values in this period."))
-          sparse <- unique(d$panel[d$panel %in% c(if (sx()$agg == "sparse") analytics_axis_label(sx()),
-                                                   if (sy()$agg == "sparse") analytics_axis_label(sy()))])
-          plot_analytics_time(d, sparse = sparse)
+          sparse <- vapply(Filter(\(s) s$agg == "sparse", ss), title, "")
+          detrended <- if (show_trend || detrend() == "none") character() else
+            vapply(Filter(\(s) s$agg != "sparse", ss), title, "")
+          plot_analytics_time(d, sparse = sparse, detrended = detrended, overlay = overlay,
+                              ylab = if (overlay) "SDs from the mean" else NULL)
         },
-        matrix = {
-          m <- matrix_data()
-          validate(need(any(!is.na(m$rho)), "Too few overlapping days in this period."))
-          plot_analytics_matrix(m, labels)
-        })
-    }, height = function() switch(input$view %||% "scatter", matrix = 900, time = 560, 460), res = 96)
+        matrix = NULL)
+    }, res = 96)
+
+    output$matrix <- renderPlot({
+      req(identical(input$view, "matrix"))
+      m <- matrix_data()
+      validate(need(any(!is.na(m$rho)), "Too few overlapping days in this period."))
+      plot_analytics_matrix(m, labels)
+    }, res = 96)
 
     output$top <- renderUI({
       top <- analytics_top_pairs(matrix_data(), series, lag = lag())
@@ -161,6 +220,7 @@ analytics_server <- function(id) {
         "Rho measures any steady rise or fall, whatever the fit. Straight line: Y's change per unit of X; log of X: per doubling of X (diminishing returns); quadratic: a curve that can turn; R\u00B2: how much of Y the fit explains. LOESS follows the points and is for the eye only.",
         "Neighbouring days are alike, so the intervals come from a block bootstrap and are wider than naive ones.",
         "Smoothing: levels take a 7-day mean, hours and sessions a 7-day total, e1RM and W/kg the mean of what falls in the window.",
+        "Detrending (all views) removes each series' slow course and keeps its departures from it: a centred rolling mean, a LOESS curve, or the change from the step before. Steps and riding lose their weekday rhythm first (daily values only); e1RM and W/kg are never detrended. Near the ends the window is cut short, drawn lighter. The removed trend is a model, not a measurement. In the scatter and overview, detrending keeps shared seasons and blocks from making two series look related.",
         "Devices are separate series, never pooled; model outputs are marked (model).",
         "A homogenised series is derived: the Fitbit era moved onto Garmin's scale by the step at the switch, then Garmin as measured. The intervals above do not include the uncertainty of that step.")
       if (identical(input$view, "matrix"))

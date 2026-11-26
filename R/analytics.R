@@ -184,13 +184,111 @@ smooth_series <- function(d, agg, smooth = c("7d", "daily", "weekly")) {
     select(date, value)
 }
 
+# Detrending, after smoothing, one series (one era) at a time. What remains is
+# the departure from the series' own slow course; the trend removed is a model
+# output and is returned beside it, so it can be shown.
+#   rolling  minus a centred mean of `window` days (whole weeks when weekly);
+#            at the ends and beside gaps the window shrinks to what exists;
+#            days where either half of the window is under half filled are
+#            flagged `edge` (drawn lighter). A day needs at least half its
+#            window filled, else no value.
+#   loess    minus a LOESS curve (span about 90 days), fitted separately on
+#            stretches without a gap over 28 days; 45 days at their ends are
+#            `edge`.
+#   diff     change from the step (day or week) before; no trend to show.
+# Variables with a weekly rhythm (analytics_weekday_vars) lose their weekday
+# effect first, when values are daily and a detrend is on. Sparse series
+# (e1RM, W/kg) are never detrended: their trend is the signal.
+analytics_detrends <- c("None" = "none", "Minus rolling mean" = "rolling",
+                        "Minus LOESS trend" = "loess", "Day-to-day change" = "diff")
+analytics_detrend_windows <- c(28L, 56L, 91L)
+analytics_weekday_vars <- c("steps", "ride_h")
+
+# d: date, value (one value per step, sorted). Returns date, value (what
+# remains), raw (value before detrending), trend, edge.
+detrend_series <- function(d, method = c("none", "rolling", "loess", "diff"), window = 56L,
+                           weekday = FALSE, step = 1L) {
+  method <- match.arg(method)
+  d <- d %>% select(date, value) %>% arrange(date) %>% mutate(raw = value)
+  out <- function(v_out, t_out, e_out) mutate(d, value = v_out, trend = t_out, edge = e_out) %>%
+    filter(!is.na(value))
+  if (method == "none" || nrow(d) == 0) return(out(d$value, NA_real_, FALSE))
+  v <- d$value
+  if (weekday && step == 1L) {
+    wd <- format(d$date, "%u")
+    v <- v - stats::ave(v, wd) + mean(v)
+  }
+  if (method == "diff") {
+    prev <- v[match(d$date - step, d$date)]
+    return(out(v - prev, NA_real_, FALSE))
+  }
+  if (method == "rolling") {
+    grid <- seq(min(d$date), max(d$date), by = step)
+    g <- v[match(grid, d$date)]
+    N <- length(grid)
+    half <- max(1L, as.integer(round(window / step))) %/% 2L
+    i <- seq_len(N)
+    lo <- pmax(1L, i - half); hi <- pmin(N, i + half)
+    ok <- !is.na(g)
+    cs <- c(0, cumsum(ifelse(ok, g, 0))); cn <- c(0, cumsum(ok))
+    n <- cn[hi + 1] - cn[lo]
+    trend <- ifelse(n >= (hi - lo + 1) / 2, (cs[hi + 1] - cs[lo]) / n, NA_real_)
+    # One-sided: either half of the window under half filled (the ends of
+    # the data, and the days beside a gap)
+    left <- cn[i] - cn[lo]; right <- cn[hi + 1] - cn[i + 1]   # the day itself in neither
+    edge <- pmin(left, right) < half / 2
+    k <- match(d$date, grid)
+    return(out(v - trend[k], trend[k], edge[k]))
+  }
+  # loess
+  x <- as.numeric(d$date)
+  stretch <- cumsum(c(TRUE, diff(x) > 28))
+  trend <- rep(NA_real_, length(v)); edge <- rep(FALSE, length(v))
+  for (st in unique(stretch)) {
+    k <- which(stretch == st)
+    if (length(k) < 10) next
+    span <- min(1, max(90 / (diff(range(x[k])) + 1), 6 / length(k)))
+    fit <- stats::loess(v[k] ~ x[k], span = span, degree = 1)
+    trend[k] <- stats::fitted(fit)
+    edge[k] <- x[k] - min(x[k]) < 45 | max(x[k]) - x[k] < 45
+  }
+  out(v - trend, trend, edge)
+}
+
+# The name of what a detrend removes, for titles and notes.
+analytics_detrend_name <- function(detrend, window = 56L, smooth = "7d") {
+  switch(detrend, none = "", rolling = sprintf("%d-day mean", window), loess = "LOESS trend",
+         diff = if (smooth == "weekly") "change from the week before" else "change from the day before")
+}
+
+# Suffix for a series' label: what was removed from it ("" when nothing).
+analytics_detrend_label <- function(s, detrend, window = 56L, smooth = "7d") {
+  if (detrend == "none" || s$agg == "sparse") return("")
+  wk <- if (smooth == "daily" && s$variable %in% analytics_weekday_vars) " \u2212 weekday effect" else ""
+  if (detrend == "diff") paste0(wk, ", ", analytics_detrend_name(detrend, window, smooth))
+  else paste0(wk, " \u2212 ", analytics_detrend_name(detrend, window, smooth))
+}
+
+# One series (a row of analytics_series), smoothed, then detrended. Returns
+# date, value, raw, trend, edge. Every view gets its values from here.
+analytics_values <- function(daily, s, smooth = "7d", detrend = "none", window = 56L) {
+  d <- daily %>% filter(variable == s$variable, era == s$era) %>% smooth_series(s$agg, smooth)
+  if (s$agg == "sparse") detrend <- "none"
+  detrend_series(d, detrend, window, weekday = s$variable %in% analytics_weekday_vars,
+                 step = if (smooth == "weekly") 7L else 1L)
+}
+
+# Standardised: SDs from the mean (for the overlay of several series).
+analytics_z <- function(v) (v - mean(v, na.rm = TRUE)) / stats::sd(v, na.rm = TRUE)
+
 # X and Y paired: Y `lag` days after X (whole weeks when weekly). Returns
-# date (of X), x, y, year.
-analytics_pair <- function(daily, series, x, y, lag = 0L, smooth = "7d", from = NULL) {
+# date (of X), x, y, year. Detrending comes before the lag shift.
+analytics_pair <- function(daily, series, x, y, lag = 0L, smooth = "7d", from = NULL,
+                           detrend = "none", window = 56L) {
   get <- function(key) {
     s <- series[series$series == key, ]
     if (nrow(s) != 1) stop("analytics: unknown series ", key)
-    daily %>% filter(variable == s$variable, era == s$era) %>% smooth_series(s$agg, smooth)
+    analytics_values(daily, s, smooth, detrend, window) %>% select(date, value)
   }
   shift <- if (smooth == "weekly") 7L * as.integer(round(lag / 7)) else as.integer(lag)
   out <- get(x) %>% rename(x = value) %>%
@@ -269,13 +367,14 @@ analytics_block_len <- function(smooth) if (smooth == "weekly") 3L else 14L
 
 # All series against all series at one lag: Spearman's rho and the number of
 # paired days. Cells under min_n pairs are NA.
-analytics_matrix <- function(daily, series, lag = 0L, smooth = "7d", from = NULL, min_n = NULL) {
+analytics_matrix <- function(daily, series, lag = 0L, smooth = "7d", from = NULL, min_n = NULL,
+                             detrend = "none", window = 56L) {
   min_n <- min_n %||% if (smooth == "weekly") 10L else 30L
   step <- if (smooth == "weekly") "week" else "day"
   rows <- if (smooth == "weekly") as.integer(round(lag / 7)) else as.integer(lag)
-  wide <- purrr::pmap(series, \(series, variable, era, agg, ...) {
-    daily %>% filter(.data$variable == !!variable, .data$era == !!era) %>%
-      smooth_series(agg, smooth) %>% mutate(series = !!series)
+  wide <- lapply(seq_len(nrow(series)), \(i) {
+    analytics_values(daily, series[i, ], smooth, detrend, window) %>%
+      transmute(date, value, series = series$series[i])
   }) %>%
     purrr::list_rbind() %>%
     tidyr::pivot_wider(names_from = series, values_from = value)

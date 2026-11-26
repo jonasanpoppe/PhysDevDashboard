@@ -18,6 +18,15 @@ test_that("analytics charts build", {
                   smooth_series(filter(d, variable == "ride_h"), "volume", "7d") %>% mutate(panel = "B"))
   tp <- ggplot_build(plot_analytics_time(td))
   expect_equal(length(unique(tp$layout$layout$PANEL)), 2)      # two panels, never a dual axis
+  td3 <- bind_rows(td, smooth_series(filter(d, variable == "steps"), "volume", "7d") %>% mutate(panel = "C"))
+  tp3 <- ggplot_build(plot_analytics_time(td3, sparse = "C"))
+  expect_equal(length(unique(tp3$layout$layout$PANEL)), 3)     # up to three series, stacked
+
+  dt <- mutate(td3, trend = value, edge = row_number() < 5)
+  expect_s3_class(ggplot_build(plot_analytics_time(dt, detrended = c("A", "B"))), "ggplot_built")
+  ov <- ggplot_build(plot_analytics_time(mutate(td3, value = analytics_z(value), .by = panel),
+                                         overlay = TRUE, ylab = "SDs"))
+  expect_equal(length(unique(ov$layout$layout$PANEL)), 1)      # overlay: one panel
 
   m <- analytics_matrix(d, s, smooth = "daily")
   mb <- ggplot_build(plot_analytics_matrix(m, setNames(s$series_label, s$series)))

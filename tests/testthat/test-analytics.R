@@ -163,3 +163,67 @@ test_that("matrix: no variable against itself or its family, eras never pooled, 
   late <- analytics_matrix(d, s, smooth = "daily", from = max(d$date) - 20)
   expect_true(all(is.na(late$rho)))                             # under 30 pairs
 })
+
+test_that("detrending: rolling mean, LOESS, change, weekday effect, edges and gaps", {
+  days <- seq(as.Date("2025-01-01"), by = "day", length.out = 200)
+  set.seed(1)
+  lin <- tibble(date = days, value = 50 + 0.1 * seq_along(days) + rnorm(200, sd = 0.5))
+
+  for (m in c("rolling", "loess")) {
+    r <- detrend_series(lin, m, window = 56L)
+    mid <- filter(r, !edge)
+    expect_lt(abs(mean(mid$value)), 0.2)                                      # centred on 0
+    expect_lt(abs(coef(lm(value ~ as.numeric(date), mid))[[2]]), 0.005)       # no slope left
+    expect_equal(r$raw + 0, lin$value[match(r$date, lin$date)])               # raw kept
+    expect_equal(mid$value, mid$raw - mid$trend)
+  }
+
+  # A constant leaves nothing; ends of a centred window are flagged
+  const <- tibble(date = days, value = 7)
+  r <- detrend_series(const, "rolling", window = 28L)
+  expect_true(all(abs(r$value) < 1e-12))
+  expect_equal(sum(r$edge), 2 * 7)                  # a half of the window under half filled
+  expect_false(any(r$edge[8:193]))
+
+  # Change from the day before; no trend to show
+  d <- detrend_series(tibble(date = days[1:5], value = c(1, 3, 6, 10, 15)), "diff")
+  expect_equal(d$value, c(2, 3, 4, 5))
+  expect_true(all(is.na(d$trend)))
+
+  # A weekday rhythm is removed when asked, daily values only
+  wk <- tibble(date = days, value = 100 + ifelse(format(days, "%u") %in% c("6", "7"), 50, 0))
+  expect_lt(max(abs(detrend_series(wk, "rolling", weekday = TRUE)$value)), 1e-9)
+  expect_gt(max(abs(detrend_series(wk, "rolling", weekday = FALSE)$value)), 10)
+
+  # A gap: days whose window is under half full get no value
+  gappy <- filter(lin, !(date >= as.Date("2025-03-01") & date < as.Date("2025-05-01")))
+  g <- detrend_series(gappy, "rolling", window = 28L)
+  expect_false(any(g$date >= as.Date("2025-03-01") & g$date < as.Date("2025-05-01")))
+  expect_true(all(!is.na(g$value)))
+  expect_true(all(g$edge[g$date %in% (as.Date("2025-03-01") + c(-1, 60))]))   # beside the gap: lighter
+
+  # Weekly values: the window is in weeks (56 days = 4 weeks each side, cut at the ends)
+  weekly <- tibble(date = seq(as.Date("2025-01-06"), by = "week", length.out = 30), value = 1:30)
+  w <- detrend_series(weekly, "rolling", window = 56L, step = 7L)
+  expect_equal(sum(w$edge), 4)
+  expect_equal(w$value[5:26], rep(0, 22))           # full window: a straight line leaves 0
+})
+
+test_that("detrending through the views: sparse series untouched, labels say what was removed", {
+  d <- fake_analytics_daily()
+  s <- analytics_series(d, analytics_variables(d))
+  sp <- s[s$agg == "sparse", ][1, ]
+  if (nrow(sp) == 1 && !is.na(sp$series)) {
+    expect_equal(analytics_values(d, sp, "daily", "rolling")$value,
+                 analytics_values(d, sp, "daily", "none")$value)
+    expect_equal(analytics_detrend_label(sp, "rolling"), "")
+  }
+  st <- s[s$variable == "steps", ][1, ]
+  expect_match(analytics_detrend_label(st, "rolling", 56L, "daily"), "weekday effect .* 56-day mean")
+  expect_match(analytics_detrend_label(st, "diff", 56L, "weekly"), "week before")
+  p0 <- analytics_pair(d, s, "scale_kg", "steps", smooth = "daily")
+  p1 <- analytics_pair(d, s, "scale_kg", "steps", smooth = "daily", detrend = "loess")
+  expect_false(isTRUE(all.equal(p0$x, p1$x[match(p0$date, p1$date)])))
+  m <- analytics_matrix(d, s, smooth = "daily", detrend = "rolling", window = 28L)
+  expect_equal(nrow(m), nrow(s)^2)
+})
