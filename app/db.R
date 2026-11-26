@@ -17,3 +17,8 @@ query <- function(sql, params = NULL) {
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
   DBI::dbGetQuery(con, sql, params = params) %>% tibble::as_tibble()
 }
+
+# Whether a table exists (for tabs whose table a build may not have written yet)
+db_has_table <- function(name) {
+  nrow(query("SELECT 1 FROM information_schema.tables WHERE table_name = ?", params = list(name))) > 0
+}

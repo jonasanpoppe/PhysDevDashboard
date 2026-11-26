@@ -12,6 +12,7 @@ library(dplyr)
 #   rides    (date, km, elev_m)          strava_rides: all ride types
 #   sessions (date, kind)                sessions_daily: attendance only, never outcomes
 #   climbs   (date, climb, status, bike_id)  strava_climb_efforts: our own matching on streams
+#   events   (date, relic, note)         config/relic_events.csv: the Reliquary's manual log
 #
 # No "on track" verdict yet: that needs the scenarios of milestone 7. Each
 # card shows now against target, and how far along the way it is.
@@ -119,12 +120,18 @@ quest_now <- function(quest, data, as_of, cfg = list()) {
 }
 
 # When a stage was done (a Date), or NA. A stage is either checked from the
-# climb record ({climb, bike, since}: a clean ascent) or ticked by hand
-# ({done: date}).
+# climb record ({climb, bike, since}: a clean ascent), ticked by hand
+# ({done: date}) or read from the Reliquary's manual log ({relic: id}, a row
+# in config/relic_events.csv), so a gate logged once ticks both.
 quest_stage_done <- function(stage, data, as_of) {
   if (!is.null(stage$done)) {
     d <- as.Date(stage$done)
     return(if (d <= as_of) d else as.Date(NA))
+  }
+  if (!is.null(stage$relic)) {
+    e <- (data$events %||% tibble::tibble(date = as.Date(character()), relic = character())) %>%
+      filter(relic == stage$relic, as.Date(date) <= as_of)
+    return(if (nrow(e) == 0) as.Date(NA) else min(as.Date(e$date)))
   }
   if (!is.null(stage$climb)) {
     e <- data$climbs %>%
@@ -302,14 +309,15 @@ quest_board <- function(cfg, data, as_of = Sys.Date()) {
 }
 
 # The tables quest_board() reads, from the database
-quest_data <- function(con) {
+quest_data <- function(con, events = NULL) {
   get <- function(sql) tibble::as_tibble(DBI::dbGetQuery(con, sql))
   list(
     weight   = get("SELECT date, trend_kg FROM weight_daily"),
     strength = get("SELECT date, lift, e1rm FROM strength_sessions"),
     rides    = get("SELECT date, km, elev_m FROM strava_rides"),
     sessions = get("SELECT date, kind FROM sessions_daily"),
-    climbs   = get("SELECT date, climb, status, bike_id FROM strava_climb_efforts")
+    climbs   = get("SELECT date, climb, status, bike_id FROM strava_climb_efforts"),
+    events   = events
   )
 }
 

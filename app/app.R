@@ -31,6 +31,8 @@ source(file.path(project_root, "R", "analytics.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_analytics.R"), local = TRUE)
 source(file.path(project_root, "R", "homogenise.R"), local = TRUE)
 source(file.path(project_root, "R", "quests.R"), local = TRUE)
+source(file.path(project_root, "R", "relics.R"), local = TRUE)
+source(file.path(project_root, "R", "roadmap.R"), local = TRUE)
 source("db.R", local = TRUE)
 source("fill_plot.R", local = TRUE)
 physdev_font()   # register the web font once at start-up, not on the first figure
@@ -108,6 +110,10 @@ ui <- page_navbar(
   header = tags$head(tags$script(HTML(corporate_js))),
   # Home: the oath and the Quest Board (config/oath.yml)
   nav_panel("🛡️ Home", value = "oath", oath_ui("oath")),
+  # Reliquary: relics unlocked by rules (config/oath.yml, R/relics.R)
+  nav_panel("🏺 Reliquary", value = "reliquary", reliquary_ui("reliquary")),
+  # Roadmap: the year's phases, today and the gates
+  nav_panel("🗺️ Roadmap", value = "roadmap", roadmap_ui("roadmap")),
   nav_panel("⚖️ Weight", value = "weight", weight_ui("weight")),
   nav_panel("🏋️ Strength", value = "strength", strength_ui("strength")),
   nav_panel("❤️ Vitals", value = "vitals", vitals_ui("vitals")),
@@ -130,6 +136,8 @@ server <- function(input, output, session) {
 
   # A click on a quest card opens the tab with its data
   oath_follow(oath_server("oath"), session)
+  reliquary_server("reliquary")
+  roadmap_server("roadmap")
   weight_server("weight")
   strength_server("strength")
   vitals_server("vitals")

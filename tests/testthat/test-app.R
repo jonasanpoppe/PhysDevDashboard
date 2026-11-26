@@ -65,8 +65,21 @@ test_that("the app starts and renders the Vitals plot", {
     sessions = ws, climbs = ct$efforts)))
   DBI::dbWriteTable(con, "oath_config", tibble::tibble(json = as.character(
     jsonlite::toJSON(oath, auto_unbox = TRUE, null = "null"))))
+  # The Reliquary: relic III logged by hand, so one card is unlocked (no art)
+  source(testthat::test_path("..", "..", "R", "relics.R"), local = TRUE)
+  relics <- relic_status(oath, as_of = max(wd$date), data = list(
+    weight = wd, weekly = DBI::dbReadTable(con, "weight_weekly"),
+    sets = tibble::tibble(date = as.Date(character()), exercise = character(), reps = numeric(),
+                          rir = numeric(), is_warmup = logical()),
+    rides = rt$rides, climbs = ct$efforts,
+    events = tibble::tibble(date = min(wd$date), relic = "III", note = "test")))
+  DBI::dbWriteTable(con, "relic_status", relics)
+  level <- relic_level(relics, oath)
+  source(testthat::test_path("..", "..", "R", "roadmap.R"), local = TRUE)
+  DBI::dbWriteTable(con, "roadmap_phases", roadmap_phases(oath, as_of = "2030-04-10"))
+  DBI::dbWriteTable(con, "roadmap_gates", roadmap_gates(oath, relics))
   DBI::dbDisconnect(con, shutdown = TRUE)
-  withr::local_envvar(PDD_DB = db)
+  withr::local_envvar(PDD_DB = db, PDD_RELIC_ART = file.path(dir, "relics"))
 
   app <- shiny::shinyAppDir(testthat::test_path("..", "..", "app"))
   shiny::testServer(app, {
@@ -74,7 +87,22 @@ test_that("the app starts and renders the Vitals plot", {
     home <- as.character(output$`oath-page`$html)
     expect_match(home, "The Wandering Squire")
     expect_match(home, "Judo now:")
-    expect_match(home, "level 1")
+    expect_match(home, sprintf("level %d<", level))
+    expect_match(home, "New relic unlocked: [^<]*III")
+    # Reliquary: a card per relic, sealed and unlocked, and the level path
+    rel <- as.character(output$`reliquary-page`$html)
+    expect_equal(lengths(regmatches(rel, gregexpr("class=\"relic-card ", rel))), length(oath$relics))
+    expect_match(rel, "relic-card relic-unlocked")
+    expect_match(rel, "relic-card relic-sealed")
+    expect_match(rel, sprintf("Level %d", level))
+    expect_match(rel, "the Chalice")
+    # Roadmap: a block per phase, the today line, gates
+    road <- as.character(output$`roadmap-page`$html)
+    expect_equal(lengths(regmatches(road, gregexpr("class=\"road-phase ", road))), length(oath$roadmap$phases))
+    expect_match(road, "road-today")
+    expect_match(road, "road-done")
+    expect_match(road, "<b>78 kg</b>")
+    expect_match(road, "Gates:")
     expect_equal(lengths(regmatches(home, gregexpr("class=\"oath-card( oath-link)?\"", home))), 6)
     expect_equal(lengths(regmatches(home, gregexpr("oath-card oath-link", home))), 5)  # the Ledger has no tab
     expect_match(home, "of the way from")
@@ -87,7 +115,10 @@ test_that("the app starts and renders the Vitals plot", {
     expect_match(home, "2030 goals")
     expect_match(home, "oath-corporate")
     expect_no_match(home, "The Wandering Squire")
-    expect_no_match(home, "level 1")
+    expect_no_match(home, sprintf("level %d<", level))
+    rel <- as.character(output$`reliquary-page`$html)
+    expect_match(rel, "Milestones")
+    expect_no_match(rel, "the Chalice")
     expect_match(home, "Example Hill without stopping")
     session$setInputs(`vitals-metrics` = "rhr", `vitals-points` = TRUE, `vitals-range` = "all")
     expect_gt(nchar(output$`vitals-plot`$src), 1000)

@@ -135,6 +135,15 @@ test_that("event: a clean ascent on the named bike, or a stage ticked by hand", 
   expect_equal(quest_now(q, d, "2030-03-01")$value, 2)
 })
 
+test_that("a stage with relic: is done when the Reliquary's manual log has it", {
+  q <- list(id = "b", kind = "event", metric = "manual", stages = list(list(label = "Blue", relic = "IX")))
+  d <- fake_quest_data()
+  expect_true(is.na(quest_now(q, d, "2030-02-15")$stages[[1]]))          # no log at all
+  d$events <- tibble::tibble(date = as.Date(c("2030-02-10", "2030-01-05")), relic = c("IX", "III"))
+  expect_equal(quest_now(q, d, "2030-02-15")$stages[[1]], as.Date("2030-02-10"))
+  expect_true(is.na(quest_now(q, d, "2030-02-09")$stages[[1]]))           # logged for a later day
+})
+
 test_that("the example config builds a board, one row per quest", {
   cfg <- yaml::read_yaml(testthat::test_path("..", "..", "config", "oath.example.yml"))
   b <- quest_board(cfg, fake_quest_data(), as_of = "2030-02-15")
