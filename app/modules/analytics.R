@@ -43,6 +43,7 @@ analytics_server <- function(id) {
   moduleServer(id, function(input, output, session) {
     daily <- query("SELECT * FROM analytics_daily") %>% mutate(date = as.Date(date))
     variables <- query("SELECT * FROM analytics_variables")
+    era_steps <- tryCatch(query("SELECT * FROM vitals_era_steps WHERE applied"), error = \(e) NULL)
     series <- analytics_series(daily, variables)
     labels <- setNames(series$series_label, series$series)
     choices <- lapply(split(series, factor(series$group, levels = unique(series$group))),
@@ -86,7 +87,13 @@ analytics_server <- function(id) {
     stat <- reactive(analytics_fit_stats(pair()$x, pair()$y, fit = fit(), block = analytics_block_len(smooth())))
     matrix_data <- reactive(analytics_matrix(daily, series, lag = lag(), smooth = smooth(), from = from()))
 
+    notes <- reactive({
+      n <- unique(unlist(lapply(list(sx(), sy()), homogenised_note, steps = era_steps)))
+      if (length(n) == 0) NULL else div(class = "small text-muted", lapply(n, div))
+    })
+
     output$stat <- renderUI({
+      if (identical(input$view, "time")) return(if (!is.null(notes())) div(class = "px-3 pt-3", notes()))
       req(identical(input$view, "scatter"))
       s <- stat()
       unit <- if (smooth() == "weekly") "weeks" else "days"
@@ -110,7 +117,8 @@ analytics_server <- function(id) {
           div(tags$strong(fit_line[[1]]), span(class = "text-muted", fit_line[[2]])),
           div(class = "small text-muted",
               sprintf("n = %d %s · Y %d days after X%s", s$n, unit, eff_lag,
-                      if (is.na(s$rho_low)) " · too few values for intervals" else "")))
+                      if (is.na(s$rho_low)) " · too few values for intervals" else "")),
+          notes())
     })
 
     output$plot <- renderPlot({
@@ -153,7 +161,8 @@ analytics_server <- function(id) {
         "Rho measures any steady rise or fall, whatever the fit. Straight line: Y's change per unit of X; log of X: per doubling of X (diminishing returns); quadratic: a curve that can turn; R\u00B2: how much of Y the fit explains. LOESS follows the points and is for the eye only.",
         "Neighbouring days are alike, so the intervals come from a block bootstrap and are wider than naive ones.",
         "Smoothing: levels take a 7-day mean, hours and sessions a 7-day total, e1RM and W/kg the mean of what falls in the window.",
-        "Devices are separate series, never pooled; model outputs are marked (model).")
+        "Devices are separate series, never pooled; model outputs are marked (model).",
+        "A homogenised series is derived: the Fitbit era moved onto Garmin's scale by the step at the switch, then Garmin as measured. The intervals above do not include the uncertainty of that step.")
       if (identical(input$view, "matrix"))
         paste("With this many pairs some look strong by chance: use the overview to find candidates, the scatter to check them.",
               "Blank: fewer than 30 days (10 weeks) in common, or the same quantity (scale and trend weight; sleep and its stages; hours and the loads built from them).", base)

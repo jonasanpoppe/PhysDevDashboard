@@ -29,6 +29,7 @@ source(file.path(project_root, "R", "riding.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_riding.R"), local = TRUE)
 source(file.path(project_root, "R", "analytics.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_analytics.R"), local = TRUE)
+source(file.path(project_root, "R", "homogenise.R"), local = TRUE)
 source("db.R", local = TRUE)
 source("fill_plot.R", local = TRUE)
 physdev_font()   # register the web font once at start-up, not on the first figure

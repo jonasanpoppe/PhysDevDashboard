@@ -9,6 +9,8 @@ library(dplyr)
 #     without activity, within the span of their source.
 #   - era: the device for vitals ("fitbit", "garmin"), "all" otherwise. A
 #     variable from two devices is two series; they are never pooled.
+#     "homogenised" is a third, derived series beside them: Fitbit moved onto
+#     Garmin's scale at the switch, then Garmin (R/homogenise.R).
 # analytics_variables: the registry below (label, group, unit, kind, agg).
 #
 # family: variables that are the same quantity or parts of one another
@@ -56,7 +58,7 @@ analytics_presets <- tibble::tribble(
 )
 
 build_analytics_daily <- function(weight_daily, vitals_daily, load, sessions, plan_bands,
-                                  strength_sessions, climb_efforts) {
+                                  strength_sessions, climb_efforts, vitals_homogenised = NULL) {
   long <- function(df, cols, era = "all") {
     purrr::imap(cols, \(col, v) tibble(date = as.Date(df$date), variable = v, era = era,
                                        value = as.numeric(df[[col]]))) %>%
@@ -73,6 +75,8 @@ build_analytics_daily <- function(weight_daily, vitals_daily, load, sessions, pl
 
   sleep_vars <- c(sleep_s = "sleep_h", sleep_deep_s = "sleep_deep_h", sleep_rem_s = "sleep_rem_h")
   vitals <- vitals_daily %>%
+    select(date, metric, era, value) %>%
+    bind_rows(if (!is.null(vitals_homogenised)) select(vitals_homogenised, date, metric, era, value)) %>%
     filter(metric %in% c("rhr", "hrv", "resp", "spo2", "skin_temp_dev", names(sleep_vars))) %>%
     transmute(date = as.Date(date),
               variable = if_else(metric %in% names(sleep_vars), unname(sleep_vars[metric]), metric),
@@ -129,6 +133,8 @@ analytics_series <- function(daily, variables) {
     summarise(.by = c(variable, era), last_date = max(as.Date(date))) %>%
     mutate(n_eras = n(), .by = variable) %>%
     inner_join(variables, by = "variable") %>%
+    # The Fitbit part of a homogenised series is adjusted by an estimate
+    mutate(kind = if_else(era == "homogenised", "model output", kind)) %>%
     mutate(series = if_else(n_eras > 1, paste0(variable, "@", era), variable),
            series_label = if_else(n_eras > 1, paste0(label, " · ", era), label)) %>%
     select(series, series_label, variable, era, label, group, unit, kind, agg, family, last_date) %>%
@@ -136,9 +142,10 @@ analytics_series <- function(daily, variables) {
             variable, era)
 }
 
-# The series for a variable: its most recent era (presets name variables).
+# The series for a variable: its most recent measured era (presets name
+# variables; a homogenised series is never picked for them).
 resolve_series <- function(series, variable) {
-  s <- series[series$variable == variable, ]
+  s <- series[series$variable == variable & series$era != "homogenised", ]
   if (nrow(s) == 0) return(NA_character_)
   s$series[which.max(s$last_date)]
 }
