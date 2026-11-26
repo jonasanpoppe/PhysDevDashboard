@@ -30,6 +30,7 @@ source(file.path(project_root, "R", "plot_riding.R"), local = TRUE)
 source(file.path(project_root, "R", "analytics.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_analytics.R"), local = TRUE)
 source(file.path(project_root, "R", "homogenise.R"), local = TRUE)
+source(file.path(project_root, "R", "quests.R"), local = TRUE)
 source("db.R", local = TRUE)
 source("fill_plot.R", local = TRUE)
 physdev_font()   # register the web font once at start-up, not on the first figure
@@ -50,6 +51,8 @@ ui <- page_navbar(
      .tiles-compact .value-box-value { font-size: 1.25rem; line-height: 1.2; margin-bottom: 0.25rem; }
      .tiles-compact p { font-size: 0.7rem; line-height: 1.25; }"
   ),
+  # Home: the oath and the Quest Board (config/oath.yml)
+  nav_panel("🛡️ Home", oath_ui("oath")),
   nav_panel("⚖️ Weight", weight_ui("weight")),
   nav_panel("🏋️ Strength", strength_ui("strength")),
   nav_panel("❤️ Vitals", vitals_ui("vitals")),
@@ -60,6 +63,7 @@ ui <- page_navbar(
 )
 
 server <- function(input, output, session) {
+  oath_server("oath")
   weight_server("weight")
   strength_server("strength")
   vitals_server("vitals")

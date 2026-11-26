@@ -58,11 +58,26 @@ test_that("the app starts and renders the Vitals plot", {
   ad <- fake_analytics_daily()
   DBI::dbWriteTable(con, "analytics_daily", ad)
   DBI::dbWriteTable(con, "analytics_variables", analytics_variables(ad))
+  source(testthat::test_path("..", "..", "R", "quests.R"), local = TRUE)
+  oath <- yaml::read_yaml(testthat::test_path("..", "..", "config", "oath.example.yml"))
+  DBI::dbWriteTable(con, "quest_board", quest_board(oath, as_of = max(wd$date), data = list(
+    weight = wd, strength = DBI::dbReadTable(con, "strength_sessions"), rides = rt$rides,
+    sessions = ws, climbs = ct$efforts)))
+  DBI::dbWriteTable(con, "oath_config", tibble::tibble(json = as.character(
+    jsonlite::toJSON(oath, auto_unbox = TRUE, null = "null"))))
   DBI::dbDisconnect(con, shutdown = TRUE)
   withr::local_envvar(PDD_DB = db)
 
   app <- shiny::shinyAppDir(testthat::test_path("..", "..", "app"))
   shiny::testServer(app, {
+    # Home: the oath's copy, the main quest and a card per side quest
+    home <- as.character(output$`oath-page`$html)
+    expect_match(home, "The Wandering Squire")
+    expect_match(home, "Judo now:")
+    expect_match(home, "level 1")
+    expect_equal(lengths(regmatches(home, gregexpr("class=\"oath-card\"", home))), 6)
+    expect_match(home, "of the way from")
+
     session$setInputs(`vitals-metrics` = "rhr", `vitals-points` = TRUE)
     for (range in c("90", "365", "all")) {
       session$setInputs(`vitals-range` = range)

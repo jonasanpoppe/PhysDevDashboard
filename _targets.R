@@ -339,6 +339,23 @@ list(
              write_riding_tables(strava_rides, strava_plan_bands, goals_config$riding,
                                  bands = athlete_config$plan_bands, db_path = "db/health.db")),
 
+  # ── Quests: the Quest Board on the Home tab (config/oath.yml, R/quests.R) ────
+  # Always rerun: the board counts days up to today (last 28 days, the
+  # year's pace), so it goes stale even when no data changes.
+  tar_target(oath_config_file, "config/oath.yml", format = "file"),
+  tar_target(oath_config, yaml::read_yaml(oath_config_file)),
+  tar_target(
+    quest_tables,
+    write_quest_tables(
+      quest_board(oath_config, as_of = Sys.Date(), data = list(
+        weight = weight_daily, strength = strength_sessions, rides = strava_rides,
+        sessions = sessions_daily, climbs = strava_climb_efforts
+      )),
+      oath_config, db_path = "db/health.db"
+    ),
+    cue = tar_cue(mode = "always")
+  ),
+
   # ── Analytics: any two daily variables (R/analytics.R) ──────────────────────
   tar_target(
     analytics_daily,
