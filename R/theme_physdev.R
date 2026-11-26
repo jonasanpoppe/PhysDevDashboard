@@ -1,8 +1,7 @@
 # ============================================================
 #  theme_physdev.R
-#  The PhysDevDashboard ggplot2 + bslib theme (placeholder style,
-#  to be reworked): warm off-whites, charcoal, coral accent,
-#  generous whitespace.
+#  The PhysDevDashboard ggplot2 + bslib theme: the Oath of Glory
+#  scheme (parchment, ink, purple and bronze) on every tab.
 #
 #  Usage:
 #    source("R/theme_physdev.R")
@@ -13,31 +12,41 @@
 
 physdev <- list(
 
-  # Core
-  bg          = "#F5F4EF",   # Warm off-white page background
-  bg_card     = "#ECEAE3",   # Slightly deeper card surface
-  fg          = "#1A1A1A",   # Near-black body text
-  fg_muted    = "#6B6860",   # Secondary / axis labels
-  fg_subtle   = "#A8A49E",   # Gridlines, borders
+  # Core: the Oath of Glory scheme (parchment, ink), on every tab
+  bg          = "#F4EBD6",   # Parchment page background
+  bg_card     = "#EFE3C8",   # Card surface
+  fg          = "#2A1E14",   # Ink: body text
+  fg_muted    = "#5C4632",   # Secondary text, axis labels
+  fg_subtle   = "#C9B48C",   # Gridlines, borders (never text)
 
-  # Accent
-  coral       = "#C96442",   # Primary accent: coral/terracotta
-  coral_light = "#E8957A",   # Lighter variant
-  coral_dark  = "#9E4A2E",   # Darker variant
+  # UI colours (navbar, buttons, links). Gold only for borders: it fails
+  # contrast as text.
+  purple      = "#4B2A6B",
+  bronze      = "#7A4A22",
+  gold        = "#9A7020",
 
-  # Categorical (warm-neutral, harmonises with coral)
+  # Accent: the highlighted series (current round, the main line)
+  accent       = "#7046A8",
+  accent_light = "#A98BD0",
+  accent_dark  = "#4B2A6B",
+
+  # Categorical, fixed order, validated on the parchment surface (lightness,
+  # chroma, colour-blind separation of neighbours, contrast >= 3:1). Bronze
+  # and ochre look alike to deuteranopes: never make them neighbours.
   cat = c(
-    "#C96442",   # Coral        — series 1
-    "#5B7FA6",   # Steel blue   — series 2
-    "#7A9E7E",   # Sage green   — series 3
-    "#9B7BB5",   # Mauve        — series 4
-    "#B8956B",   # Warm taupe   — series 5
-    "#4E9EA8"    # Slate teal   — series 6
+    "#7046A8",   # Purple — series 1
+    "#C0621E",   # Bronze — series 2
+    "#1F7FB8",   # Blue   — series 3
+    "#5C8F2A",   # Olive  — series 4
+    "#B23F78",   # Plum   — series 5
+    "#9A7A12"    # Ochre  — series 6
   ),
 
-  # Sequential (light → dark coral, for heatmaps / single-variable)
-  seq_low  = "#F5E6DF",
-  seq_high = "#7A2E10"
+  # Sequential (light → dark purple) and diverging poles (bronze ↔ blue)
+  seq_low  = "#ECE3F3",
+  seq_high = "#3E2259",
+  div_low  = "#A4521A",
+  div_high = "#1F7FB8"
 )
 
 # ── ggplot2 theme ─────────────────────────────────────────────────────────────
@@ -152,9 +161,9 @@ scale_fill_physdev_seq <- function(...) {
 #' Diverging fill scale (e.g. correlation matrix)
 scale_fill_physdev_div <- function(midpoint = 0, ...) {
   ggplot2::scale_fill_gradient2(
-    low      = physdev$coral_dark,
+    low      = physdev$div_low,
     mid      = physdev$bg,
-    high     = physdev$steel_blue %||% "#5B7FA6",
+    high     = physdev$div_high,
     midpoint = midpoint,
     ...
   )
@@ -169,7 +178,7 @@ scale_fill_physdev_div <- function(midpoint = 0, ...) {
 # shiny_theme_physdev <- bs_theme(
 #   bg         = physdev$bg,
 #   fg         = physdev$fg,
-#   primary    = physdev$coral,
+#   primary    = physdev$accent,
 #   secondary  = physdev$fg_muted,
 #   success    = "#7A9E7E",
 #   warning    = "#D97706",

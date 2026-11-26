@@ -54,11 +54,31 @@ test_that("e1RM now: mean of the last n sessions, baseline without any", {
   expect_equal(b$value, 95)
 })
 
+test_that("single_ratio: the heavy single on the bar, baseline on the same scale", {
+  q <- list(id = "s", kind = "increasing", metric = "e1rm_bar_kg", exercise = "Barbell Back Squat",
+            single_ratio = 0.9, baseline = list(low = 90, high = 100, date = "2029-11-01"), target = 140)
+  d <- fake_quest_data()
+  now <- quest_now(q, d, "2030-02-01", list(now_sessions = 1))
+  expect_equal(now$value, 108)
+  expect_equal(now$e1rm, 120)
+  b <- quest_now(q, d, "2029-11-15")
+  expect_equal(b$text, "81\u201390")
+  expect_equal(quest_start(q, d, "2029-12-15", list()), 81)
+  board <- quest_board(list(quests = list(q), now_sessions = 1), d, "2030-02-01")
+  expect_match(board$source_note, "Heavy single on the bar \\(estimate\\): e1RM 120.0 \u00D7 0.900")
+  expect_equal(board$now_e1rm, 120)
+})
+
 test_that("hold: held within the band of the target", {
   q <- list(id = "b", kind = "hold", metric = "e1rm_bar_kg", target = 100)
   expect_match(quest_progress(q, list(value = 97.5, source = "live"))$label, "^Held")
   expect_match(quest_progress(q, list(value = 97.4, source = "live"))$label, "^Below")
   expect_match(quest_progress(q, list(value = 98, source = "live"), cfg = list(hold_band_kg = 1))$label, "^Below")
+  # The bar: share of the way from the start value to the target
+  p <- quest_progress(q, list(value = 95, source = "live"), start = 90)
+  expect_equal(p$share, 0.5)
+  expect_match(p$label, "^Below: 50% of the way from 90 kg")
+  expect_true(is.na(quest_progress(q, list(value = 95, source = "live"))$share))   # no start: no bar
 })
 
 test_that("cumulative: the year so far stands in before the quest's year", {

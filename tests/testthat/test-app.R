@@ -75,8 +75,11 @@ test_that("the app starts and renders the Vitals plot", {
     expect_match(home, "The Wandering Squire")
     expect_match(home, "Judo now:")
     expect_match(home, "level 1")
-    expect_equal(lengths(regmatches(home, gregexpr("class=\"oath-card\"", home))), 6)
+    expect_equal(lengths(regmatches(home, gregexpr("class=\"oath-card( oath-link)?\"", home))), 6)
+    expect_equal(lengths(regmatches(home, gregexpr("oath-card oath-link", home))), 5)  # the Ledger has no tab
     expect_match(home, "of the way from")
+    # A click on a card opens its tab with the view set
+    session$setInputs(`oath-goto` = list(tab = "engine", inputs = list(view = "rides")))
 
     session$setInputs(`vitals-metrics` = "rhr", `vitals-points` = TRUE)
     for (range in c("90", "365", "all")) {

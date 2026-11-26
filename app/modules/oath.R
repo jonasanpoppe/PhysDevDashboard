@@ -19,14 +19,23 @@ oath_ui <- function(id) {
 
 # A tenet with its first letter as a blackletter capital
 oath_tenet <- function(text, late) {
-  div(class = paste("oath-tenet", if (late) "oath-late"),
+  div(class = paste(c("oath-tenet", if (late) "oath-late"), collapse = " "),
       span(class = "oath-cap", substr(text, 1, 1)), substr(text, 2, nchar(text)))
 }
 
-oath_card <- function(q) {
+# A card; with a link, clicking it sends {tab, inputs} to input$goto (the
+# app's server switches the tab and sets the inputs there)
+oath_card <- function(q, ns) {
   accent <- oath_accents[min(max(q$accent, 1L), length(oath_accents))]
-  div(
-    class = "oath-card", style = sprintf("--accent: %s;", accent),
+  linked <- !is.na(q$link_tab)
+  click <- if (linked) sprintf(
+    "Shiny.setInputValue('%s', {tab: '%s', inputs: %s}, {priority: 'event'})",
+    ns("goto"), q$link_tab, q$link_inputs)
+  tags$div(
+    class = paste(c("oath-card", if (linked) "oath-link"), collapse = " "), style = sprintf("--accent: %s;", accent),
+    role = if (linked) "link", tabindex = if (linked) "0", onclick = click,
+    onkeydown = if (linked) sprintf("if (event.key === 'Enter') { %s }", click),
+    title = if (linked) "Open the data behind this quest",
     div(class = "oath-card-label", q$label),
     div(class = "oath-card-headline", q$headline),
     div(class = "oath-card-by", q$by),
@@ -72,7 +81,7 @@ oath_server <- function(id) {
                   h2(copy$board_title %||% "The Quest Board"),
                   div(class = "oath-note", sprintf("%s \u00B7 as of %s", copy$board_note %||% "now → target",
                                                    fmt_day(board$as_of[1])))),
-              div(class = "oath-board", lapply(seq_len(nrow(side)), \(i) oath_card(side[i, ])))),
+              div(class = "oath-board", lapply(seq_len(nrow(side)), \(i) oath_card(side[i, ], session$ns)))),
           if (!is.null(copy$rules)) div(class = "oath-section",
               h2(copy$rules_title %||% "Rules"),
               div(class = "oath-rules", copy$rules)),
@@ -82,5 +91,21 @@ oath_server <- function(id) {
         )
       )
     })
+
+    # Clicked cards, for the app's server: list(tab, inputs)
+    reactive(input$goto)
+  })
+}
+
+# Switch to a quest's tab and set its inputs (ids inside that tab's module).
+# Called from the app's server, which owns the navbar.
+oath_follow <- function(goto, session, navbar_id = "main") {
+  force(goto)   # run the module now, not when the observer first fires
+  observeEvent(goto(), {
+    g <- goto()
+    for (name in names(g$inputs)) {
+      session$sendInputMessage(paste0(g$tab, "-", name), list(value = g$inputs[[name]]))
+    }
+    nav_select(navbar_id, g$tab, session = session)
   })
 }

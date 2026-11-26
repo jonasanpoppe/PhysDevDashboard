@@ -19,7 +19,8 @@ test_that("golden: Quest Board now-values on the plan's baseline date", {
   b <- quest_board(yaml::read_yaml(config_path), quest_data(con), as_of = g$as_of)
   for (id in names(g$now)) {
     want <- g$now[[id]]
-    got <- b$now_value[b$id == id]
+    # The plan's lift values are e1RMs; the board shows them as heavy singles
+    got <- dplyr::coalesce(b$now_e1rm[b$id == id], b$now_value[b$id == id])
     expect_equal(b$source[b$id == id], "live", info = id)
     if (!is.null(want$low)) {
       expect_gte(got, want$low)

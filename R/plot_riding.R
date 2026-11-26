@@ -33,10 +33,10 @@ plot_rides_cumulative <- function(cumulative, targets, years = NULL) {
     theme_physdev(grid = "y") +
     theme(legend.position = "top", legend.justification = "left")
   if (nrow(pace) > 0) {
-    p <- p + geom_line(data = pace, aes(doy, km, group = year), colour = physdev$coral,
+    p <- p + geom_line(data = pace, aes(doy, km, group = year), colour = physdev$accent,
                        linetype = "22", linewidth = 0.6, inherit.aes = FALSE) +
       geom_text(data = filter(pace, doy == 365), aes(doy, km, label = sprintf("%s target %s km", year, format(target_km, big.mark = ","))),
-                inherit.aes = FALSE, hjust = -0.05, size = 3, colour = physdev$coral)
+                inherit.aes = FALSE, hjust = -0.05, size = 3, colour = physdev$accent)
   }
   p
 }
@@ -63,9 +63,9 @@ plot_benchmark <- function(attempts) {
                            label = sprintf("%s · %s bpm%s", fmt_mmss(moving_s), round(hr_end),
                                            ifelse(stop_s > 2, sprintf(" · %ss stop", round(stop_s)), "")))
   ggplot(d, aes(date, wkg)) +
-    geom_linerange(aes(ymin = wkg_low, ymax = wkg_high), colour = physdev$coral, alpha = 0.35, linewidth = 0.8) +
-    geom_point(data = filter(d, clean), shape = 21, size = 3.5, fill = physdev$coral, colour = physdev$bg) +
-    geom_point(data = filter(d, !clean), shape = 21, size = 3.5, fill = physdev$bg, colour = physdev$coral, stroke = 1.2) +
+    geom_linerange(aes(ymin = wkg_low, ymax = wkg_high), colour = physdev$accent, alpha = 0.35, linewidth = 0.8) +
+    geom_point(data = filter(d, clean), shape = 21, size = 3.5, fill = physdev$accent, colour = physdev$bg) +
+    geom_point(data = filter(d, !clean), shape = 21, size = 3.5, fill = physdev$bg, colour = physdev$accent, stroke = 1.2) +
     geom_text(aes(label = label), vjust = -1.4, size = 3, colour = physdev$fg) +
     scale_x_date(date_labels = "%b %Y", expand = expansion(mult = 0.1)) +
     scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) +
@@ -73,7 +73,7 @@ plot_benchmark <- function(attempts) {
     theme_physdev(grid = "y")
 }
 
-plan_band_colours <- c("Zone 2" = "#7A9E7E", "Sweet spot" = "#5B7FA6", "Above the cap" = "#B5533C")
+plan_band_colours <- c("Zone 2" = "#5C8F2A", "Sweet spot" = "#1F7FB8", "Above the cap" = "#B5533C")
 
 plot_plan_bands <- function(bands, from = NULL) {
   d <- bands %>% mutate(date = as.Date(date))

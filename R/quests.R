@@ -50,14 +50,30 @@ quest_value_num <- function(v) {
   as.numeric(v)
 }
 
+# A lift quest with single_ratio counts the heavy single on the bar: e1RM x
+# single_ratio (singles come out below the 2-6-rep e1RM). Its baseline is an
+# e1RM too and is scaled the same way, so now, start and target share a scale.
+quest_scale <- function(v, ratio) {
+  if (is.null(v) || ratio == 1) return(v)
+  if (is.list(v)) {
+    for (k in intersect(names(v), c("value", "low", "high"))) v[[k]] <- v[[k]] * ratio
+    return(v)
+  }
+  v * ratio
+}
+quest_single_ratio <- function(quest) {
+  if (identical(quest$metric, "e1rm_bar_kg")) as.numeric(quest$single_ratio %||% 1) else 1
+}
+
 # ── Now ──────────────────────────────────────────────────────────────────────
 
 # The quest's current value on as_of: value, date and source ("live" from
 # the database, "baseline" from the config when the data has nothing yet).
 quest_now <- function(quest, data, as_of, cfg = list()) {
   as_of <- as.Date(as_of)
+  ratio <- quest_single_ratio(quest)
   baseline <- function() {
-    b <- quest$baseline
+    b <- quest_scale(quest$baseline, ratio)
     list(value = quest_value_num(b), date = as.Date(if (is.list(b)) b$date %||% NA else NA),
          source = "baseline", text = quest_value_text(b, quest_metric_digits[quest$metric] %||% 0))
   }
@@ -75,7 +91,8 @@ quest_now <- function(quest, data, as_of, cfg = list()) {
       s <- data$strength %>%
         filter(lift == quest$exercise, as.Date(date) <= as_of, !is.na(e1rm)) %>%
         arrange(date) %>% utils::tail(n)
-      if (nrow(s) == 0) baseline() else live(mean(s$e1rm), max(s$date), sessions = nrow(s))
+      if (nrow(s) == 0) baseline() else
+        live(mean(s$e1rm) * ratio, max(s$date), sessions = nrow(s), e1rm = mean(s$e1rm), ratio = ratio)
     },
     ride_km_ytd = {
       # Before the quest's year starts, the year so far stands in (labelled)
@@ -129,7 +146,7 @@ quest_start <- function(quest, data, as_of, cfg) {
     s <- quest_now(quest, data, start_day, cfg)
     if (identical(s$source, "live")) return(s$value)
   }
-  quest_value_num(quest$baseline)
+  quest_value_num(quest_scale(quest$baseline, quest_single_ratio(quest)))
 }
 
 # Share of the way (0-1, or NA) and a label, by kind (spec table A3)
@@ -148,10 +165,16 @@ quest_progress <- function(quest, now, start = NA_real_, as_of = Sys.Date(), cfg
                                           fmt_goal(start, digits), unit))
     },
     hold = {
+      # Held or below, plus the same bar as the lifts that increase: the
+      # share of the way from the start value to the target
       band <- quest$hold_band_kg %||% cfg$hold_band_kg %||% 2.5
       held <- !is.na(now$value) && now$value >= target - band
-      list(share = NA_real_, label = sprintf("%s (within %s %s of the target counts as held)",
-                                             if (held) "Held" else "Below", fmt_num(band, 1), unit))
+      share <- if (is.na(now$value) || is.na(start) || target <= start) NA_real_ else
+        max(0, min(1, (now$value - start) / (target - start)))
+      list(share = share,
+           label = paste0(if (held) "Held" else "Below",
+                          if (!is.na(share)) sprintf(": %s%% of the way from %s %s", round(100 * share), fmt_goal(start, digits), unit) else "",
+                          sprintf(" (within %s %s of the target counts as held)", fmt_num(band, 1), unit)))
     },
     cumulative = {
       yr <- as.integer(cfg$year %||% format(as.Date(as_of), "%Y"))
@@ -218,6 +241,23 @@ quest_extras <- function(quest, data, now, as_of, cfg) {
   paste(out, collapse = " \u00B7 ")
 }
 
+# Where a card leads when clicked: a tab (its module id) and inputs to set
+# there. From the quest's `link: {tab, inputs}`, else by metric; `link:
+# none` for no link.
+quest_link_defaults <- list(
+  weight_trend_kg       = list(tab = "weight", inputs = list(figure = "trend")),
+  bjj_sessions_per_week = list(tab = "weight", inputs = list(figure = "weeks")),
+  e1rm_bar_kg           = list(tab = "strength", inputs = list(figure = "lifts")),
+  ride_km_ytd           = list(tab = "engine", inputs = list(view = "rides")),
+  climb_clean           = list(tab = "engine", inputs = list(view = "climbs"))
+)
+quest_link <- function(quest) {
+  if (identical(quest$link, "none")) return(list(tab = NA_character_, inputs = "{}"))
+  l <- quest$link %||% quest_link_defaults[[quest$metric]]
+  if (is.null(l$tab)) return(list(tab = NA_character_, inputs = "{}"))
+  list(tab = l$tab, inputs = as.character(jsonlite::toJSON(l$inputs %||% list(), auto_unbox = TRUE)))
+}
+
 # ── The board ────────────────────────────────────────────────────────────────
 
 # One row per quest, in config order. headline is the card's big line
@@ -236,7 +276,13 @@ quest_board <- function(cfg, data, as_of = Sys.Date()) {
         sprintf("%s \u2192 %s %s", now$text, quest_value_text(q$target, digits), unit)
     source_note <- switch(now$source,
       live = if (q$kind %in% c("event", "steps", "cumulative", "rate")) "" else
-        if (q$metric == "e1rm_bar_kg") sprintf("Mean e1RM of the last %d sessions, to %s", now$sessions, fmt_day(now$date))
+        if (q$metric == "e1rm_bar_kg" && now$ratio != 1)
+          sprintf("Heavy single on the bar (estimate): e1RM %s \u00D7 %s, %s %s",
+                  fmt_num(now$e1rm, 1), formatC(now$ratio, format = "f", digits = 3),
+                  if (now$sessions == 1) "last session," else sprintf("mean of the last %d sessions, to", now$sessions),
+                  fmt_day(now$date))
+        else if (q$metric == "e1rm_bar_kg")
+          sprintf("e1RM, %s %s", if (now$sessions == 1) "last session," else sprintf("mean of the last %d sessions, to", now$sessions), fmt_day(now$date))
         else sprintf("Trend weight (a model output) on %s", fmt_day(now$date)),
       baseline = sprintf("Baseline from the plan%s, no data yet", if (!is.na(now$date)) paste0(", ", fmt_day(now$date)) else ""),
       none = "")
@@ -245,8 +291,9 @@ quest_board <- function(cfg, data, as_of = Sys.Date()) {
       accent = as.integer(q$accent %||% min(4L, 1L + (i - 1L) %/% 2L)),
       headline = headline, by = q$by %||% "",
       progress = pr$label, share = pr$share, source = now$source, source_note = source_note,
+      link_tab = quest_link(q)$tab, link_inputs = quest_link(q)$inputs,
       extras = quest_extras(q, data, now, as_of, cfg),
-      now_value = as.numeric(now$value), now_date = as.Date(now$date), as_of = as_of
+      now_value = as.numeric(now$value), now_e1rm = as.numeric(now$e1rm %||% NA_real_), now_date = as.Date(now$date), as_of = as_of
     )
   })
   dplyr::bind_rows(rows)

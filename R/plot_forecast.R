@@ -6,13 +6,13 @@ library(ggplot2)
 #   history      earlier rounds: monthly bests (or every session), grey
 #   first round  the cached exponential fit, solid where it was fitted and
 #                dashed after, with the range to the logarithmic shape
-#   this round   session bests of the exact lift, coral
+#   this round   session bests of the exact lift, accent purple
 #   forecast     the chosen aptitude, with the p10-p90 band
 #   target       dotted; the threshold on the bar dashed, with its attempt
 #                level (the e1RM at which a single at the threshold is likely)
 
 forecast_colours <- function() {
-  list(history = physdev$fg_subtle, first = physdev$cat[[2]], round = physdev$coral,
+  list(history = physdev$fg_subtle, first = physdev$cat[[2]], round = physdev$accent,
        forecast = physdev$cat[[3]], target = physdev$cat[[5]], threshold = physdev$fg_muted)
 }
 
