@@ -1,5 +1,31 @@
 source(testthat::test_path("..", "..", "R", "analytics.R"))
 
+test_that("a homogenised series sits beside the eras, marked as a model output, never a preset's pick", {
+  vit <- tibble::tibble(date = as.Date("2030-01-01") + 0:1, metric = "rhr",
+                        era = c("fitbit", "garmin"), value = c(60, 50))
+  hom <- tibble::tibble(date = as.Date("2030-01-01") + 0:1, metric = "rhr", era = "homogenised",
+                        source_era = c("fitbit", "garmin"), value = c(52, 50),
+                        value_low = c(51, 50), value_high = c(53, 50))
+  empty <- function(...) tibble::tibble(date = as.Date(character()), ...)
+  d <- build_analytics_daily(
+    tibble::tibble(date = as.Date("2030-01-01"), scale_kg = 80, trend_kg = 80, kcal = NA,
+                   protein_g = NA, steps = NA, expenditure_kcal = NA),
+    vit,
+    tibble::tibble(date = as.Date("2030-01-01") + 0:1, ride_h = 0, run_h = 0, ride_6w_hpw = 0,
+                   run_6w_hpw = 0, fitness_h = 0, fatigue_h = 0),
+    empty(kind = character()), empty(z2_s = numeric(), sweet_spot_s = numeric()),
+    tibble::tibble(date = as.Date("2030-01-01"), group = "Bench", main = TRUE, e1rm = 100),
+    tibble::tibble(date = as.Date("2030-01-01"), status = "clean", short = FALSE, wkg = 4),
+    vitals_homogenised = hom)
+  expect_equal(d$value[d$variable == "rhr" & d$era == "homogenised"], c(52, 50))
+  expect_equal(d$value[d$variable == "rhr" & d$era == "fitbit"], 60)         # original untouched
+  s <- analytics_series(d, analytics_variables(d))
+  expect_setequal(s$series[s$variable == "rhr"], c("rhr@fitbit", "rhr@garmin", "rhr@homogenised"))
+  expect_equal(s$kind[s$series == "rhr@homogenised"], "model output")
+  expect_equal(s$kind[s$series == "rhr@garmin"], "measurement")
+  expect_equal(resolve_series(s, "rhr"), "rhr@garmin")
+})
+
 test_that("build_analytics_daily: eras kept, sleep in hours, volumes 0 on rest days", {
   wd <- tibble::tibble(date = as.Date("2030-01-01") + 0:2, scale_kg = c(80, NA, 79.8), trend_kg = 80,
                        kcal = 2500, protein_g = 150, steps = 8000, expenditure_kcal = 2700)

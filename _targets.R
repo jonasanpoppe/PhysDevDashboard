@@ -343,8 +343,14 @@ list(
   tar_target(
     analytics_daily,
     build_analytics_daily(weight_daily, vitals_daily, strava_daily_load, sessions_daily,
-                          strava_plan_bands, strength_sessions, strava_climb_efforts)
+                          strava_plan_bands, strength_sessions, strava_climb_efforts,
+                          vitals_homogenised = vitals_homogenised)
   ),
+  # Fitbit era drawn onto Garmin's scale: a derived series beside the two
+  # originals, with the step and its interval in vitals_era_steps (R/homogenise.R)
+  tar_target(vitals_era_steps, estimate_era_steps(vitals_daily)),
+  tar_target(vitals_homogenised, homogenise_vitals(vitals_daily, vitals_era_steps)),
+  tar_target(homogenisation_tables, write_homogenisation_tables(vitals_era_steps, db_path = "db/health.db")),
   tar_target(
     analytics_tables,
     write_analytics_tables(
