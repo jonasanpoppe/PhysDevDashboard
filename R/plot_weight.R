@@ -10,7 +10,7 @@ library(ggplot2)
 #                       before the plan in grey as context
 #   plot_weight_intake  weekly averages of one metric, with its goal if any
 
-weight_week_colours <- c(Met = "#5E8C6A", Missed = "#B5533C", "Before the plan" = "#B9B4AB")
+weight_week_colours <- c(Met = "#5E8C6A", Missed = "#B5533C", "Before the plan" = "#C9B48C")
 
 plot_weight_trend <- function(daily, goal, from = NULL) {
   d <- daily %>% mutate(date = as.Date(date))
@@ -23,12 +23,12 @@ plot_weight_trend <- function(daily, goal, from = NULL) {
   ggplot(d, aes(date)) +
     geom_point(aes(y = scale_kg), colour = physdev$fg_subtle, size = 1, na.rm = TRUE) +
     geom_line(aes(y = trend_kg), colour = physdev$fg, linewidth = 0.8) +
-    geom_line(data = pace, aes(y = kg), colour = physdev$coral, linewidth = 0.7, linetype = "22") +
+    geom_line(data = pace, aes(y = kg), colour = physdev$accent, linewidth = 0.7, linetype = "22") +
     geom_hline(yintercept = goal$target_kg, colour = physdev$fg_subtle, linewidth = 0.3) +
     annotate("text", x = min(d$date), y = goal$target_kg, label = paste(goal$target_kg, "kg goal"),
              hjust = 0, vjust = -0.6, size = 3, colour = physdev$fg_muted) +
     annotate("text", x = start, y = start_kg, label = "goal pace", hjust = -0.15, vjust = -0.9,
-             size = 3, colour = physdev$coral) +
+             size = 3, colour = physdev$accent) +
     scale_x_date(date_labels = "%b %Y", expand = expansion(mult = c(0.01, 0.04))) +
     labs(x = NULL, y = "Weight (kg)") +
     theme_physdev(grid = "y")
@@ -64,9 +64,9 @@ plot_weight_intake <- function(weekly, metric = "kcal", goal_value = NULL) {
     labs(x = "Week starting", y = weight_intake_metrics[[metric]]) +
     theme_physdev(grid = "y")
   if (!is.null(goal_value)) {
-    p <- p + geom_hline(yintercept = goal_value, colour = physdev$coral, linewidth = 0.6, linetype = "22") +
+    p <- p + geom_hline(yintercept = goal_value, colour = physdev$accent, linewidth = 0.6, linetype = "22") +
       annotate("text", x = min(d$week), y = goal_value, label = "goal", hjust = 0, vjust = -0.6,
-               size = 3, colour = physdev$coral)
+               size = 3, colour = physdev$accent)
   }
   p
 }

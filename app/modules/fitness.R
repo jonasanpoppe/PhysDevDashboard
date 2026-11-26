@@ -35,6 +35,7 @@ fitness_server <- function(id, which = c("fitness", "load")) {
     })
 
     output$plot <- renderPlot({
+      ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       if (which == "fitness") plot_fitness_seasons(seasons, xlim, ref$ref_hr_bpm) else plot_fitness_load(load, xlim)
     }, res = 96)
 

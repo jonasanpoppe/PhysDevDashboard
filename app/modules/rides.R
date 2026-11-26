@@ -36,6 +36,7 @@ rides_server <- function(id) {
     shown_years <- reactive(as.integer(input$years %||% head(years, 2)))
 
     output$plot <- renderPlot({
+      ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       validate(need(length(shown_years()) > 0, "Pick at least one year."))
       if (identical(input$view, "monthly")) plot_rides_monthly(rides, shown_years())
       else plot_rides_cumulative(cumulative, targets, shown_years())

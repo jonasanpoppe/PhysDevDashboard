@@ -49,9 +49,9 @@ plot_strength_lifts <- function(sessions, group_name, target_kg = NA) {
     theme_physdev(grid = "y") +
     theme(legend.position = "top", legend.justification = "left")
   if (!is.na(target_kg)) {
-    p <- p + geom_hline(yintercept = target_kg, colour = physdev$coral, linetype = "22", linewidth = 0.6) +
+    p <- p + geom_hline(yintercept = target_kg, colour = physdev$accent, linetype = "22", linewidth = 0.6) +
       annotate("text", x = min(d$date), y = target_kg, label = paste0("target ", target_kg, " kg (main lift)"),
-               hjust = 0, vjust = -0.6, size = 3, colour = physdev$coral)
+               hjust = 0, vjust = -0.6, size = 3, colour = physdev$accent)
   }
   p
 }
@@ -69,7 +69,7 @@ plot_strength_targets <- function(now, targets, ceilings) {
     geom_rect(data = ce, aes(xmin = low, xmax = high, ymin = y(group) - 0.3, ymax = y(group) + 0.3, fill = profile),
               alpha = 0.6) +
     geom_segment(data = d, aes(x = target_kg, xend = target_kg, y = y(group) - 0.35, yend = y(group) + 0.35),
-                 colour = physdev$coral, linewidth = 1) +
+                 colour = physdev$accent, linewidth = 1) +
     geom_point(data = d, aes(x = e1rm, y = y(group)), size = 3.5, colour = physdev$fg) +
     geom_text(data = d, aes(x = e1rm, y = y(group) + 0.42, label = label), size = 3, colour = physdev$fg,
               hjust = 0.5) +

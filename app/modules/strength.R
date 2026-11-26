@@ -83,6 +83,7 @@ strength_server <- function(id) {
     })
 
     output$plot <- renderPlot({
+      ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       switch(figure(),
         lifts = {
           g <- input$group %||% groups[1]

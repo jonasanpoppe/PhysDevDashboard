@@ -51,8 +51,8 @@ plot_analytics_time <- function(d, sparse = character(), detrended = character()
       theme(legend.position = "top", legend.justification = "left")
   } else {
     p <- p +
-      geom_point(data = filter(d, panel %in% sparse), colour = physdev$coral, size = 2) +
-      geom_line(data = dense, aes(group = run, alpha = fade), colour = physdev$coral, linewidth = 0.7) +
+      geom_point(data = filter(d, panel %in% sparse), colour = physdev$accent, size = 2) +
+      geom_line(data = dense, aes(group = run, alpha = fade), colour = physdev$accent, linewidth = 0.7) +
       facet_wrap(~panel, ncol = 1, scales = "free_y") +
       theme_physdev(grid = "y") +
       theme(strip.text = element_text(hjust = 0, face = "bold"))
@@ -95,7 +95,7 @@ plot_analytics_matrix <- function(m, labels) {
   ggplot(d, aes(x, y, fill = rho)) +
     geom_tile(colour = physdev$bg, linewidth = 0.6) +
     geom_text(aes(label = text), size = 2.4, colour = physdev$fg) +
-    scale_fill_gradient2(low = "#5B7FA6", mid = "#ECEAE3", high = "#C96442", midpoint = 0,
+    scale_fill_gradient2(low = physdev$div_high, mid = physdev$bg_card, high = physdev$div_low, midpoint = 0,
                          limits = c(-1, 1), breaks = c(-1, -0.5, 0, 0.5, 1), na.value = physdev$bg,
                          name = "Spearman's rho",
                          guide = guide_colourbar(barwidth = grid::unit(14, "lines"), title.vjust = 0.8)) +

@@ -20,9 +20,9 @@ plot_fitness_seasons <- function(seasons, xlim, ref_hr_bpm) {
            label = sprintf("%d: %.0f W (%.0f–%.0f)", season, watts_ref, ci_low, ci_high))
   ggplot(d) +
     geom_rect(aes(xmin = first_date, xmax = last_date, ymin = ci_low, ymax = ci_high),
-              fill = physdev$coral, alpha = 0.15) +
+              fill = physdev$accent, alpha = 0.15) +
     geom_segment(aes(x = first_date, xend = last_date, y = watts_ref, yend = watts_ref),
-                 colour = physdev$coral, linewidth = 1) +
+                 colour = physdev$accent, linewidth = 1) +
     geom_text(aes(x = first_date, y = ci_high, label = label),
               hjust = 0, vjust = -0.6, size = 3.2, colour = physdev$fg) +
     fitness_x_scale(xlim) +

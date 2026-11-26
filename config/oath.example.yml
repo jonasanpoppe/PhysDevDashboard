@@ -1,0 +1,121 @@
+# Copy to config/oath.yml (gitignored) and fill in real values.
+#
+# The Home tab: fixed copy and the Quest Board (R/quests.R). A new quest is
+# a config entry, not code. Kinds and how each is shown:
+#   increasing / decreasing  now -> target, % of the way from the start value
+#   hold                     held while now >= target - hold_band_kg
+#   cumulative               sum this year against the target, with an even pace
+#   rate                     sessions a week over the last 28 days, met at met_at
+#   event / steps            stages done: a clean ascent from the climb record
+#                            ({climb, bike, since}) or ticked by hand ({done: date})
+# Metrics: weight_trend_kg, e1rm_bar_kg (exercise: exact lift name;
+# single_ratio: count the heavy single on the bar, e1RM x ratio, with the
+# baseline, an e1RM, scaled the same way),
+# ride_km_ytd, bjj_sessions_per_week, and for stages climb_clean / manual /
+# milestones_done. role: main (the panel at the top) or side (a card).
+# plain / plain_headline: the wording in corporate mode (default: label,
+# headline). accent: 1-4, the card's colour from purple to bronze. link: {tab, inputs}
+# opens a tab with inputs set when the card is clicked (default by metric:
+# weight, strength, engine); link: none for no link.
+
+year: 2030
+progress_start: 2030-01-01   # progress counts from the value on this day (before it: the baseline)
+adherence_met: 0.80
+now_sessions: 2              # e1RM "now" = mean of the last n sessions
+hold_band_kg: 2.5
+level_base: 1
+
+copy:
+  kicker: "ACT I · MMXXX"
+  title: "The Wandering Squire"
+  subtitle: "2030 · An Example Oath"
+  tenets: ["Train the legs.", "Mind the sleep.", "Deeds over plans.", "Every hill is a lesson."]
+  main_label: "Main quest"
+  main_quest: "Enter a local judo tournament this autumn."
+  main_sub: "Two sessions a week, met at 1.6. Everything else gives way to it."
+  board_title: "The Quest Board"
+  board_note: "now → target · by when"
+  rules_title: "House Rules"
+  rules: "0.4 kg a week · no catch-up after a missed week · 150 g protein a day."
+  sworn: "Sworn on 1 January 2030"
+  footer: "The Squire · level {level}"
+  # Corporate mode: plain words (anything left out keeps the text above;
+  # the kicker, tenets and footer are hidden)
+  plain:
+    title: "2030 goals"
+    subtitle: "Health and training"
+    main_label: "Main goal"
+    board_title: "Goals"
+
+quests:
+  - id: judo
+    label: Judo
+    plain: "Judo sessions"
+    role: main
+    kind: rate
+    metric: bjj_sessions_per_week   # sessions recognised as in goals.yml `sessions: bjj`
+    target: 2
+    met_at: 1.6
+    by: all year
+  - id: bodyweight
+    label: Bodyweight
+    kind: decreasing
+    metric: weight_trend_kg
+    accent: 1
+    baseline: {value: 82, date: 2029-12-01}
+    target: 75
+    milestones: [{value: 78, note: "a week's pause"}]
+    by: "By summer · serves the main quest"
+  - id: squat
+    label: Back squat
+    plain: Squat
+    kind: increasing
+    metric: e1rm_bar_kg
+    exercise: "Barbell Back Squat"
+    single_ratio: 0.98
+    accent: 2
+    baseline: {value: 100, date: 2029-12-01}
+    target: 140
+    checkpoint: {date: 2030-06-30, value: null}
+    by: "End of 2030"
+  - id: bench
+    label: Bench
+    kind: hold
+    metric: e1rm_bar_kg
+    exercise: "Barbell Bench Press"
+    single_ratio: 0.96
+    accent: 2
+    baseline: {low: 95, high: 100, date: 2029-12-01}
+    target: 100
+    by: "Hold all year"
+  - id: riding
+    label: The Long Road
+    plain: Cycling distance
+    kind: cumulative
+    metric: ride_km_ytd
+    accent: 3
+    target: 2000
+    extra: {goal_ride: {km: 100, gain_m: 800}}
+    by: "Plus one 100 km / 800 m ride"
+  - id: hill
+    label: Hillclimber
+    plain: Climbs
+    plain_headline: "Example Hill without stopping"
+    kind: event
+    metric: climb_clean
+    accent: 4
+    headline: "Example Hill, ridden clean"
+    stages:
+      - {label: "Example Hill clean", climb: "Example Hill"}
+    by: "Spring"
+  - id: dashboard
+    label: The Ledger
+    plain: Dashboard project
+    kind: steps
+    metric: milestones_done
+    accent: 4
+    headline: "Dashboard live"
+    stages:
+      - {label: "First view", done: 2030-02-01}
+      - {label: "Scenarios"}
+    by: "End of 2030"
