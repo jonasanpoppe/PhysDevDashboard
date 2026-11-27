@@ -60,8 +60,13 @@ strength_forecast:
     bench:    "Barbell Bench Press"
     deadlift: "Conventional Deadlift"
   # targets: derived from strength.targets_kg (on the bar / single ratio).
-  # variants: {"Front Squat": {lift: squat, ratio: 0.85}} lets a lift without
-  # a forecast of its own borrow a parent's curve (ceiling x ratio).
+  # variants: ratio = variant e1RM / the lift's e1RM. A lift without a
+  # forecast of its own borrows a parent's curve (ceiling x ratio), and
+  # Analytics puts every variant on the lift's scale (e1RM / ratio).
+  # placeholder: true = not converted yet (a ratio still to settle).
+  variants:
+    "Front Squat":               {lift: squat, ratio: 0.8, placeholder: true}
+    "Pause Barbell Bench Press": {lift: bench, ratio: 0.9}
   thresholds_bw: {bench: 1.0, squat: 1.25, deadlift: 1.5}
   single_ratio: {bench: 0.96, squat: 0.98, deadlift: 0.99}   # single / 2-6-rep e1RM
   threshold_bodyweight_kg: 80

@@ -1,4 +1,5 @@
 source(testthat::test_path("..", "..", "R", "analytics.R"))
+source(testthat::test_path("..", "..", "R", "homogenise.R"))
 
 test_that("a homogenised series sits beside the eras, marked as a model output, never a preset's pick", {
   vit <- tibble::tibble(date = as.Date("2030-01-01") + 0:1, metric = "rhr",
@@ -69,6 +70,17 @@ test_that("build_analytics_daily: eras kept, sleep in hours, volumes 0 on rest d
   expect_equal(get("e1rm_bench"), 102)                         # main lifts only, best of the day
   expect_false(any(startsWith(d$variable, "e1rm_curls")))
   expect_equal(get("wkg"), 4)                                  # clean or top, not short
+
+  # With the forecast's lifts: per reference lift, measured and homogenised
+  fc <- list(exercises = list(bench = "Bench"), variants = list("Curls" = list(lift = "bench", ratio = 0.4)))
+  ss2 <- dplyr::mutate(ss, lift = c("Bench", "Bench", "Curls"))
+  d2 <- build_analytics_daily(wd, vit, load, sess, bands, ss2, eff, strength_fc = fc)
+  expect_setequal(unique(d2$era[d2$variable == "e1rm_bench"]), c("measured", "homogenised"))
+  expect_equal(d2$value[d2$variable == "e1rm_bench" & d2$era == "homogenised"], 102)   # the lift itself that day
+  expect_equal(e1rm_names(ss2, fc), "Bench")
+  s2 <- analytics_series(d2, analytics_variables(d2, e1rm_names(ss2, fc)))
+  expect_setequal(s2$series[s2$variable == "e1rm_bench"], c("e1rm_bench@measured", "e1rm_bench@homogenised"))
+  expect_equal(s2$kind[s2$series == "e1rm_bench@homogenised"], "model output")
 
   v <- analytics_variables(d, e1rm_groups = c("Bench"))
   expect_equal(v$label[v$variable == "e1rm_bench"], "e1RM: Bench")
