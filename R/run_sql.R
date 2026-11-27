@@ -26,12 +26,30 @@ render_sql <- function(sql, params = list()) {
   sql
 }
 
+# DuckDB's json and icu extensions are not built into R's duckdb: they are
+# downloaded on first use. shared_home keeps them in ~/.duckdb, so that
+# happens once per machine (and once per CI run), not once per R session
+# (~2.5 s and a network call every build).
 run_sql <- function(path, params = list(), read_back = character(), db_path = "db/health.db") {
   sql <- render_sql(paste(readLines(path, warn = FALSE), collapse = "\n"), params)
-  con <- DBI::dbConnect(duckdb::duckdb(shared_home = FALSE), db_path)
+  con <- DBI::dbConnect(duckdb::duckdb(shared_home = TRUE), db_path)
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
   DBI::dbExecute(con, sql)
   out <- lapply(stats::setNames(read_back, read_back), \(t) tibble::as_tibble(DBI::dbReadTable(con, t)))
   for (t in read_back) message("✓ ", t, " written by ", basename(path), " (", nrow(out[[t]]), " rows)")
   if (length(read_back) == 1) invisible(out[[1]]) else invisible(out)
+}
+
+# The data checks (sql/checks/): the columns contract, then data_checks.sql.
+# Structural problems stop the build inside the SQL; implausible values are
+# listed in the table data_checks and raised here as one warning.
+run_data_checks <- function(dir = "sql/checks", db_path = "db/health.db") {
+  run_sql(file.path(dir, "expected_columns.sql"), db_path = db_path)
+  checks <- run_sql(file.path(dir, "data_checks.sql"), read_back = "data_checks", db_path = db_path)
+  warn <- checks[checks$severity == "warn", ]
+  if (nrow(warn) > 0) {
+    warning("data checks: ", nrow(warn), " implausible values kept (table data_checks), e.g. ",
+            paste(head(paste0(warn$table_name, ".", warn$detail), 5), collapse = "; "), call. = FALSE)
+  }
+  invisible(checks)
 }
