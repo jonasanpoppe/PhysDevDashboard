@@ -14,11 +14,7 @@ library(dplyr)
 # - The power is itself an estimate (±15%): the interval says how well the
 #   model is pinned down, not how accurate the watts are.
 
-# Strava device name -> heart-rate era (hr_device_eras in config/athlete.yml)
-hr_era_of <- function(device_name, eras) {
-  era <- unlist(eras)[device_name]
-  unname(ifelse(is.na(era), "unknown", era))
-}
+# hr_era_of(): R/common.R (shared with the plan bands)
 
 fitness_efforts <- function(efforts, activities, eras, settings) {
   s <- fitness_settings(settings)

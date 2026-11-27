@@ -334,7 +334,7 @@ list(
 
   # ── Weight against the plan (goals in config/goals.yml) ───────────────────────
   tar_target(weight_daily, build_weight_daily(macrofactor_daily, goals_config$weight_goal)),
-  tar_target(sessions_daily, build_sessions(strava_activities, macrofactor_workout_sets, goals_config$sessions)),
+  tar_target(sessions_daily, build_sessions(strava_activities, lifting_sets, goals_config$sessions)),
   tar_target(weight_weekly, build_weight_weekly(weight_daily, sessions_daily, goals_config$weight_goal, device_steps)),
   tar_target(
     weight_status,
@@ -372,7 +372,8 @@ list(
   # ── Riding (targets in goals.yml, plan bands in athlete.yml) ──────────────────
   tar_target(strava_rides, build_rides(strava_activities)),
   tar_target(strava_plan_bands,
-             build_plan_bands(strava_hr_histogram_branches, strava_rides, athlete_config$plan_bands)),
+             build_plan_bands(strava_hr_histogram_branches, strava_rides, athlete_config$plan_bands,
+                              strava_activities, athlete_config$hr_device_eras)),
   tar_target(riding_tables,
              write_riding_tables(strava_rides, strava_plan_bands, goals_config$riding,
                                  bands = athlete_config$plan_bands, db_path = "db/health.db")),

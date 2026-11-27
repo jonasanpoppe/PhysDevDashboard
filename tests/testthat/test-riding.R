@@ -28,6 +28,17 @@ test_that("plan bands: seconds per band from the HR histogram, bands inclusive",
   rides <- tibble::tibble(activity_id = "1", date = as.Date("2030-05-01"))
   b <- build_plan_bands(hist, rides, list(z2 = c(133, 142), sweet_spot = c(150, 156), sweet_spot_cap = 158))
   expect_equal(c(b$z2_s, b$sweet_spot_s, b$above_cap_s, b$hr_s), c(20, 20, 10, 80))
+  expect_equal(b$hr_era, "unknown")                    # no devices given
+})
+
+test_that("plan bands: each ride labelled with its heart-rate sensor era", {
+  hist <- tibble::tibble(activity_id = c("1", "2", "3"), hr = 140, seconds = 10)
+  rides <- tibble::tibble(activity_id = c("1", "2", "3"), date = as.Date("2030-05-01") + 0:2)
+  acts <- tibble::tibble(activity_id = c("1", "2", "3"),
+                         device_name = c("Example Watch", "Example Bike Computer", "Other"))
+  b <- build_plan_bands(hist, rides, list(z2 = c(133, 142), sweet_spot = c(150, 156), sweet_spot_cap = 158),
+                        acts, list("Example Bike Computer" = "chest_strap", "Example Watch" = "wrist"))
+  expect_equal(b$hr_era, c("wrist", "chest_strap", "unknown"))
 })
 
 test_that("riding charts build, with the target pace for target years shown", {

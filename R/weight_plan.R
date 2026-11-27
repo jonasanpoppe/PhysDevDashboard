@@ -55,19 +55,23 @@ build_weight_daily <- function(macrofactor_daily, goal) {
 }
 
 # Sessions per day and kind, never counted twice: at most one per day per
-# kind. Lifting: MacroFactor workouts first (system of record for lifting
-# sets), Strava for days MacroFactor has none. BJJ: Strava types only.
+# kind. Lifting: a day with working sets in the set log first (lifting_sets:
+# the training templates, Strong, then MacroFactor; `source` says which),
+# Strava for days without logged sets. BJJ: Strava types only.
 build_sessions <- function(activities, workout_sets, sessions_cfg) {
   strava <- function(kind) {
     types <- unlist(sessions_cfg[[kind]]$strava_types)
     activities %>% filter(sport_type %in% types) %>%
       transmute(date = as.Date(date), kind = kind, source = "strava")
   }
-  mf <- if (isTRUE(sessions_cfg$lifting$macrofactor_workouts)) {
-    workout_sets %>% transmute(date = as.Date(date), kind = "lifting", source = "macrofactor")
+  logged <- if (isTRUE(sessions_cfg$lifting$logged_sets)) {
+    s <- workout_sets
+    if ("is_warmup" %in% names(s)) s <- filter(s, !coalesce(as.logical(is_warmup), FALSE))
+    s %>% transmute(date = as.Date(date), kind = "lifting",
+                    source = if ("source" %in% names(s)) as.character(source) else "macrofactor")
   } else NULL
-  bind_rows(mf, strava("lifting"), strava("bjj")) %>%
-    mutate(rank = if_else(source == "macrofactor", 1L, 2L)) %>%
+  bind_rows(logged, strava("lifting"), strava("bjj")) %>%
+    mutate(rank = if_else(source == "strava", 2L, 1L)) %>%
     arrange(date, kind, rank) %>%
     distinct(date, kind, .keep_all = TRUE) %>%
     select(-rank)

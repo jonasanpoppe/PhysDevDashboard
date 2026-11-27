@@ -50,6 +50,7 @@ against it (match on start time within a tolerance).
 | Sleep, HRV, resting HR | Garmin, via the own fetcher | |
 | Steps | The wrist device: Fitbit, then Garmin from its first day with a count | Two eras, never pooled; a homogenised series beside them (the step at the switch, as for the vitals). MacroFactor's steps are not used (no sync = 0) |
 | History before the Garmin era | Fitbit Takeout | One-off backfill |
+| Session counts | Lifting: the set log (templates, Strong, MacroFactor); BJJ: Strava `Workout` | Strava fills lifting days without logged sets. A kind starts at its first recorded session: before it is "not recorded", not 0 |
 
 **Measurements vs. model outputs.** Scale weight and intake are measurements.
 MacroFactor's trend weight and expenditure are model outputs that get

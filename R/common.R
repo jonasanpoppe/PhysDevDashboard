@@ -27,3 +27,12 @@ sessions_per_week <- function(sessions, kind, as_of, days = 28) {
   d <- as.Date(sessions$date)
   sum(sessions$kind == kind & d > as.Date(as_of) - days & d <= as.Date(as_of)) / (days / 7)
 }
+
+# Strava device name -> heart-rate sensor era (hr_device_eras in
+# config/athlete.yml); "unknown" for a device it doesn't name. Used by the
+# fitness model and the plan bands.
+hr_era_of <- function(device_name, eras) {
+  if (length(eras) == 0) return(rep("unknown", length(device_name)))
+  era <- unlist(eras)[device_name]
+  unname(ifelse(is.na(era), "unknown", era))
+}
