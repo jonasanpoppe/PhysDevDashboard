@@ -41,6 +41,7 @@ copy:
   title: "The Wandering Squire"
   subtitle: "2030 · An Example Oath"
   tenets: ["Train the legs.", "Mind the sleep.", "Deeds over plans.", "Every hill is a lesson."]
+  tenets_title: "The tenets"   # Home shows them folded under this line
   main_label: "Main quest"
   main_quest: "Enter a local judo tournament this autumn."
   main_sub: "Two sessions a week, met at {plan.bjj_met_at}. Everything else gives way to it."
@@ -57,6 +58,7 @@ copy:
     subtitle: "Health and training"
     main_label: "Main goal"
     board_title: "Goals"
+    rules_title: "Rules"
 
 quests:
   - id: judo
@@ -161,7 +163,6 @@ relic_copy:
   path_head: "Level 1 → 4"
   path_body: "Three levels to earn in 2030."
   path_note: "The rest waits for next year."
-  prompt: "Card prompt: an illuminated miniature of one relic on parchment, no lettering."
   motto: "Every hill is a lesson."
   plain:
     title: "Milestones"

@@ -1,4 +1,4 @@
-/* The Oath pages (Home, Reliquary, Roadmap; .oath) and their corporate
+/* The Oath pages (Home, Reliquary, Roadmap, Scenarios; .oath) and their corporate
    look (.oath-corporate). Colours: the --oath-* tokens, whose values live
    in R/theme_physdev.R (physdev_css_vars(), injected by app/app.R); colours
    used only here (roadmap fills, status tints) are written here. Gold only
@@ -110,6 +110,37 @@
 /* Home: a relic unlocked without its card art yet */
 .oath-relic-note { border: 1px solid var(--oath-gold); background: var(--oath-card); padding: 10px 16px;
   font-size: clamp(16px, 1.7vw, 20px); font-style: italic; color: var(--oath-purple); }
+
+/* Home as the hub: the folded tenets, the Today strip, the relic shelf and
+   the links to the full pages */
+.oath-tenets-fold > summary { cursor: pointer; font-family: Cinzel, Georgia, serif; font-size: clamp(14px, 1.5vw, 18px);
+  letter-spacing: 3px; color: var(--oath-bronze); text-align: center; list-style-position: inside; }
+.oath-tenets-fold[open] > summary { margin-bottom: 16px; }
+.oath-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 24px; padding: 12px 18px;
+  border-top: 1px solid var(--oath-gold); border-bottom: 1px solid var(--oath-gold); }
+.oath-strip-label { font-family: Cinzel, Georgia, serif; font-size: 15px; letter-spacing: 3px; color: var(--oath-bronze);
+  text-transform: uppercase; min-width: 6em; }
+.oath-strip-body { display: flex; flex-wrap: wrap; gap: 4px 24px; flex: 1; font-size: clamp(17px, 1.9vw, 21px); }
+.oath-today-level { font-family: Cinzel, Georgia, serif; font-weight: 700; color: var(--oath-purple); }
+.oath-strip-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 16px; width: 100%; }
+.oath-more { font-family: Cinzel, Georgia, serif; font-size: 15px; letter-spacing: 2px; color: var(--oath-purple);
+  text-decoration: none; white-space: nowrap; margin-left: auto; }
+.oath-more:hover, .oath-more:focus { text-decoration: underline; }
+.oath-shelf { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
+.shelf-relic { width: 44px; height: 66px; display: flex; align-items: center; justify-content: center; background-size: cover;
+  background-position: center; border: 1px solid var(--oath-gold); font-family: UnifrakturMaguntia, serif; font-size: 18px;
+  color: var(--oath-on-purple); }
+.shelf-relic.relic-sealed { opacity: 0.55; }
+.shelf-relic.relic-unlocked { border-color: var(--oath-purple); box-shadow: 0 0 0 1px var(--oath-gold); }
+@media (max-width: 720px) {
+  .oath-strip { flex-direction: column; align-items: stretch; }
+  .shelf-relic { width: 36px; height: 54px; }
+}
+.oath-corporate .oath-tenets-fold > summary, .oath-corporate .oath-strip-label, .oath-corporate .oath-more,
+.oath-corporate .oath-today-level { font-family: inherit; letter-spacing: 0; }
+.oath-corporate .oath-strip-label { text-transform: none; font-weight: 600; }
+.oath-corporate .shelf-relic { background: var(--oath-purple) !important; font-family: inherit; font-size: 13px; }
+.oath-corporate .shelf-relic.relic-unlocked { background: #1A7F37 !important; }
 
 /* The Reliquary: the design's 6-column grid of cards, the level path in the
    last cell; 3 columns on tablets, 2 on phones */

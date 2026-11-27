@@ -10,6 +10,7 @@ test_that("the app starts and renders the Vitals plot", {
   db <- fake$db
   withr::local_envvar(PDD_DB = db, PDD_RELIC_ART = file.path(dir, "relics"))
 
+  pages_file <- normalizePath(testthat::test_path("..", "..", "app", "pages.R"))   # testServer runs in app/
   app <- shiny::shinyAppDir(testthat::test_path("..", "..", "app"))
   shiny::testServer(app, {
     # Home: the oath's copy, the main quest and a card per side quest
@@ -57,12 +58,30 @@ test_that("the app starts and renders the Vitals plot", {
     expect_match(home, "of the way from")
     # A click on a card opens its tab with the view set
     session$setInputs(`oath-goto` = list(tab = "engine", inputs = list(view = "rides")))
+    # Every quest links to a page the app has
+    con <- DBI::dbConnect(duckdb::duckdb(), db, read_only = TRUE)
+    links <- DBI::dbGetQuery(con, "SELECT link_tab FROM quest_board WHERE link_tab IS NOT NULL")$link_tab
+    DBI::dbDisconnect(con, shutdown = TRUE)
+    expect_true(length(links) > 0)
+    source(pages_file, local = TRUE)
+    expect_true(all(links %in% names(app_pages)))
+    # Home as the hub: Today (level, phase, next gate), the relic shelf, the
+    # links to the full pages; the tenets folded
+    expect_match(home, "oath-today")
+    expect_match(home, sprintf("Level %d<", level))
+    expect_match(home, "Next gate: ")
+    expect_equal(lengths(regmatches(home, gregexpr("class=\"shelf-relic ", home))), length(oath$relics))
+    for (page in c("roadmap", "scenarios", "reliquary")) expect_match(home, sprintf("tab: (&#39;|')%s", page))
+    expect_match(home, "<details class=\"oath-tenets-fold\">")
+    # The Reliquary's footer no longer carries the card prompt
+    expect_no_match(rel, "Card prompt")
 
     # Corporate mode: plain words on Home, neutral chart colours, and back
     session$setInputs(corporate = TRUE)
     home <- as.character(output$`oath-page`$html)
     expect_match(home, "2030 goals")
     expect_match(home, "oath-corporate")
+    expect_match(home, "no catch-up after a missed week")   # the rules, not their plain title twice
     expect_no_match(home, "The Wandering Squire")
     expect_no_match(home, sprintf("level %d<", level))
     rel <- as.character(output$`reliquary-page`$html)

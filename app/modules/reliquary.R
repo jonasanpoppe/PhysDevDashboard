@@ -83,9 +83,9 @@ reliquary_server <- function(id) {
                                                          sum(status$unlocked), nrow(status),
                                                          if (plain) "" else copy$path_body %||% "")),
                   if (!plain && !is.null(copy$path_note)) div(class = "relic-path-note", copy$path_note))),
-          div(class = "oath-footer",
-              div(class = "oath-footer-left", copy$prompt %||% ""),
-              if (!plain) div(class = "oath-footer-right relic-motto", copy$motto %||% ""))
+          if (!plain && !is.null(copy$motto)) div(class = "oath-footer",
+              div(class = "oath-footer-left"),
+              div(class = "oath-footer-right relic-motto", copy$motto))
         )
       )
     })
