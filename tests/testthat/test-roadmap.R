@@ -2,7 +2,7 @@
 
 source(testthat::test_path("..", "..", "R", "roadmap.R"))
 
-cfg <- yaml::read_yaml(testthat::test_path("..", "..", "config", "oath.example.yml"))
+cfg <- example_oath()
 
 test_that("phases: grid column, span and state on a day", {
   p <- roadmap_phases(cfg, as_of = "2030-04-10")

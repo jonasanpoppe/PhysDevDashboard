@@ -7,7 +7,7 @@ suppressMessages({
   source("fixtures/macrofactor_schema.R")
   source("fixtures/make_macrofactor_fixture.R")
   for (f in c("find_macrofactor_exports", "load_macrofactor", "load_macrofactor_food_log",
-              "e1rm", "load_macrofactor_workouts", "weight_plan")) {
+              "e1rm", "load_macrofactor_workouts", "weight_plan", "common")) {
     source(file.path("R", paste0(f, ".R")))
   }
 })

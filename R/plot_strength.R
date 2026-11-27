@@ -25,7 +25,9 @@ strength_now <- function(sessions, window_days = 84) {
     ungroup()
 }
 
-plot_strength_lifts <- function(sessions, group_name, target_kg = NA) {
+# target_kg: where the main lift's e1RM must be (strength_targets$target_e1rm_kg);
+# target_label: what it means (the target on the bar)
+plot_strength_lifts <- function(sessions, group_name, target_kg = NA, target_label = NULL) {
   d <- sessions %>% filter(group == group_name) %>%
     mutate(date = as.Date(date),
            target_rpe = if ("rir_basis" %in% names(.)) coalesce(rir_basis == "target RPE", FALSE) else FALSE)
@@ -50,7 +52,8 @@ plot_strength_lifts <- function(sessions, group_name, target_kg = NA) {
     theme(legend.position = "top", legend.justification = "left")
   if (!is.na(target_kg)) {
     p <- p + geom_hline(yintercept = target_kg, colour = physdev$accent, linetype = "22", linewidth = 0.6) +
-      annotate("text", x = min(d$date), y = target_kg, label = paste0("target ", target_kg, " kg (main lift)"),
+      annotate("text", x = min(d$date), y = target_kg,
+               label = paste0("target ", target_label %||% paste(target_kg, "kg"), ", main lift"),
                hjust = 0, vjust = -0.6, size = 3, colour = physdev$accent)
   }
   p
@@ -59,7 +62,7 @@ plot_strength_lifts <- function(sessions, group_name, target_kg = NA) {
 plot_strength_targets <- function(now, targets, ceilings) {
   groups <- targets$group
   d <- now %>% filter(group %in% groups) %>%
-    left_join(targets %>% select(group, target_kg), by = "group") %>%
+    left_join(targets %>% select(group, target_kg = target_e1rm_kg), by = "group") %>%   # on the e1RM scale
     mutate(label = sprintf("%s: %.0f kg%s", lift, e1rm, ifelse(recent, "", format(date, " (last: %b %Y)"))))
   ce <- ceilings %>% filter(group %in% groups)
   profiles <- unique(ce$profile)

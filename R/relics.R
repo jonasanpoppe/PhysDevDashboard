@@ -34,10 +34,8 @@ library(dplyr)
 #                   Ledger): levels per stage done, unlocked when all are
 #   manual          a row in relic_events.csv
 
-`%||%` <- function(a, b) if (is.null(a)) b else a
 
-relic_fmt_day <- function(d) sub("^0", "", format(as.Date(d), "%d %b %Y"))
-relic_fmt <- function(x, digits = 0) formatC(round(x, digits), format = "f", digits = digits, big.mark = ",")
+# fmt_num(), fmt_day(): R/common.R
 
 # The manual log; an empty one when the file doesn't exist yet
 read_relic_events <- function(path = "config/relic_events.csv") {
@@ -85,8 +83,8 @@ relic_rule <- function(rule, data, as_of, cfg, id) {
         if (!is.na(k) && k >= bar - 1e-9) { hit <- d; break }
       }
       k_now <- kept(as_of)
-      out(hit, sprintf("Trend %s → %s kg%s", if (is.na(now)) "–" else relic_fmt(now, 1),
-                       relic_fmt(rule$kg, if (rule$kg == round(rule$kg)) 0 else 1),
+      out(hit, sprintf("Trend %s → %s kg%s", if (is.na(now)) "–" else fmt_num(now, 1),
+                       fmt_num(rule$kg, if (rule$kg == round(rule$kg)) 0 else 1),
                        if (is.na(k_now)) "" else sprintf(" · %s%% %s (needs %s%%)",
                                                          round(100 * k_now), what, round(100 * bar))))
     },
@@ -107,7 +105,7 @@ relic_rule <- function(rule, data, as_of, cfg, id) {
       date <- if (all_done && !is.na(triple)) max(c(triple, as.Date(done[!is.na(done)]))) else NA
       out(date, sprintf("Blocks %d of %d · heavy %s: %s", sum(!is.na(done)), length(blocks),
                         if (rule$reps == 3) "triple" else paste(rule$reps, "reps"),
-                        if (is.na(triple)) "not yet" else relic_fmt_day(triple)))
+                        if (is.na(triple)) "not yet" else fmt_day(triple)))
     },
     ride = {
       r <- data$rides %>%
@@ -117,7 +115,7 @@ relic_rule <- function(rule, data, as_of, cfg, id) {
       best <- if (nrow(r)) r %>% arrange(desc(km)) %>% slice(1) else NULL
       out(if (nrow(hit)) hit$date[1] else NA,
           if (is.null(best)) "No ride yet" else
-            sprintf("Longest so far: %s km / %s m", relic_fmt(best$km), relic_fmt(best$elev_m)))
+            sprintf("Longest so far: %s km / %s m", fmt_num(best$km), fmt_num(best$elev_m)))
     },
     km_year = {
       r <- data$rides %>%
@@ -126,7 +124,7 @@ relic_rule <- function(rule, data, as_of, cfg, id) {
         mutate(cum = cumsum(coalesce(km, 0)))
       hit <- r %>% filter(cum >= rule$km)
       out(if (nrow(hit)) hit$date[1] else NA,
-          sprintf("%s of %s km in %s", relic_fmt(if (nrow(r)) max(r$cum) else 0), relic_fmt(rule$km), rule$year))
+          sprintf("%s of %s km in %s", fmt_num(if (nrow(r)) max(r$cum) else 0), fmt_num(rule$km), rule$year))
     },
     climb_clean = {
       e <- data$climbs %>%
@@ -173,11 +171,11 @@ relic_status <- function(cfg, data, as_of = Sys.Date()) {
       ord = i, id = r$id, name_pt = r$name_pt %||% "", name_en = r$name_en %||% "",
       plain = r$plain %||% r$name_en %||% r$id,
       unlock = r$unlock %||% "", palette = r$palette %||% "", level_text = r$level_text %||% "",
-      colour = r$colour %||% (if (length(colours)) colours[[(i - 1) %% length(colours) + 1]] else "#4B2A6B"),
+      colour = r$colour %||% (if (length(colours)) colours[[(i - 1) %% length(colours) + 1]] else "#4B2A6B"),   # oath.yml relic_colours normally sets them
       rule_type = r$rule$type %||% "manual",
       unlocked = unlocked, date = as.Date(res$date),
       levels = as.integer(levels), levels_max = levels_max,
-      hint = if (unlocked) sprintf("Unlocked %s", relic_fmt_day(res$date)) else res$hint,
+      hint = if (unlocked) sprintf("Unlocked %s", fmt_day(res$date)) else res$hint,
       as_of = as_of
     )
   })
@@ -200,10 +198,13 @@ relic_data <- function(con, events = read_relic_events()) {
   )
 }
 
-write_relic_tables <- function(status, db_path = "db/health.db") {
+# The status, plus the manual log itself (the Scenarios tab reruns the
+# quests live and needs it; the app reads only the database)
+write_relic_tables <- function(status, events = NULL, db_path = "db/health.db") {
   con <- DBI::dbConnect(duckdb::duckdb(), db_path)
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
   DBI::dbWriteTable(con, "relic_status", status, overwrite = TRUE)
+  if (!is.null(events)) DBI::dbWriteTable(con, "relic_events", events, overwrite = TRUE)
   message("✓ relic table written (", sum(status$unlocked), " of ", nrow(status), " unlocked)")
   invisible(TRUE)
 }

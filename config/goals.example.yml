@@ -33,11 +33,13 @@ sessions:
   bjj: {per_week: 2, strava_types: [Workout]}
   lifting: {per_week: 3, strava_types: [WeightTraining], macrofactor_workouts: true}
 
-# Strength: targets for each group's main lift (config/lifts.csv), as bar
-# weight e1RM. Ceilings come from strength_ceilings (below).
+# Strength: targets for each group's main lift (config/lifts.csv), as the
+# heavy single on the bar, a number or [low, high]. The single source for
+# the Strength tab (drawn on the e1RM scale: target / single ratio), the
+# Quest Board, scenarios and the forecast (R/plan_config.R).
 strength:
   target_date: 2030-12-31
-  targets_kg: {Bench: 100, Squat: 140, "Deadlift and hinge": 170}
+  targets_kg: {Bench: 100, Squat: 140, "Deadlift and hinge": [170, 175]}   # heavy single on the bar
 
 # Riding: km per calendar year, the goal ride, and the benchmark climb (by
 # its name in config/climbs.csv).
@@ -55,7 +57,9 @@ strength_forecast:
     squat:    "Barbell Back Squat"
     bench:    "Barbell Bench Press"
     deadlift: "Conventional Deadlift"
-  targets_kg: {bench: [110]}
+  # targets: derived from strength.targets_kg (on the bar / single ratio).
+  # variants: {"Front Squat": {lift: squat, ratio: 0.85}} lets a lift without
+  # a forecast of its own borrow a parent's curve (ceiling x ratio).
   thresholds_bw: {bench: 1.0, squat: 1.25, deadlift: 1.5}
   single_ratio: {bench: 0.96, squat: 0.98, deadlift: 0.99}   # single / 2-6-rep e1RM
   threshold_bodyweight_kg: 80

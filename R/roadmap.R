@@ -6,13 +6,12 @@ library(dplyr)
 # the result from the database (roadmap_phases, roadmap_gates).
 #
 # A phase is {lane, from, to, text, style}: from/to are dates (a month is
-# enough: 2027-03 means March); the block spans the months it touches.
+# enough: 2030-03 means March); the block spans the months it touches.
 # style picks the fill (light, mid, pale, dark, ink, accent, outline, dashed).
 # A gate is {label, date, relic}: ticked once that relic is unlocked.
 
-`%||%` <- function(a, b) if (is.null(a)) b else a
 
-# "2027-03" or "2027-03-15" as a Date (a month alone: its first day)
+# "2030-03" or "2030-03-15" as a Date (a month alone: its first day)
 roadmap_date <- function(x) {
   x <- as.character(x)
   as.Date(ifelse(grepl("^\\d{4}-\\d{2}$", x), paste0(x, "-01"), x))

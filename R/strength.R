@@ -59,11 +59,23 @@ build_strength_sessions <- function(sets, lifts, weights, mf_exercise = NULL, se
 # Targets from goals.yml and ceilings, as tables. Ceilings: the forecast's
 # aptitude band (p10-p90 of aptitude x elite line, R/forecast.R) when given,
 # one band per main lift's group; otherwise goals.yml ceilings_kg.
-strength_goal_tables <- function(lifts, goal, forecast_params = NULL) {
+# Targets are the heavy single on the bar (goals.yml strength, a number or
+# [low, high]); target_e1rm_kg is where the main lift's e1RM must be for it
+# (target / single ratio), which is what the e1RM charts draw. `goals`: the
+# whole goals config, for the single ratios (R/plan_config.R); without it,
+# a ratio of 1.
+strength_goal_tables <- function(lifts, goal, forecast_params = NULL, goals = NULL) {
   mains <- lifts %>% filter(as.logical(main)) %>% select(group, main_lift = exercise)
-  targets <- tibble(group = names(goal$targets_kg), target_kg = unlist(goal$targets_kg),
+  t <- goal$targets_kg %||% list()
+  targets <- tibble(group = names(t),
+                    target_kg = vapply(t, \(x) as.numeric(unlist(x))[1], numeric(1)),
+                    target_high = vapply(t, \(x) { x <- as.numeric(unlist(x)); if (length(x) > 1) x[2] else NA_real_ }, numeric(1)),
                     target_date = as.Date(goal$target_date)) %>%
-    left_join(mains, by = "group")
+    left_join(mains, by = "group") %>%
+    mutate(single_ratio = vapply(main_lift, \(e) if (is.null(goals) || is.na(e)) 1 else single_ratio_for(e, goals), numeric(1)),
+           target_e1rm_kg = target_kg / single_ratio,
+           target_label = sprintf("%s kg on the bar%s", ifelse(is.na(target_high), format(target_kg), paste0(target_kg, "\u2013", target_high)),
+                                  ifelse(single_ratio == 1, "", sprintf(" (e1RM %.1f)", target_e1rm_kg))))
   ceilings <- if (!is.null(forecast_params)) {
     forecast_params %>%
       filter(band %in% c("p10", "p90")) %>%

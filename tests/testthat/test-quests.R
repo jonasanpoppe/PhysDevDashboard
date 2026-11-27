@@ -145,7 +145,7 @@ test_that("a stage with relic: is done when the Reliquary's manual log has it", 
 })
 
 test_that("the example config builds a board, one row per quest", {
-  cfg <- yaml::read_yaml(testthat::test_path("..", "..", "config", "oath.example.yml"))
+  cfg <- example_oath()
   b <- quest_board(cfg, fake_quest_data(), as_of = "2030-02-15")
   expect_equal(nrow(b), length(cfg$quests))
   expect_equal(b$id, vapply(cfg$quests, `[[`, "", "id"))

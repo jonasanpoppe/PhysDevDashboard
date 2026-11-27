@@ -74,6 +74,18 @@ doctor:
         real="${ex/.example/}"
         [[ -f "$real" ]] && ok "$real" || warn "$real missing: copy $ex and fill it in"
     done
+    # One source of truth: oath.yml takes its numbers from goals.yml; a number
+    # written in both and differing, or a reference to nothing, fails here
+    # (R/plan_config.R). The examples always; the personal files if present.
+    echo "Plan config"
+    for v in .example ""; do
+        o="config/oath$v.yml"; g="config/goals$v.yml"; l="config/lifts$v.csv"
+        [[ -f "$o" && -f "$g" && -f "$l" ]] || continue
+        out=$(Rscript -e "source('R/common.R'); source('R/plan_config.R'); l <- readr::read_csv('$l', show_col_types = FALSE); \
+            p <- check_plan_config(yaml::read_yaml('$o'), resolve_goals(yaml::read_yaml('$g'), l), l); \
+            if (nrow(p)) { cat(paste0(p\$where, ': ', p\$problem), sep = '\n'); quit(status = 1) }" 2>&1) \
+            && ok "$o agrees with $g" || { bad "$o and $g disagree:"; printf '        %s\n' "$out"; }
+    done
     exit $fail
 
 # Fetch new data: Strava (incremental) and Garmin (last 30 days)

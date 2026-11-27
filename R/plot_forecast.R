@@ -28,7 +28,7 @@ monthly_bests <- function(sessions) {
 # sessions: strength_sessions; fl: forecast_lift() with bands p10, chosen, p90;
 # first: strength_forecast_first_round rows for the lift (or NULL).
 plot_lift_forecast <- function(sessions, fl, first = NULL, target_kg = NA, threshold_kg = NA,
-                               attempt_kg = NA, from = NULL, monthly = TRUE) {
+                               attempt_kg = NA, from = NULL, monthly = TRUE, target_label = NULL) {
   col <- forecast_colours()
   ex <- fl$params$exercise[1]
   round_start <- min(fl$round$date, fl$from)
@@ -62,7 +62,7 @@ plot_lift_forecast <- function(sessions, fl, first = NULL, target_kg = NA, thres
   lab_x <- from
   if (!is.na(target_kg)) {
     p <- p + geom_hline(yintercept = target_kg, colour = col$target, linetype = "13", linewidth = 0.8) +
-      annotate("text", x = lab_x, y = target_kg, label = sprintf("target %g kg", target_kg), hjust = 0,
+      annotate("text", x = lab_x, y = target_kg, label = paste("target", target_label %||% sprintf("%g kg", target_kg)), hjust = 0,
                vjust = -0.5, size = 3, colour = col$target)
   }
   if (!is.na(threshold_kg)) {

@@ -41,6 +41,13 @@ strength_ui <- function(id) {
   )
 }
 
+# The forecast's target is an e1RM derived from the target on the bar
+# (goals.yml strength; R/plan_config.R): say both
+forecast_target_label <- function(st) {
+  if (is.na(st$target_kg)) return(NULL)
+  sprintf("%s kg on the bar (e1RM %.1f)", format(round(st$target_kg * st$single_ratio)), st$target_kg)
+}
+
 strength_server <- function(id) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
@@ -87,7 +94,8 @@ strength_server <- function(id) {
       switch(figure(),
         lifts = {
           g <- input$group %||% groups[1]
-          plot_strength_lifts(sessions, g, targets$target_kg[match(g, targets$group)])
+          i <- match(g, targets$group)
+          plot_strength_lifts(sessions, g, targets$target_e1rm_kg[i], targets$target_label[i])
         },
         forecast = {
           st <- fc_st()
@@ -95,7 +103,8 @@ strength_server <- function(id) {
           plot_lift_forecast(sessions, fc(), fc_first[fc_first$lift == st$lift, ], st$target_kg,
                              th$threshold_kg, th$attempt_e1rm_kg,
                              from = if (identical(input$fc_period, "all")) NULL else st$round_start - 90,
-                             monthly = !identical(input$fc_history, "sessions"))
+                             monthly = !identical(input$fc_history, "sessions"),
+                             target_label = forecast_target_label(st))
         },
         targets = plot_strength_targets(now, targets, ceilings),
         standards = plot_strength_standards(now, strength_standards))
@@ -111,7 +120,7 @@ strength_server <- function(id) {
       apt <- f$params$aptitude[2]
       cells <- if (!is.na(st$target_kg)) {
         tt <- forecast_targets(f, st$target_kg)
-        tags$tr(tags$td(sprintf("Target %g kg", st$target_kg)),
+        tags$tr(tags$td(paste("Target", forecast_target_label(st))),
                 tags$td(when(tt$date[tt$band == "p10"])), tags$td(when(tt$date[tt$band == "chosen"])),
                 tags$td(when(tt$date[tt$band == "p90"])), tags$td(when(tt$date[tt$band == "straight line"])))
       }

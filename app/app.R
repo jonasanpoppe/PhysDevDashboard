@@ -13,6 +13,7 @@ project_root <- normalizePath("..")
 
 # local = TRUE: runApp() evaluates this file in its own environment, so the
 # sourced functions must live there too, next to project_root.
+source(file.path(project_root, "R", "common.R"), local = TRUE)   # formatters, the session count
 source(file.path(project_root, "R", "theme_physdev.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_vitals.R"), local = TRUE)
 source(file.path(project_root, "R", "climb_record.R"), local = TRUE)
@@ -33,6 +34,8 @@ source(file.path(project_root, "R", "homogenise.R"), local = TRUE)
 source(file.path(project_root, "R", "quests.R"), local = TRUE)
 source(file.path(project_root, "R", "relics.R"), local = TRUE)
 source(file.path(project_root, "R", "roadmap.R"), local = TRUE)
+source(file.path(project_root, "R", "scenarios.R"), local = TRUE)
+source(file.path(project_root, "R", "plot_scenarios.R"), local = TRUE)
 source("db.R", local = TRUE)
 source("fill_plot.R", local = TRUE)
 physdev_font()   # register the web font once at start-up, not on the first figure
@@ -107,13 +110,16 @@ ui <- page_navbar(
   id = "main",
   title = "PhysDevDashboard",
   theme = app_themes$oath,
-  header = tags$head(tags$script(HTML(corporate_js))),
+  # The --oath-* colour tokens for oath.css, from the one palette (R/theme_physdev.R)
+  header = tags$head(tags$script(HTML(corporate_js)), tags$style(HTML(physdev_css_vars()))),
   # Home: the oath and the Quest Board (config/oath.yml)
   nav_panel("🛡️ Home", value = "oath", oath_ui("oath")),
   # Reliquary: relics unlocked by rules (config/oath.yml, R/relics.R)
   nav_panel("🏺 Reliquary", value = "reliquary", reliquary_ui("reliquary")),
   # Roadmap: the year's phases, today and the gates
   nav_panel("🗺️ Roadmap", value = "roadmap", roadmap_ui("roadmap")),
+  # Scenarios: am I on track, under adjustable assumptions
+  nav_panel("🧭 Scenarios", value = "scenarios", scenarios_ui("scenarios")),
   nav_panel("⚖️ Weight", value = "weight", weight_ui("weight")),
   nav_panel("🏋️ Strength", value = "strength", strength_ui("strength")),
   nav_panel("❤️ Vitals", value = "vitals", vitals_ui("vitals")),
@@ -138,6 +144,7 @@ server <- function(input, output, session) {
   oath_follow(oath_server("oath"), session)
   reliquary_server("reliquary")
   roadmap_server("roadmap")
+  scenarios_server("scenarios")
   weight_server("weight")
   strength_server("strength")
   vitals_server("vitals")
