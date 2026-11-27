@@ -59,9 +59,12 @@ analytics_presets <- tibble::tribble(
 
 # device_steps: steps from the wrist device by era (sql/marts/device_steps.sql),
 # never MacroFactor's
+# strength_fc: strength_forecast from goals.yml; with it, e1RM is shown per
+# reference lift, measured and homogenised (homogenise_e1rm(), R/homogenise.R),
+# plus any main lift that isn't one of them; without it, per main-lift group.
 build_analytics_daily <- function(weight_daily, vitals_daily, load, sessions, plan_bands,
                                   strength_sessions, climb_efforts, vitals_homogenised = NULL,
-                                  device_steps = NULL) {
+                                  device_steps = NULL, strength_fc = NULL) {
   long <- function(df, cols, era = "all") {
     purrr::imap(cols, \(col, v) tibble(date = as.Date(df$date), variable = v, era = era,
                                        value = as.numeric(df[[col]]))) %>%
@@ -112,11 +115,23 @@ build_analytics_daily <- function(weight_daily, vitals_daily, load, sessions, pl
       fill_days(min(.$date), max(.$date))
   }) %>% purrr::list_rbind()
 
-  # Best e1RM per main lift group on lift days (an estimate from a submaximal set)
-  e1rm <- strength_sessions %>%
-    filter(as.logical(main)) %>%
-    summarise(.by = c(date, group), value = max(e1rm)) %>%
-    transmute(date = as.Date(date), variable = e1rm_variable(group), era = "all", value)
+  # Best e1RM on lift days (an estimate from a submaximal set)
+  e1rm <- if (is.null(strength_fc)) {
+    strength_sessions %>%
+      filter(as.logical(main)) %>%
+      summarise(.by = c(date, group), value = max(e1rm)) %>%
+      transmute(date = as.Date(date), variable = e1rm_variable(group), era = "all", value)
+  } else {
+    h <- homogenise_e1rm(strength_sessions, strength_fc) %>%
+      transmute(date, variable = e1rm_variable(reference), era, value)
+    # Main lifts that are no reference (e.g. a front squat goal): as measured
+    others <- strength_sessions %>%
+      filter(as.logical(main), !lift %in% unlist(strength_fc$exercises))
+    others <- if (nrow(others) == 0) NULL else others %>%
+      summarise(.by = c(date, lift), value = max(e1rm)) %>%
+      transmute(date = as.Date(date), variable = e1rm_variable(lift), era = "all", value)
+    bind_rows(h, others)
+  }
 
   wkg <- climb_efforts %>%
     filter(status %in% c("clean", "top"), !as.logical(short), !is.na(wkg)) %>%
@@ -130,7 +145,15 @@ build_analytics_daily <- function(weight_daily, vitals_daily, load, sessions, pl
 
 e1rm_variable <- function(group) paste0("e1rm_", janitor::make_clean_names(group, allow_dupes = TRUE))
 
-# Registry plus one row per main-lift group, keeping only variables present.
+# The names behind the e1RM variables, for their labels: the reference lifts
+# and the other main lifts with strength_fc, else the main-lift groups
+e1rm_names <- function(strength_sessions, strength_fc = NULL) {
+  main <- as.logical(strength_sessions$main)
+  if (is.null(strength_fc)) return(unique(strength_sessions$group[main]))
+  unique(c(unname(unlist(strength_fc$exercises)), strength_sessions$lift[main]))
+}
+
+# Registry plus one row per e1RM name, keeping only variables present.
 analytics_variables <- function(daily, e1rm_groups = character()) {
   extra <- tibble(variable = e1rm_variable(e1rm_groups), label = paste0("e1RM: ", e1rm_groups),
                   group = "Strength & bike", unit = "kg", kind = "model output", agg = "sparse",

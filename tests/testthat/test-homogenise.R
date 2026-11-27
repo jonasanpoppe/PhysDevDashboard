@@ -110,3 +110,24 @@ test_that("steps walked: from device_steps, Fitbit scaled onto Garmin by a ratio
   expect_equal(f$value, dev$steps[dev$era == "fitbit"] * exp(st$step))
   expect_equal(h$value[h$source_era == "garmin"], dev$steps[dev$era == "garmin"])   # Garmin as measured
 })
+
+test_that("e1RM onto the reference lift: variants divided by their ratio, the lift itself first", {
+  fc <- list(exercises = list(bench = "Barbell Bench Press", squat = "Barbell Back Squat"),
+             variants = list("Pause Barbell Bench Press" = list(lift = "bench", ratio = 0.9),
+                             "Front Squat" = list(lift = "squat", ratio = 0.8, placeholder = TRUE)))
+  ss <- tibble::tibble(
+    date = as.Date("2030-01-01") + c(0, 0, 1, 2, 3, 3),
+    lift = c("Barbell Bench Press", "Pause Barbell Bench Press", "Pause Barbell Bench Press",
+             "Front Squat", "Barbell Back Squat", "Hack Squat"),
+    e1rm = c(100, 99, 90, 80, 140, 200))
+  h <- homogenise_e1rm(ss, fc)
+  hb <- h[h$lift == "bench" & h$era == "homogenised", ]
+  expect_equal(hb$value, c(100, 100))                    # day 1: the bench itself; day 2: 90 / 0.9
+  expect_equal(hb$source, c("Barbell Bench Press", "Pause Barbell Bench Press"))
+  expect_equal(h$value[h$lift == "bench" & h$era == "measured"], 100)   # measured: the lift only
+  # A placeholder ratio and a variant without one are never converted
+  hs <- h[h$lift == "squat", ]
+  expect_equal(hs$value, c(140, 140))                    # measured and homogenised, 4 Jan only
+  expect_false(any(hs$source %in% c("Front Squat", "Hack Squat")))
+  expect_equal(nrow(homogenise_e1rm(ss, list())), 0)
+})

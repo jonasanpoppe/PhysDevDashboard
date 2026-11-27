@@ -449,7 +449,8 @@ list(
     analytics_daily,
     build_analytics_daily(weight_daily, vitals_daily, strava_daily_load, sessions_daily,
                           strava_plan_bands, strength_sessions, strava_climb_efforts,
-                          vitals_homogenised = vitals_homogenised, device_steps = device_steps)
+                          vitals_homogenised = vitals_homogenised, device_steps = device_steps,
+                          strength_fc = goals_config$strength_forecast)
   ),
   # Fitbit era drawn onto Garmin's scale: a derived series beside the two
   # originals, with the step and its interval in vitals_era_steps (R/homogenise.R)
@@ -462,7 +463,7 @@ list(
     analytics_tables,
     write_analytics_tables(
       analytics_daily,
-      e1rm_groups = unique(strength_sessions$group[as.logical(strength_sessions$main)]),
+      e1rm_groups = e1rm_names(strength_sessions, goals_config$strength_forecast),
       db_path = "db/health.db"
     )
   ),

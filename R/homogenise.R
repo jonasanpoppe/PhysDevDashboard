@@ -168,7 +168,12 @@ write_homogenisation_tables <- function(steps, db_path = "db/health.db") {
 # s: one analytics series row (variable, era, series_label, unit); steps:
 # vitals_era_steps. NULL when the series is not homogenised.
 homogenised_note <- function(s, steps) {
-  if (is.null(steps) || s$era != "homogenised") return(NULL)
+  if (s$era != "homogenised") return(NULL)
+  if (startsWith(s$variable, "e1rm_")) {
+    return(sprintf("%s: every variant of the lift converted onto it by its ratio (strength_forecast variants in config/goals.yml); the lift itself where done that day. A model output on a model output.",
+                   s$series_label))
+  }
+  if (is.null(steps)) return(NULL)
   metric <- if (s$variable %in% steps$metric) s$variable else NA
   st <- steps[steps$metric %in% metric, ]
   if (nrow(st) != 1) return(NULL)
@@ -182,4 +187,48 @@ homogenised_note <- function(s, steps) {
   }
   sprintf("%s: %s, estimated from the %d days either side of the switch on %s. A model output, not a measurement.",
           s$series_label, move, st$window_days, format(st$first_garmin))
+}
+
+# ── e1RM onto the reference lifts ─────────────────────────────────────────────
+#
+# One scale per lift family: the reference lift's (strength_forecast$exercises
+# in config/goals.yml: back squat, flat bench, conventional deadlift). A
+# variant's e1RM is divided by its ratio to the reference
+# (strength_forecast$variants: {exercise: {lift, ratio}}; ratio = variant
+# e1RM / reference e1RM), so 100 kg of a variant at a ratio of 0.8 reads as
+# 125 kg of the reference lift. A variant marked
+# placeholder: true is left out until its ratio is settled; variants without
+# a ratio are never converted.
+#
+# Returns date, lift (the key), reference (its exercise), era ("measured":
+# the reference itself; "homogenised": the reference where done that day,
+# else the best converted variant), value, source (the exercise behind it).
+homogenise_e1rm <- function(strength_sessions, fc) {
+  refs <- unlist(fc$exercises %||% list())
+  empty <- tibble(date = as.Date(character()), lift = character(), reference = character(),
+                  era = character(), value = numeric(), source = character())
+  if (!length(refs)) return(empty)
+  v <- fc$variants %||% list()
+  v <- v[vapply(v, \(x) !isTRUE(x$placeholder) && !is.null(x$ratio) && x$lift %in% names(refs), logical(1))]
+  map <- bind_rows(
+    tibble(lift = names(refs), exercise = unname(refs), ratio = 1),
+    tibble(lift = unname(vapply(v, \(x) x$lift, "")), exercise = names(v),
+           ratio = unname(vapply(v, \(x) as.numeric(x$ratio), 0)))
+  )
+  s <- strength_sessions %>%
+    transmute(date = as.Date(date), exercise = lift, e1rm = as.numeric(e1rm)) %>%
+    filter(is.finite(e1rm)) %>%
+    inner_join(map, by = "exercise") %>%
+    mutate(reference = unname(refs[lift]), is_ref = exercise == reference, value = e1rm / ratio)
+  if (!nrow(s)) return(empty)
+  measured <- s %>% filter(is_ref) %>%
+    summarise(.by = c(date, lift, reference), value = max(value)) %>%
+    mutate(era = "measured", source = reference)
+  homogenised <- s %>%
+    arrange(date, lift, desc(is_ref), desc(value)) %>%
+    distinct(date, lift, .keep_all = TRUE) %>%
+    transmute(date, lift, reference, era = "homogenised", value, source = exercise)
+  bind_rows(measured, homogenised) %>%
+    select(date, lift, reference, era, value, source) %>%
+    arrange(lift, era, date)
 }
