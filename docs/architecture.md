@@ -13,7 +13,7 @@ plan and the milestones; `docs/sources.md` holds the per-source details
  exports ────┘   writes files     raw files, never edited    │
  (MacroFactor,                           │                   │
   Fitbit Takeout)                        ▼                   ▼
-                              R loaders + marts, run by targets (_targets.R)
+                     SQL staging, R marts and analysis, run by targets (_targets.R)
                                          │  the only writer
                                          ▼
                                    db/health.db (DuckDB)
@@ -31,7 +31,7 @@ Three rules hold the flow together:
 2. **One writer.** Only the R pipeline writes `db/health.db`. Python never
    touches it; the app only reads it.
 3. **Days are local dates; sleep belongs to the wake-up day.** Conversion
-   happens in the loaders (see `docs/sources.md`).
+   happens in staging (see `docs/sources.md`).
 
 ## Tools
 
@@ -65,7 +65,7 @@ locks across the Windows/WSL boundary are unreliable and I/O is slow.
 ```
 python/            fetchers (write files only)
 data/landing/      raw files per source (gitignored): garmin/ strava/ macrofactor/ fitbit/ garmin_export/
-R/                 loaders, marts and plot functions; sourced by _targets.R
+R/                 marts, analysis and plot functions; sourced by _targets.R
 sql/               staging/ and marts/: loading in plain SQL, run by R/run_sql.R
 _targets.R         the pipeline
 db/                the database (gitignored, disposable)
@@ -83,11 +83,13 @@ private/           private specs and plans (gitignored)
 1. **File targets** (`format = "file"`): the landing files and folders. A
    changed file makes its downstream targets rerun; folders that receive new
    files are re-listed on every run.
-2. **Loaders** (`R/load_*.R`): read one source and write one table per kind
-   of data, prefixed by source (`fitbit_*`, `garmin_*`, `strava_*`,
-   `macrofactor_*`). Each returns the data frame as well, so marts can depend
-   on it.
-3. **Marts** (`R/build_*.R`): combine loader outputs into what a view needs,
+2. **Staging** (`sql/staging/*.sql`, run by `R/run_sql.R`): read one source
+   and write one table per kind of data, prefixed by source (`fitbit_*`,
+   `garmin_*`, `strava_*`). The target returns the table as well, so marts
+   can depend on it. Two stay in R: MacroFactor (`R/load_macrofactor*.R`;
+   DuckDB would need its `excel` extension) and the HR histograms
+   (`R/strava_streams.R`, one branch per ride, only new rides).
+3. **Marts** (`R/build_*.R`): combine staging outputs into what a view needs,
    with data checks that stop the build on structural problems.
    `vitals_daily` is the first.
 4. **Analysis**: climb matching, effort metrics, the fitness and strength
@@ -95,13 +97,16 @@ private/           private specs and plans (gitignored)
 5. **The consistency check** (`view_checks`, last): numbers that two tabs
    show must agree (`R/consistency.R`); the build stops when they don't.
 
-Loading through R functions is interim: loading is moving to plain SQL files
-run by DuckDB (`sql/staging`, `sql/marts`), and `targets` keeps only the
-analysis. `R/run_sql.R` runs one file; `{{name}}` placeholders take landing
-paths as quoted literals, and a missing or unused name stops the run. The
-`.sql` file and its landing files are file targets, so either change reruns
-the step. First moved: the Fitbit calories
-(`sql/staging/fitbit_calories_daily.sql`, ~80× faster than the R loader).
+Loading is plain SQL run by DuckDB (`sql/staging`, `sql/marts`); `targets`
+keeps the analysis. `R/run_sql.R` runs one file; `{{name}}` placeholders take
+landing paths as quoted literals, and a missing or unused name stops the run.
+The `.sql` file and its landing files or folders are file targets, so either
+change reruns the step. A staging file reads only the fields it lists, so a
+new field in an export changes nothing until it is added. A glob that finds
+no files stops the build.
+
+DuckDB's `json` and `icu` extensions are not built into R's duckdb: they are
+downloaded on first use into `~/.duckdb` (once per machine, once per CI run).
 
 ## The database
 
@@ -178,8 +183,8 @@ into text instead of named.
 ## Adding things
 
 **A source:** a fetcher or export drop into `data/landing/<source>/`; a
-loader in `R/load_<source>_*.R` writing `<source>_*` tables; a file target and
-a loader target in `_targets.R`; a section in `docs/sources.md` (system of
+staging file `sql/staging/<source>_*.sql` writing `<source>_*` tables; a file
+target, the `.sql` file target and a `run_sql()` target in `_targets.R`; a section in `docs/sources.md` (system of
 record, day convention); a test on a synthetic file.
 
 **A view:** a mart in `R/build_<view>.R` with data checks; a plot function in

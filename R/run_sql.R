@@ -26,9 +26,13 @@ render_sql <- function(sql, params = list()) {
   sql
 }
 
+# DuckDB's json and icu extensions are not built into R's duckdb: they are
+# downloaded on first use. shared_home keeps them in ~/.duckdb, so that
+# happens once per machine (and once per CI run), not once per R session
+# (~2.5 s and a network call every build).
 run_sql <- function(path, params = list(), read_back = character(), db_path = "db/health.db") {
   sql <- render_sql(paste(readLines(path, warn = FALSE), collapse = "\n"), params)
-  con <- DBI::dbConnect(duckdb::duckdb(shared_home = FALSE), db_path)
+  con <- DBI::dbConnect(duckdb::duckdb(shared_home = TRUE), db_path)
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
   DBI::dbExecute(con, sql)
   out <- lapply(stats::setNames(read_back, read_back), \(t) tibble::as_tibble(DBI::dbReadTable(con, t)))

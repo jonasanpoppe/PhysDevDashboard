@@ -31,10 +31,9 @@ replaces them.
 
 How it is built today (data flow, tools, layout, the database, the app,
 testing, config) is in `docs/architecture.md`, the one description. The
-direction: loading moves from R loaders to plain SQL run by DuckDB
-(`sql/staging` → `sql/marts`), `targets` keeps the analysis (projections,
-climb matching, models), and the app stays read-only. The "Interim loaders"
-convention below says when.
+direction: loading is plain SQL run by DuckDB (`sql/staging` →
+`sql/marts`), `targets` keeps the analysis (projections, climb matching,
+models), and the app stays read-only.
 
 ## Data conventions
 
@@ -81,9 +80,9 @@ primary intensity metric.
 `garmin_*`), including analysis tables derived from a single source
 (`strava_climb_efforts`, `strava_daily_load`).
 
-**Interim loaders.** Until the climb module works end to end, sources are
-loaded by R functions in `_targets.R`. After that, loading moves to the SQL
-layers in one go; the analysis stays in `targets`.
+**Loading in SQL.** Every source is loaded by a staging file in
+`sql/staging/`, except MacroFactor (xlsx, in R) and the per-ride HR
+histograms (in R, incremental). The analysis stays in `targets`.
 
 ## Milestones
 

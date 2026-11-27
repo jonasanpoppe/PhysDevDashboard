@@ -87,7 +87,7 @@ fit_efficiency <- function(fe, settings) {
 
 # Daily riding and running hours (moving time), every calendar day from the
 # first to the last activity (or `until`), with the spec's rolling views
-# (ride and run types default to the lists in R/load_strava_api.R):
+# (ride and run types default to the lists in R/strava_streams.R):
 #   *_6w_hpw   6-week rolling mean, in hours per week
 #   fitness_h  42-day EWMA of daily hours (long-term load)
 #   fatigue_h  7-day EWMA of daily hours (short-term load)

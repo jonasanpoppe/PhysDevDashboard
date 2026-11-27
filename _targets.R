@@ -107,17 +107,23 @@ list(
       db_path = "db/health.db"
     )
   ),
+  tar_target(sql_fitbit_azm_daily, "sql/staging/fitbit_azm_daily.sql", format = "file"),
   tar_target(
     azm_daily,
-    load_azm(azm_dir = azm_dir, db_path = "db/health.db")
+    run_sql(sql_fitbit_azm_daily, params = list(fitbit_azm_dir = azm_dir),
+            read_back = "fitbit_azm_daily", db_path = "db/health.db")
   ),
+  tar_target(sql_fitbit_steps_daily, "sql/staging/fitbit_steps_daily.sql", format = "file"),
   tar_target(
     steps_daily,
-    load_steps(dir = physical_activity_dir, db_path = "db/health.db")
+    run_sql(sql_fitbit_steps_daily, params = list(fitbit_activity_dir = physical_activity_dir),
+            read_back = "fitbit_steps_daily", db_path = "db/health.db")
   ),
+  tar_target(sql_fitbit_distance_daily, "sql/staging/fitbit_distance_daily.sql", format = "file"),
   tar_target(
     distance_daily,
-    load_distance(dir = physical_activity_dir, db_path = "db/health.db")
+    run_sql(sql_fitbit_distance_daily, params = list(fitbit_activity_dir = physical_activity_dir),
+            read_back = "fitbit_distance_daily", db_path = "db/health.db")
   ),
   # SQL layer (sql/, run by R/run_sql.R). The landing files and the .sql file
   # are tracked, so a new export or an edited query reruns the step.
@@ -176,54 +182,79 @@ list(
     ) %>%
       write_lifting_sets(db_path = "db/health.db")
   ),
+  tar_target(sql_fitbit_hrv_daily, "sql/staging/fitbit_hrv_daily.sql", format = "file"),
   tar_target(
     hrv_daily,
-    load_hrv(dir = physical_activity_dir, db_path = "db/health.db")
+    run_sql(sql_fitbit_hrv_daily, params = list(fitbit_activity_dir = physical_activity_dir),
+            read_back = "fitbit_hrv_daily", db_path = "db/health.db")
   ),
+  tar_target(sql_fitbit_rr_daily, "sql/staging/fitbit_rr_daily.sql", format = "file"),
   tar_target(
     rr_daily,
-    load_rr(dir = physical_activity_dir, db_path = "db/health.db")
+    run_sql(sql_fitbit_rr_daily, params = list(fitbit_activity_dir = physical_activity_dir),
+            read_back = "fitbit_rr_daily", db_path = "db/health.db")
   ),
+  tar_target(sql_fitbit_spo2_daily, "sql/staging/fitbit_spo2_daily.sql", format = "file"),
   tar_target(
     spo2_daily,
-    load_spo2(dir = physical_activity_dir, db_path = "db/health.db")
+    run_sql(sql_fitbit_spo2_daily, params = list(fitbit_activity_dir = physical_activity_dir),
+            read_back = "fitbit_spo2_daily", db_path = "db/health.db")
   ),
+  tar_target(sql_fitbit_temperature_nightly, "sql/staging/fitbit_temperature_nightly.sql", format = "file"),
   tar_target(
     temperature_daily,
-    load_temperature(dir = physical_activity_dir, db_path = "db/health.db")
+    run_sql(sql_fitbit_temperature_nightly, params = list(fitbit_activity_dir = physical_activity_dir),
+            read_back = "fitbit_temperature_nightly", db_path = "db/health.db")
   ),
+  tar_target(sql_fitbit_readiness_daily, "sql/staging/fitbit_readiness_daily.sql", format = "file"),
   tar_target(
     readiness_daily,
-    load_readiness(dir = readiness_dir, db_path = "db/health.db")
+    run_sql(sql_fitbit_readiness_daily, params = list(fitbit_readiness_dir = readiness_dir),
+            read_back = "fitbit_readiness_daily", db_path = "db/health.db")
   ),
+  tar_target(sql_fitbit_sleep_score, "sql/staging/fitbit_sleep_score.sql", format = "file"),
   tar_target(
     sleep_score_daily,
-    load_sleep_score(dir = sleep_score_dir, db_path = "db/health.db")
+    run_sql(sql_fitbit_sleep_score, params = list(fitbit_sleep_score_dir = sleep_score_dir),
+            read_back = "fitbit_sleep_score", db_path = "db/health.db")
   ),
+  tar_target(sql_fitbit_sleep_daily, "sql/staging/fitbit_sleep_daily.sql", format = "file"),
   tar_target(
     fitbit_sleep_daily,
-    load_fitbit_sleep(dir = fitbit_sleep_dir, db_path = "db/health.db")
+    run_sql(sql_fitbit_sleep_daily, params = list(fitbit_sleep_dir = fitbit_sleep_dir),
+            read_back = "fitbit_sleep_daily", db_path = "db/health.db")
   ),
+  tar_target(sql_fitbit_stress_score, "sql/staging/fitbit_stress_score.sql", format = "file"),
   tar_target(
     stress_score_daily,
-    load_stress_score(dir = stress_score_dir, db_path = "db/health.db")
+    run_sql(sql_fitbit_stress_score, params = list(fitbit_stress_dir = stress_score_dir),
+            read_back = "fitbit_stress_score", db_path = "db/health.db")
   ),
+  tar_target(sql_fitbit_rhr_daily, "sql/staging/fitbit_rhr_daily.sql", format = "file"),
   tar_target(
     rhr_daily,
-    load_rhr(dir = physical_activity_dir, db_path = "db/health.db")
+    run_sql(sql_fitbit_rhr_daily, params = list(fitbit_activity_dir = physical_activity_dir),
+            read_back = "fitbit_rhr_daily", db_path = "db/health.db")
   ),
+  tar_target(sql_garmin_api_daily, "sql/staging/garmin_api_daily.sql", format = "file"),
   tar_target(
     garmin_api_daily,
-    load_garmin_api(dir = garmin_api_dir, db_path = "db/health.db")
+    run_sql(sql_garmin_api_daily, params = list(garmin_dir = garmin_api_dir),
+            read_back = "garmin_api_daily", db_path = "db/health.db")
   ),
+  # Strava: five tables from the list fetches, details and segments
+  tar_target(sql_strava_activities, "sql/staging/strava_activities.sql", format = "file"),
   tar_target(
     strava_raw,
-    load_strava_api(
-      activity_files = strava_activity_files,
-      details_dir    = strava_details_dir,
-      segments_dir   = strava_segments_dir,
-      db_path        = "db/health.db"
-    )
+    {
+      # Tracked, so a new fetch reruns it (the SQL reads the folder)
+      strava_activity_files
+      strava_segments_dir
+      tables <- c("activities", "laps", "segment_efforts", "segments", "best_efforts")
+      run_sql(sql_strava_activities, params = list(strava_dir = dirname(strava_details_dir)),
+              read_back = paste0("strava_", tables), db_path = "db/health.db") %>%
+        stats::setNames(tables)
+    }
   ),
   tar_target(
     strava_hr_histogram_branches,

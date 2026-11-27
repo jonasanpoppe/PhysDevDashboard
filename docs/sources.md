@@ -78,13 +78,16 @@ is allowed only as a derived, labelled series beside the originals.
   segments and streams one JSON file per activity.
 - **Dates:** `start_date` is UTC; `start_date_local` is local wall time with a
   misleading `Z`. `date` is the date part of `start_date_local`.
+- **IDs** are 64-bit integers, stored as text and read exactly (segment effort
+  IDs are above 2^53, where a double rounds them).
 
 ## Garmin Connect (API, own fetcher)
 
 - **System of record for:** sleep, HRV, resting HR, breathing rate, SpO2, skin
   temperature, from the switch to Garmin onwards.
 - **Landing:** `data/landing/garmin/<from>_<to>_garmin_api.json`, one record
-  per calendar date; overlapping ranges are merged in the loader.
+  per calendar date; overlapping ranges are merged in staging (per field,
+  the first non-missing value in file name order).
 - **Dates:** Garmin's `calendarDate`. Garmin assigns a night to the date you
   wake up, which matches the convention. Sleep start and end are stored as
   UTC and local.
@@ -131,6 +134,6 @@ is allowed only as a derived, labelled series beside the originals.
 - **Quirks:** the per-sleep breathing-rate columns are named "milli breaths
   per minute" but hold breaths per minute. Daily HRV is 0 on nights that were
   recorded but had no usable HRV (non-REM heart rate is normal on those
-  rows); the loader reads 0 as missing. Skin temperature is an absolute
+  rows); staging reads 0 as missing. Skin temperature is an absolute
   nightly value, with Fitbit's 30-day baseline beside it; Garmin gives a
   deviation instead.

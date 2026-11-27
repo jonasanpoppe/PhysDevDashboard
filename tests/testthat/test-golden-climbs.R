@@ -8,7 +8,7 @@
 # A clean ascent, as in the climb record: status clean or top (a stop only
 # at the very top still counts, see top_frac in config/athlete.yml).
 
-# The ride types the pipeline counts as rides (R/load_strava_api.R), repeated
+# The ride types the pipeline counts as rides (R/strava_streams.R), repeated
 # here so this file runs without sourcing the loaders.
 RIDE_TYPES_GOLDEN <- c("Ride", "GravelRide", "MountainBikeRide", "VirtualRide",
                        "EBikeRide", "EMountainBikeRide", "Velomobile", "Handcycle")
