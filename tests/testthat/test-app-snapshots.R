@@ -29,10 +29,12 @@ local_app <- function(name = "app", env = parent.frame()) {
   app
 }
 
-# A tab's page output, after switching to it (hidden tabs don't render).
-# corporate: wait until the page is drawn in that look, not a stale copy.
+# An Oath page's output, after switching to its pill (hidden pages don't
+# render). corporate: wait until the page is drawn in that look, not a stale
+# copy.
 tab_html <- function(app, tab, output, corporate = FALSE) {
-  app$set_inputs(main = tab, wait_ = FALSE)
+  app$set_inputs(main = "oath", wait_ = FALSE)
+  app$set_inputs(oath_page = tab, wait_ = FALSE)
   app$wait_for_js(sprintf("$('#%s > .oath%s').length > 0", output,
                           if (corporate) ".oath-corporate" else ":not(.oath-corporate)"),
                   timeout = 20 * 1000)
@@ -54,14 +56,22 @@ test_that("snapshots: Home, Reliquary and Roadmap, in both looks", {
   }
 })
 
-test_that("a quest card's click opens its tab", {
+test_that("a quest card's click opens its tab and pill; the hub links open their pages", {
   skip_if_no_chrome()
   app <- local_app()
   tab_html(app, "oath", "oath-page")
-  # The first linked card on the board (bodyweight -> the Weight tab)
+  # The first linked card on the board (bodyweight -> Body, the Weight pill)
   app$click(selector = ".oath-board > .oath-link:first-child")
   app$wait_for_js("$('#main').find('.nav-link.active').data('value') !== 'oath'", timeout = 10 * 1000)
-  expect_equal(app$get_value(input = "main"), "weight")
+  expect_equal(app$get_value(input = "main"), "body")
+  expect_equal(app$get_value(input = "body_page"), "weight")
+  # Each hub link on Home opens its Oath page
+  for (page in c("roadmap", "scenarios", "reliquary")) {
+    tab_html(app, "oath", "oath-page")
+    app$click(selector = sprintf(".oath-more[onclick*=\"tab: '%s'\"]", page))
+    app$wait_for_value(input = "oath_page", ignore = list("oath", NULL))
+    expect_equal(app$get_value(input = "oath_page"), page)
+  }
 })
 
 test_that("the corporate switch restyles the page and is remembered in the browser", {
@@ -85,7 +95,8 @@ test_that("the corporate switch restyles the page and is remembered in the brows
 test_that("Scenarios: the verdict table, and a slider that moves it", {
   skip_if_no_chrome()
   app <- local_app("scenarios")
-  app$set_inputs(main = "scenarios", wait_ = FALSE)
+  app$set_inputs(main = "oath", wait_ = FALSE)
+  app$set_inputs(oath_page = "scenarios", wait_ = FALSE)
   app$wait_for_js("$('#scenarios-verdicts table').length > 0", timeout = 20 * 1000)
   app$set_inputs(`scenarios-quest` = "bodyweight")
   app$wait_for_idle()

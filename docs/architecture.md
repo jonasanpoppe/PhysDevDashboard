@@ -129,12 +129,22 @@ downloaded on first use into `~/.duckdb` (once per machine, once per CI run).
 
 ```
 app/app.R             page_navbar; sources R/ helpers and modules (local = TRUE)
+app/pages.R           app_pages: every page and the navbar tab that holds it
 app/db.R              query(sql): read-only connection per query; PDD_DB overrides the path
 app/modules/<view>.R  <view>_ui(id) / <view>_server(id)
 R/plot_<view>.R       the chart as a plain function, testable without Shiny
 ```
 
 - A module reads its mart once per session; a rebuild shows up on reload.
+- **Four navbar tabs by kind:** Oath (pills: Quest Board, Reliquary,
+  Roadmap, Scenarios), Body (pills: Weight, Strength, Vitals), Engine (its
+  own view selector in the sidebar) and Analytics. Home, the Quest Board,
+  is the hub: a Today strip (level, the roadmap's current phase and next
+  gate), the quest cards and the relic shelf, each linking to its full page.
+  A link names a page (`link: {tab}` in `config/oath.yml`); `oath_follow()`
+  opens its tab and pill through `app_pages`.
+- Tab and pill names exist in both looks (`look_label()`); the corporate
+  switch sets `body.pdd-corporate` in the browser to show the plain ones.
 - Shared helpers (formatters, the session count) are in `R/common.R`; the
   colours in `R/theme_physdev.R`, which also writes the CSS colour tokens
   that `app/www/oath.css` uses.
@@ -196,5 +206,5 @@ record, day convention); a test on a synthetic file.
 **A view:** a mart in `sql/marts/<view>.sql` (or `R/build_<view>.R`) with
 its structural checks, and every source column it reads added to
 `sql/checks/expected_columns.sql`; a plot function in
-`R/plot_<view>.R`; a module in `app/modules/<view>.R` and a `nav_panel` in
-`app/app.R`; tests for the mart, the plot and the app.
+`R/plot_<view>.R`; a module in `app/modules/<view>.R`, a `nav_panel` in
+`app/app.R` (a pill under the tab of its kind) and its line in `app/pages.R`; tests for the mart, the plot and the app.

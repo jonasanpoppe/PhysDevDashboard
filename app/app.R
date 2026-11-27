@@ -1,7 +1,9 @@
 # PhysDevDashboard: Shiny app. Run with `just app`.
 #
-# One nav_panel per module; modules live in app/modules/. Shared plotting and
-# theme code lives in R/ so it can be tested without Shiny.
+# Four navbar tabs by kind (the oath, the body, the bike, exploring); a tab
+# with more than one page shows them as pills. One page per module; modules
+# live in app/modules/. Shared plotting and theme code lives in R/ so it can
+# be tested without Shiny.
 
 library(shiny)
 library(bslib)
@@ -38,6 +40,7 @@ source(file.path(project_root, "R", "scenarios.R"), local = TRUE)
 source(file.path(project_root, "R", "plot_scenarios.R"), local = TRUE)
 source("db.R", local = TRUE)
 source("fill_plot.R", local = TRUE)
+source("pages.R", local = TRUE)    # app_pages: every page and its navbar tab
 physdev_font()   # register the web font once at start-up, not on the first figure
 for (f in list.files("modules", pattern = "\\.R$", full.names = TRUE)) source(f, local = TRUE)
 
@@ -56,6 +59,13 @@ app_rules <- function(mode) {
      .tiles-compact .value-box-value { font-size: 1.25rem; line-height: 1.2; margin-bottom: 0.25rem; }
      .tiles-compact p { font-size: 0.7rem; line-height: 1.25; }
      .navbar .form-switch { margin: 0 0.5rem; }
+     /* Tab and pill names in both looks (look_label) */
+     body.pdd-corporate .look-oath, body:not(.pdd-corporate) .look-plain { display: none; }
+     /* The pills of a tab with several pages, above the page */
+     #oath_page, #body_page { padding: 0.5rem 1rem 0; gap: 0.25rem; flex-wrap: wrap; }
+     /* A page under the pills looks as it did as a tab of its own: no frame */
+     #oath_page + .tab-content .bslib-sidebar-layout, #body_page + .tab-content .bslib-sidebar-layout {
+       border: none; border-radius: 0; }
      /* Phones: smaller type, and wide tables scroll inside their card
         instead of pushing the page past its margins */
      @media (max-width: 576px) {
@@ -103,8 +113,15 @@ $(document).on('shiny:connected', function() {
   if (on) $('#corporate').prop('checked', true).trigger('change');
 });
 $(document).on('change', '#corporate', function() {
+  document.body.classList.toggle('pdd-corporate', this.checked);
   try { localStorage.setItem('pdd-corporate', this.checked ? '1' : '0'); } catch (e) {}
 });"
+
+# A label in both looks: the oath word, or the corporate one (the switch sets
+# body.pdd-corporate; app_rules() shows one of the two)
+look_label <- function(icon, oath, plain = oath) {
+  tagList(icon, " ", span(class = "look-oath", oath), span(class = "look-plain", plain))
+}
 
 ui <- page_navbar(
   id = "main",
@@ -112,27 +129,33 @@ ui <- page_navbar(
   theme = app_themes$oath,
   # The --oath-* colour tokens for oath.css, from the one palette (R/theme_physdev.R)
   header = tags$head(tags$script(HTML(corporate_js)), tags$style(HTML(physdev_css_vars()))),
-  # Home: the oath and the Quest Board (config/oath.yml)
-  nav_panel("🛡️ Home", value = "oath", oath_ui("oath")),
-  # Reliquary: relics unlocked by rules (config/oath.yml, R/relics.R)
-  nav_panel("🏺 Reliquary", value = "reliquary", reliquary_ui("reliquary")),
-  # Roadmap: the year's phases, today and the gates
-  nav_panel("🗺️ Roadmap", value = "roadmap", roadmap_ui("roadmap")),
-  # Scenarios: am I on track, under adjustable assumptions
-  nav_panel("🧭 Scenarios", value = "scenarios", scenarios_ui("scenarios")),
-  nav_panel("⚖️ Weight", value = "weight", weight_ui("weight")),
-  nav_panel("🏋️ Strength", value = "strength", strength_ui("strength")),
-  nav_panel("❤️ Vitals", value = "vitals", vitals_ui("vitals")),
-  # Engine: everything on the bike (climbs, fitness, riding)
-  nav_panel("🚴 Engine", value = "engine", engine_ui("engine")),
+  # The oath: Home (the hub: poster, Today, Quest Board, relic shelf), then
+  # its full pages (config/oath.yml; R/quests.R, R/relics.R, R/roadmap.R,
+  # R/scenarios.R)
+  nav_panel(look_label("🛡️", "Oath", "Plan"), value = "oath",
+    navset_pill(id = "oath_page",
+      nav_panel(look_label("📜", "Quest Board", "Goals"), value = "oath", oath_ui("oath")),
+      nav_panel(look_label("🏺", "Reliquary", "Milestones"), value = "reliquary", reliquary_ui("reliquary")),
+      nav_panel(look_label("🗺️", "Roadmap", "Timeline"), value = "roadmap", roadmap_ui("roadmap")),
+      # Am I on track, under adjustable assumptions
+      nav_panel(look_label("🧭", "Scenarios"), value = "scenarios", scenarios_ui("scenarios")))),
+  # The body: the measurements per domain
+  nav_panel(look_label("💪", "Body", "Health"), value = "body",
+    navset_pill(id = "body_page",
+      nav_panel(look_label("⚖️", "Weight"), value = "weight", weight_ui("weight")),
+      nav_panel(look_label("🏋️", "Strength"), value = "strength", strength_ui("strength")),
+      nav_panel(look_label("❤️", "Vitals"), value = "vitals", vitals_ui("vitals")))),
+  # Engine: everything on the bike (climbs, fitness, riding), its own selector
+  nav_panel(look_label("🚴", "Engine"), value = "engine", engine_ui("engine")),
   # Analytics: any two variables side by side
-  nav_panel("🔍 Analytics", value = "analytics", analytics_ui("analytics")),
+  nav_panel(look_label("🔍", "Analytics"), value = "analytics", analytics_ui("analytics")),
   nav_spacer(),
   nav_item(input_switch("corporate", "Corporate mode", value = FALSE))
 )
 
 server <- function(input, output, session) {
-  # Corporate mode: theme, chart colours and the Home tab's words
+  # Corporate mode: theme, chart colours and the oath pages' words (the tab
+  # and pill names switch in the browser, corporate_js)
   observeEvent(input$corporate, {
     mode <- if (isTRUE(input$corporate)) "corporate" else "oath"
     physdev <<- physdev_palettes[[mode]]
@@ -141,7 +164,7 @@ server <- function(input, output, session) {
   }, ignoreInit = TRUE)
 
   # A click on a quest card opens the tab with its data
-  oath_follow(oath_server("oath"), session)
+  oath_follow(oath_server("oath"), session, app_pages)
   reliquary_server("reliquary")
   roadmap_server("roadmap")
   scenarios_server("scenarios")

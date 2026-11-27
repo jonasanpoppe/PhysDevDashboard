@@ -72,6 +72,23 @@ roadmap_gates <- function(cfg, relics = NULL) {
   }))
 }
 
+# Where the year stands on as_of, for the Home hub: the current phases (by
+# lane order, **bold** stripped) and the next gate not yet ticked, with its
+# date (the first of its month for a month-only date, shown as the month, as
+# on the Roadmap tab). The same tables as the Roadmap tab.
+roadmap_now <- function(phases, gates) {
+  cur <- if (!is.null(phases) && nrow(phases)) phases[phases$state == "current", ] else NULL
+  cur <- if (!is.null(cur) && nrow(cur)) cur[order(cur$lane_ord, cur$ord), ] else NULL
+  open <- if (!is.null(gates) && nrow(gates)) gates[!gates$ticked, ] else NULL
+  # Dated gates first, by date; then those without a date, in config order
+  nxt <- if (!is.null(open) && nrow(open)) open[order(is.na(open$date), open$date, open$ord), ][1, ] else NULL
+  list(
+    current = if (is.null(cur)) character(0) else gsub("\\*\\*", "", cur$text),
+    gate = if (is.null(nxt)) NA_character_ else nxt$label,
+    gate_date = if (is.null(nxt)) as.Date(NA) else as.Date(nxt$date)
+  )
+}
+
 write_roadmap_tables <- function(phases, gates, db_path = "db/health.db") {
   con <- DBI::dbConnect(duckdb::duckdb(), db_path)
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE))

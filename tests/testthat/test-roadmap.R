@@ -41,3 +41,17 @@ test_that("gates tick when their relic is unlocked", {
   expect_false(any(roadmap_gates(cfg)$ticked))                       # no relic table yet
   expect_equal(nrow(roadmap_gates(list())), 0)
 })
+
+test_that("now (the Home hub): current phases by lane, the next open gate", {
+  p <- roadmap_phases(cfg, as_of = "2030-04-10")
+  relics <- tibble::tibble(id = c("I", "II", "V"), unlocked = c(TRUE, FALSE, FALSE),
+                           date = as.Date(c("2030-03-01", NA, NA)))
+  n <- roadmap_now(p, roadmap_gates(cfg, relics))
+  expect_equal(n$current, c("Two sessions a week", "Cut, 0.4 kg/wk to 78 kg", "100 km / 800 m"))  # lane order, no **
+  expect_false(n$gate == "78 kg")                                    # gate I is ticked: skipped
+  expect_false(is.na(n$gate))
+  # Before the year: no phase is current; with every gate ticked, no next gate
+  n0 <- roadmap_now(roadmap_phases(cfg, as_of = "2029-12-01"), NULL)
+  expect_equal(n0$current, character(0))
+  expect_true(is.na(n0$gate))
+})
