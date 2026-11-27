@@ -465,18 +465,28 @@ list(
   ),
 
   # ── Marts ────────────────────────────────────────────────────────────────────
+  # Data checks on the source tables (sql/checks/): a missing column or a
+  # duplicate key stops the build, implausible values warn
+  tar_target(sql_checks, c("sql/checks/expected_columns.sql", "sql/checks/data_checks.sql"), format = "file"),
+  tar_target(
+    data_checks,
+    {
+      sql_checks
+      # Runs after every table it checks
+      list(rhr_daily, hrv_daily, rr_daily, spo2_daily, temperature_daily, fitbit_sleep_daily,
+           steps_daily, distance_daily, azm_daily, calories_daily, readiness_daily,
+           sleep_score_daily, stress_score_daily, fitbit_weight, garmin_api_daily,
+           strava_raw, macrofactor_raw, macrofactor_food_log, macrofactor_workout_sets)
+      run_data_checks(db_path = "db/health.db")
+    }
+  ),
+  tar_target(sql_vitals_daily, "sql/marts/vitals_daily.sql", format = "file"),
   tar_target(
     vitals_daily,
-    build_vitals_daily(
-      fitbit_rhr   = rhr_daily,
-      fitbit_hrv   = hrv_daily,
-      fitbit_rr    = rr_daily,
-      fitbit_spo2  = spo2_daily,
-      fitbit_temp  = temperature_daily,
-      fitbit_sleep = fitbit_sleep_daily,
-      garmin       = garmin_api_daily,
-      db_path      = "db/health.db"
-    )
+    {
+      data_checks
+      run_sql(sql_vitals_daily, read_back = "vitals_daily", db_path = "db/health.db")
+    }
   ),
 
   # ── Clean ───────────────────────────────────────────────────────────────────

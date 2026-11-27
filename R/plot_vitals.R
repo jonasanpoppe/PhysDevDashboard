@@ -7,7 +7,7 @@ library(ggplot2)
 # Daily values are faint points, the 7-day mean (within an era) is the line,
 # and HRV carries its band (Garmin's baseline, or the derived Fitbit band).
 #
-# `vitals` is vitals_daily (see R/build_vitals_daily.R). Needs
+# `vitals` is vitals_daily (see sql/marts/vitals_daily.sql). Needs
 # R/theme_physdev.R for the palette and theme.
 
 vitals_panels <- tibble::tribble(

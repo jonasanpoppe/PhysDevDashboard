@@ -66,7 +66,7 @@ locks across the Windows/WSL boundary are unreliable and I/O is slow.
 python/            fetchers (write files only)
 data/landing/      raw files per source (gitignored): garmin/ strava/ macrofactor/ fitbit/ garmin_export/
 R/                 marts, analysis and plot functions; sourced by _targets.R
-sql/               staging/ and marts/: loading in plain SQL, run by R/run_sql.R
+sql/               staging/, checks/ and marts/: plain SQL, run by R/run_sql.R
 _targets.R         the pipeline
 db/                the database (gitignored, disposable)
 app/               app.R, db.R, modules/<view>.R
@@ -78,7 +78,7 @@ private/           private specs and plans (gitignored)
 
 ## The pipeline
 
-`_targets.R` has five kinds of target, in this order:
+`_targets.R` has six kinds of target, in this order:
 
 1. **File targets** (`format = "file"`): the landing files and folders. A
    changed file makes its downstream targets rerun; folders that receive new
@@ -89,12 +89,18 @@ private/           private specs and plans (gitignored)
    can depend on it. Two stay in R: MacroFactor (`R/load_macrofactor*.R`;
    DuckDB would need its `excel` extension) and the HR histograms
    (`R/strava_streams.R`, one branch per ride, only new rides).
-3. **Marts** (`R/build_*.R`): combine staging outputs into what a view needs,
-   with data checks that stop the build on structural problems.
-   `vitals_daily` is the first.
-4. **Analysis**: climb matching, effort metrics, the fitness and strength
+3. **Data checks** (`sql/checks/`, `run_data_checks()` in `R/run_sql.R`),
+   after staging: `expected_columns.sql` is the contract (the columns and
+   types the marts read from each source table); `data_checks.sql` stops the
+   build on a missing column, a changed type or a duplicate date or ID, and
+   warns on values outside a plausible range (kept, listed in the table
+   `data_checks`).
+4. **Marts** (`sql/marts/*.sql`, or `R/build_*.R` where a mart needs R):
+   combine staging outputs into what a view needs, with their own structural
+   checks. `sql/marts/vitals_daily.sql` stops on overlapping device eras.
+5. **Analysis**: climb matching, effort metrics, the fitness and strength
    models, the Quest Board, relics, roadmap and scenarios.
-5. **The consistency check** (`view_checks`, last): numbers that two tabs
+6. **The consistency check** (`view_checks`, last): numbers that two tabs
    show must agree (`R/consistency.R`); the build stops when they don't.
 
 Loading is plain SQL run by DuckDB (`sql/staging`, `sql/marts`); `targets`
@@ -187,6 +193,8 @@ staging file `sql/staging/<source>_*.sql` writing `<source>_*` tables; a file
 target, the `.sql` file target and a `run_sql()` target in `_targets.R`; a section in `docs/sources.md` (system of
 record, day convention); a test on a synthetic file.
 
-**A view:** a mart in `R/build_<view>.R` with data checks; a plot function in
+**A view:** a mart in `sql/marts/<view>.sql` (or `R/build_<view>.R`) with
+its structural checks, and every source column it reads added to
+`sql/checks/expected_columns.sql`; a plot function in
 `R/plot_<view>.R`; a module in `app/modules/<view>.R` and a `nav_panel` in
 `app/app.R`; tests for the mart, the plot and the app.

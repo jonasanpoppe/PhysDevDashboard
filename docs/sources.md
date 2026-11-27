@@ -17,8 +17,8 @@ Every new source gets a section here (see the PR checklist in ROADMAP.md).
   morning it ends in.
 - A timestamp that *is* a wake-up time is dated by its own local date (adding
   12 h would push a late morning into the next day).
-- Nights whose sleep ends after 12:00 local are not moved; a data check lists
-  them for review.
+- Nights whose sleep ends after 12:00 local are not moved; the table
+  `vitals_late_wakes` lists them for review.
 
 ## Device eras
 
