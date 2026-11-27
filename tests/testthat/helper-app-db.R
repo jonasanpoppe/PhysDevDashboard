@@ -30,7 +30,8 @@ write_fake_app_db <- function(dir) {
   wd <- build_weight_daily(fake_macrofactor_daily(), fake_goal())
   ws <- tibble::tibble(date = max(wd$date) - 1, kind = "bjj", source = "strava")
   DBI::dbWriteTable(con, "weight_daily", wd)
-  DBI::dbWriteTable(con, "weight_weekly", build_weight_weekly(wd, ws, fake_goal()))
+  DBI::dbWriteTable(con, "weight_weekly", build_weight_weekly(
+    wd, ws, fake_goal(), device_steps = tibble::tibble(date = wd$date, era = "garmin", steps = 9000)))
   DBI::dbWriteTable(con, "weight_status", compute_weight_status(
     wd, ws, fake_goal(), list(protein_g_per_day = 140), cfgs$goals$sessions,
     as_of = max(wd$date), adherence = oath$adherence_met, recent_weeks = 8))

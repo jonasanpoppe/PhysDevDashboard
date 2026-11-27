@@ -37,15 +37,17 @@ pace_eta <- function(from_date, from_kg, goal) {
 }
 
 # Daily table: measurements, model outputs and the pace line. The last day
-# of an export is usually unfinished, so its intake and steps are left out.
+# of an export is usually unfinished, so its intake is left out. No steps:
+# MacroFactor's are no measurement; steps come from the device
+# (device_steps, into build_weight_weekly).
 build_weight_daily <- function(macrofactor_daily, goal) {
   d <- macrofactor_daily %>%
     transmute(date = as.Date(date), scale_kg = weight_kg, trend_kg = trend_weight_kg,
-              kcal = calories_kcal, protein_g, steps, expenditure_kcal = expenditure) %>%
+              kcal = calories_kcal, protein_g, expenditure_kcal = expenditure) %>%
     filter(!is.na(trend_kg)) %>%
     arrange(date)
   last <- max(d$date)
-  d <- d %>% mutate(across(c(kcal, protein_g, steps), \(x) if_else(date == last, NA_real_, as.numeric(x))))
+  d <- d %>% mutate(across(c(kcal, protein_g), \(x) if_else(date == last, NA_real_, as.numeric(x))))
   start <- as.Date(goal$start_date)
   start_kg <- d$trend_kg[d$date == start]
   if (length(start_kg) == 0) stop("weight_goal: no trend weight on start_date ", start)
@@ -72,10 +74,12 @@ build_sessions <- function(activities, workout_sets, sessions_cfg) {
 }
 
 # Weekly table (Monday to Sunday): change in trend weight against the planned
-# change over the same days, intake and steps averaged over logged days,
-# sessions counted. Weeks before the plan (`context_weeks` of them) are kept
-# as context, without a goal. `complete` = the week has ended in the data.
-build_weight_weekly <- function(daily, sessions, goal, context_weeks = 8) {
+# change over the same days, intake averaged over logged days, steps over
+# the days the device counted (device_steps; NA for a week that spans the
+# device switch: the eras are never pooled), sessions counted. Weeks before
+# the plan (`context_weeks` of them) are kept as context, without a goal.
+# `complete` = the week has ended in the data.
+build_weight_weekly <- function(daily, sessions, goal, device_steps = NULL, context_weeks = 8) {
   start <- as.Date(goal$start_date)
   week_of <- function(d) d - (as.integer(format(d, "%u")) - 1L)
   last <- max(daily$date)
@@ -83,8 +87,7 @@ build_weight_weekly <- function(daily, sessions, goal, context_weeks = 8) {
     mutate(week = week_of(date)) %>%
     summarise(.by = week, trend_end = last(trend_kg), pace_end = last(pace_kg),
               last_day = max(date),
-              kcal = mean(kcal, na.rm = TRUE), protein_g = mean(protein_g, na.rm = TRUE),
-              steps = mean(steps, na.rm = TRUE)) %>%
+              kcal = mean(kcal, na.rm = TRUE), protein_g = mean(protein_g, na.rm = TRUE)) %>%
     arrange(week) %>%
     mutate(trend_change = trend_end - lag(trend_end))
   # Planned change over the week: the pace line from the later of the
@@ -95,6 +98,10 @@ build_weight_weekly <- function(daily, sessions, goal, context_weeks = 8) {
     mutate(goal_change = if_else(last_day >= start,
                                  pace_at(last_day) - pace_at(pmax(week - 1, start)),
                                  NA_real_))
+  steps_week <- if (is.null(device_steps) || nrow(device_steps) == 0) tibble(week = as.Date(character()), steps = numeric()) else
+    device_steps %>%
+      mutate(week = week_of(as.Date(date))) %>%
+      summarise(.by = week, steps = if (n_distinct(era) > 1) NA_real_ else mean(steps))
   per_week <- sessions %>%
     mutate(week = week_of(date)) %>%
     count(week, kind) %>%
@@ -103,11 +110,12 @@ build_weight_weekly <- function(daily, sessions, goal, context_weeks = 8) {
   ends %>%
     filter(week >= week_of(start) - 7 * context_weeks) %>%
     left_join(per_week %>% select(week, bjj, lifting), by = "week") %>%
+    left_join(steps_week, by = "week") %>%
     mutate(across(c(bjj, lifting), \(x) coalesce(as.integer(x), 0L)),
            complete = last_day == week + 6 | week + 6 < last,
            in_plan = !is.na(goal_change),
            met = if_else(in_plan, trend_change <= goal_change + 1e-9, NA)) %>%
-    mutate(across(c(kcal, protein_g, steps), \(x) if_else(is.nan(x), NA_real_, x))) %>%
+    mutate(across(c(kcal, protein_g), \(x) if_else(is.nan(x), NA_real_, x))) %>%
     select(week, trend_end, trend_change, goal_change, in_plan, met, complete,
            kcal, protein_g, steps, bjj, lifting)
 }

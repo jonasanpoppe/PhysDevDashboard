@@ -94,3 +94,19 @@ test_that("the note names the move and its interval", {
   expect_null(homogenised_note(dplyr::mutate(row, era = "garmin"), s))
   expect_null(homogenised_note(row, NULL))
 })
+
+test_that("steps walked: from device_steps, Fitbit scaled onto Garmin by a ratio", {
+  d <- fake_eras(step = -0.25, scale = "log")         # Fitbit counts e^0.25 ≈ 1.28× Garmin
+  dev <- dplyr::transmute(d, date, era, steps = value * 150)
+  v <- era_series(tibble::tibble(date = as.Date(character()), metric = character(),
+                                 era = character(), value = numeric()), dev)
+  expect_equal(unique(v$metric), "steps")
+  s <- estimate_era_steps(v, reps = 100)
+  st <- s[s$metric == "steps", ]
+  expect_true(st$applied)
+  expect_equal(st$step, -0.25, tolerance = 0.2)       # Garmin minus Fitbit, on the log scale
+  h <- homogenise_vitals(v, s)
+  f <- dplyr::filter(h, source_era == "fitbit")
+  expect_equal(f$value, dev$steps[dev$era == "fitbit"] * exp(st$step))
+  expect_equal(h$value[h$source_era == "garmin"], dev$steps[dev$era == "garmin"])   # Garmin as measured
+})

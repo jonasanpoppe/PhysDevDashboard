@@ -48,6 +48,7 @@ against it (match on start time within a tolerance).
 | Rides and runs (activities, streams) | Strava | Complete history; never sum rides across sources. intervals.icu is a settings source (HR zones), not a data source |
 | Climb efforts | Own matching on Strava GPS streams | Strava segments seed the climb list once; reduced polylines are not enough |
 | Sleep, HRV, resting HR | Garmin, via the own fetcher | |
+| Steps | The wrist device: Fitbit, then Garmin from its first day with a count | Two eras, never pooled; a homogenised series beside them (the step at the switch, as for the vitals). MacroFactor's steps are not used (no sync = 0) |
 | History before the Garmin era | Fitbit Takeout | One-off backfill |
 
 **Measurements vs. model outputs.** Scale weight and intake are measurements.
