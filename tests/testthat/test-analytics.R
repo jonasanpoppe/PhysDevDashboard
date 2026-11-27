@@ -63,8 +63,8 @@ test_that("build_analytics_daily: eras kept, sleep in hours, volumes 0 on rest d
   expect_equal(get("hrv", "garmin"), 60)
   expect_equal(get("sleep_h", "garmin"), 7.5)
   expect_equal(get("load_6w_hpw"), c(4, 4, 4))
-  expect_equal(get("bjj"), c(0, 1, 0))                         # zero-filled over the span
-  expect_equal(get("lifting"), c(0, 0, 0))
+  expect_equal(get("bjj"), c(1, 0))                            # from its first session, 0-filled after
+  expect_length(get("lifting"), 0)                             # never recorded: no series, not 0s
   expect_equal(get("z2_h"), c(0.5, 0, 1))
   expect_equal(get("e1rm_bench"), 102)                         # main lifts only, best of the day
   expect_false(any(startsWith(d$variable, "e1rm_curls")))
@@ -239,4 +239,25 @@ test_that("detrending through the views: sparse series untouched, labels say wha
   expect_false(isTRUE(all.equal(p0$x, p1$x[match(p0$date, p1$date)])))
   m <- analytics_matrix(d, s, smooth = "daily", detrend = "rolling", window = 28L)
   expect_equal(nrow(m), nrow(s)^2)
+})
+
+test_that("plan bands by heart-rate era: separate series, each 0-filled over its own span", {
+  wd <- tibble::tibble(date = as.Date("2030-01-01"), scale_kg = 80, trend_kg = 80, kcal = NA,
+                       protein_g = NA, expenditure_kcal = NA)
+  vit <- tibble::tibble(date = as.Date("2030-01-01"), metric = "rhr", era = "garmin", value = 50)
+  load <- tibble::tibble(date = as.Date("2030-01-01") + 0:5, ride_h = 1, run_h = 0, ride_6w_hpw = 3,
+                         run_6w_hpw = 0, fitness_h = 0.5, fatigue_h = 0.5)
+  bands <- tibble::tibble(activity_id = as.character(1:4), date = as.Date("2030-01-01") + c(0, 2, 3, 5),
+                          hr_era = c("wrist", "wrist", "chest_strap", "chest_strap"),
+                          z2_s = 3600, sweet_spot_s = 0, above_cap_s = 0, hr_s = 3600)
+  empty <- tibble::tibble(date = as.Date(character()), kind = character())
+  d <- build_analytics_daily(wd, vit, load, empty, bands,
+                             tibble::tibble(date = as.Date("2030-01-01"), group = "Bench", main = TRUE, e1rm = 100),
+                             tibble::tibble(date = as.Date("2030-01-01"), status = "clean", short = FALSE, wkg = 4))
+  z <- d[d$variable == "z2_h", ]
+  expect_setequal(unique(z$era), c("wrist", "chest_strap"))
+  expect_equal(z$value[z$era == "wrist"], c(1, 0, 1))          # 1 to 3 Jan
+  expect_equal(z$value[z$era == "chest_strap"], c(1, 0, 1))    # 4 to 6 Jan
+  s <- analytics_series(d, analytics_variables(d))
+  expect_setequal(s$series[s$variable == "z2_h"], c("z2_h@wrist", "z2_h@chest_strap"))
 })

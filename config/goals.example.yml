@@ -31,7 +31,9 @@ nutrition:
 # Sessions a week, and how they are recognised (one per day per kind at most).
 sessions:
   bjj: {per_week: 2, strava_types: [Workout]}
-  lifting: {per_week: 3, strava_types: [WeightTraining], macrofactor_workouts: true}
+  # logged_sets: a day with working sets in the set log (templates, Strong,
+  # MacroFactor) counts; Strava only for days without logged sets
+  lifting: {per_week: 3, strava_types: [WeightTraining], logged_sets: true}
 
 # Strength: targets for each group's main lift (config/lifts.csv), as the
 # heavy single on the bar, a number or [low, high]. The single source for

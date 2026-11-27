@@ -82,6 +82,11 @@ is allowed only as a derived, labelled series beside the originals.
   misleading `Z`. `date` is the date part of `start_date_local`.
 - **IDs** are 64-bit integers, stored as text and read exactly (segment effort
   IDs are above 2^53, where a double rounds them).
+- **Recording device** (`device_name`) sets the heart-rate era of a ride
+  (`hr_device_eras` in `config/athlete.yml`: wrist or chest strap). The
+  fitness model uses one era; time in the plan's bands is kept per era.
+  Elevation gain also depends on the device (barometric or GPS); the bike
+  computer is the reference.
 
 ## Garmin Connect (API, own fetcher)
 

@@ -29,16 +29,22 @@ test_that("daily table: pace from the start's trend, the last (unfinished) day's
   expect_error(build_weight_daily(fake_macrofactor_daily(), bad), "no trend weight on start_date")
 })
 
-test_that("sessions: one per day per kind, MacroFactor first for lifting", {
+test_that("sessions: one per day per kind, logged sets first for lifting, any set source", {
   acts <- tibble::tibble(date = as.Date(c("2030-01-08", "2030-01-08", "2030-01-09", "2030-01-10")),
                          sport_type = c("Workout", "WeightTraining", "WeightTraining", "Workout"))
-  sets <- tibble::tibble(date = as.Date(c("2030-01-08", "2030-01-08")))   # two sets, one workout
+  sets <- tibble::tibble(date = as.Date(c("2030-01-08", "2030-01-08", "2030-01-03", "2030-01-05")),
+                         source = c("macrofactor", "macrofactor", "strong", "strong"),
+                         is_warmup = c(FALSE, FALSE, FALSE, TRUE))   # 5 Jan: warm-up only
   cfg <- list(bjj = list(strava_types = list("Workout")),
-              lifting = list(strava_types = list("WeightTraining"), macrofactor_workouts = TRUE))
+              lifting = list(strava_types = list("WeightTraining"), logged_sets = TRUE))
   s <- build_sessions(acts, sets, cfg)
-  expect_equal(nrow(s), 4)                         # 8 Jan lifting once, 9 Jan lifting, 2x BJJ
-  expect_equal(s$source[s$date == as.Date("2030-01-08") & s$kind == "lifting"], "macrofactor")
-  expect_equal(s$source[s$date == as.Date("2030-01-09")], "strava")
+  lift <- s[s$kind == "lifting", ]
+  expect_equal(lift$date, as.Date(c("2030-01-03", "2030-01-08", "2030-01-09")))
+  expect_equal(lift$source, c("strong", "macrofactor", "strava"))   # Strong counts; Strava fills 9 Jan
+  expect_equal(sum(s$kind == "bjj"), 2)
+  # Without logged_sets, Strava only
+  cfg$lifting$logged_sets <- NULL
+  expect_true(all(build_sessions(acts, sets, cfg)$source == "strava"))
 })
 
 test_that("weeks: context before the plan, planned change from the start, met or missed", {

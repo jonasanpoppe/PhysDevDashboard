@@ -94,16 +94,23 @@ build_analytics_daily <- function(weight_daily, vitals_daily, load, sessions, pl
   )
   span <- range(as.Date(load$date))
   if (nrow(sessions) > 0) span <- range(c(span, as.Date(sessions$date)))
+  # Each kind from its first recorded session on: before it the kind wasn't
+  # recorded, which is not 0 (BJJ is on Strava only from the Garmin era)
   sess <- sessions %>%
     transmute(date = as.Date(date), variable = kind, era = "all", value = 1) %>%
     distinct() %>%
-    bind_rows(tibble(date = span[[1]], variable = c("bjj", "lifting"), era = "all", value = 0)) %>%
-    summarise(.by = c(date, variable, era), value = max(value)) %>%
-    fill_days(span[[1]], span[[2]])
+    { purrr::map(split(., .$variable), \(k) fill_days(k, min(k$date), span[[2]])) } %>%
+    purrr::list_rbind()
+  # Time in the plan's bands per heart-rate sensor era (hr_era, from the
+  # recording device): wrist and chest strap read differently, so the eras
+  # stay apart; each era is 0-filled over its own span
   bands <- plan_bands %>%
-    summarise(.by = date, z2_h = sum(z2_s) / 3600, sweet_spot_h = sum(sweet_spot_s) / 3600) %>%
-    long(c(z2_h = "z2_h", sweet_spot_h = "sweet_spot_h")) %>%
-    { if (nrow(.) > 0) fill_days(., min(.$date), max(.$date)) else . }
+    mutate(era = if ("hr_era" %in% names(plan_bands)) hr_era else "all") %>%
+    summarise(.by = c(date, era), z2_h = sum(z2_s) / 3600, sweet_spot_h = sum(sweet_spot_s) / 3600)
+  bands <- purrr::map(split(bands, bands$era), \(b) {
+    long(b, c(z2_h = "z2_h", sweet_spot_h = "sweet_spot_h"), era = b$era[[1]]) %>%
+      fill_days(min(.$date), max(.$date))
+  }) %>% purrr::list_rbind()
 
   # Best e1RM per main lift group on lift days (an estimate from a submaximal set)
   e1rm <- strength_sessions %>%

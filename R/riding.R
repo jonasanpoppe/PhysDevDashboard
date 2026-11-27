@@ -27,14 +27,20 @@ rides_cumulative <- function(rides) {
 
 # Seconds per ride in each plan band, from the HR histogram (seconds at each
 # bpm). Bands are inclusive ranges; above_cap = above the sweet-spot cap.
-# Descriptive zones (hr_zones) are a separate set; never mixed.
-build_plan_bands <- function(histogram, rides, bands) {
+# Descriptive zones (hr_zones) are a separate set; never mixed. hr_era: the
+# heart-rate sensor era of the recording device (hr_device_eras in
+# config/athlete.yml; hr_era_of() in R/fitness_model.R), "unknown" without.
+build_plan_bands <- function(histogram, rides, bands, activities = NULL, eras = NULL) {
   inside <- function(hr, r) hr >= r[[1]] & hr <= r[[2]]
+  dev <- if (is.null(activities)) tibble(activity_id = character(), device_name = character()) else
+    activities %>% transmute(activity_id = as.character(activity_id), device_name)
   histogram %>%
     mutate(activity_id = as.character(activity_id)) %>%
-    inner_join(rides %>% select(activity_id, date), by = "activity_id") %>%
+    inner_join(rides %>% transmute(activity_id = as.character(activity_id), date), by = "activity_id") %>%
+    left_join(dev, by = "activity_id") %>%
+    mutate(hr_era = hr_era_of(device_name, eras %||% list())) %>%
     summarise(
-      .by = c(activity_id, date),
+      .by = c(activity_id, date, hr_era),
       z2_s = sum(seconds[inside(hr, bands$z2)]),
       sweet_spot_s = sum(seconds[inside(hr, bands$sweet_spot)]),
       above_cap_s = sum(seconds[hr > bands$sweet_spot_cap]),
