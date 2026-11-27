@@ -19,7 +19,12 @@ library(dplyr)
 #
 # scale "additive": Fitbit + step (bpm, br/min). scale "log": the step is
 # fitted on ln(value) and Fitbit is multiplied by exp(step) (HRV: devices
-# differ by a ratio, and its spread grows with its level).
+# differ by a ratio, and its spread grows with its level; steps: devices
+# count a different share of the same steps).
+#
+# Steps come from device_steps (sql/marts/device_steps.sql), not
+# vitals_daily; era_series() stacks the two for the estimate. Note the two
+# senses of "step": the step at the switch (this file) and steps walked.
 #
 # Only the location is moved. The spread (SD) is reported, not matched:
 # where the eras differ in day-to-day noise it comes from how each device
@@ -32,6 +37,7 @@ library(dplyr)
 homogenise_spec <- tibble::tribble(
   ~metric,          ~scale,      ~apply, ~why_not,
   "rhr",            "additive",  TRUE,   NA,
+  "steps",          "log",       TRUE,   NA,
   "hrv",            "log",       TRUE,   NA,
   "resp",           "additive",  TRUE,   NA,
   "spo2",           "additive",  TRUE,   NA,
@@ -97,6 +103,15 @@ estimate_era_step <- function(d, scale = c("additive", "log"), window_days = 180
          slope_per_year = m$coefficients[[3]],
          sd_fitbit = stats::sd(res[w$g == 0]), sd_garmin = stats::sd(res[w$g == 1]),
          noise_fitbit = noise("fitbit"), noise_garmin = noise("garmin"))
+}
+
+# The device series by era, long (date, metric, era, value): the vitals plus
+# steps walked as metric "steps".
+era_series <- function(vitals_daily, device_steps = NULL) {
+  v <- select(vitals_daily, date, metric, era, value)
+  if (is.null(device_steps)) return(v)
+  bind_rows(v, transmute(device_steps, date = as.Date(date), metric = "steps", era,
+                         value = as.numeric(steps)))
 }
 
 # Steps for every metric in the spec, with whether a series is made.

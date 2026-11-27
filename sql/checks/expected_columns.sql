@@ -57,7 +57,7 @@ FROM (
     ('macrofactor_daily',
       'date DATE, calories_kcal DOUBLE, fat_g DOUBLE, carbs_g DOUBLE,
        protein_g DOUBLE, weight_kg DOUBLE, trend_weight_kg DOUBLE,
-       expenditure DOUBLE, steps DOUBLE'),
+       expenditure DOUBLE'),
     ('macrofactor_food_log',
       'date DATE, food_name VARCHAR, calories_kcal DOUBLE, protein_g DOUBLE'),
     ('macrofactor_workout_sets',

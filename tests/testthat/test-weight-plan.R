@@ -24,6 +24,7 @@ test_that("daily table: pace from the start's trend, the last (unfinished) day's
   expect_true(all(is.na(d$pace_kg[d$date < as.Date("2030-01-07")])))
   expect_true(is.na(d$kcal[d$date == max(d$date)]))
   expect_equal(d$kcal[1], 2200)
+  expect_false("steps" %in% names(d))                    # MacroFactor's steps are not used
   bad <- fake_goal(); bad$start_date <- "2031-01-01"
   expect_error(build_weight_daily(fake_macrofactor_daily(), bad), "no trend weight on start_date")
 })
@@ -61,4 +62,20 @@ test_that("status: rate, ETA from today, checkpoint, sessions per week", {
   expect_equal(st$bjj_per_week, 0.75)
   expect_equal(st$protein_7d, 150)
   expect_equal(st$eta, pace_eta(st$date, st$trend_kg, fake_goal()))
+})
+
+test_that("weeks: steps from the device, none for a week spanning the switch", {
+  d <- build_weight_daily(fake_macrofactor_daily(), fake_goal())
+  none <- tibble::tibble(date = as.Date(character()), kind = character())
+  days <- seq(min(d$date), max(d$date), by = "day")
+  switch_day <- days[days > days[7] & format(days, "%u") == "3"][1]   # a Wednesday: mid-week
+  dev <- tibble::tibble(date = days, era = ifelse(days < switch_day, "fitbit", "garmin"),
+                        steps = ifelse(days < switch_day, 5000, 9000))
+  w <- build_weight_weekly(d, none, fake_goal(), device_steps = dev)
+  wk <- function(day) w$steps[w$week == day - (as.integer(format(day, "%u")) - 1L)]
+  expect_true(is.na(wk(switch_day)))                     # both eras in that week
+  expect_equal(wk(max(days)), 9000)
+  expect_equal(wk(min(days)), 5000)
+  # Without device steps the column is there, empty
+  expect_true(all(is.na(build_weight_weekly(d, none, fake_goal())$steps)))
 })

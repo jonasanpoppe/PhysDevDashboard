@@ -28,7 +28,6 @@ analytics_registry <- tibble::tribble(
   "trend_kg",         "Trend weight",                 "Weight & intake",  "kg",        "model output", "level",   "weight",
   "kcal",             "Calories eaten",               "Weight & intake",  "kcal",      "measurement",  "level",   NA,
   "protein_g",        "Protein",                      "Weight & intake",  "g",         "measurement",  "level",   NA,
-  "steps",            "Steps",                        "Weight & intake",  "steps",     "measurement",  "level",   NA,
   "expenditure_kcal", "Expenditure",                  "Weight & intake",  "kcal",      "model output", "level",   NA,
   "rhr",              "Resting HR",                   "Vitals",           "bpm",       "measurement",  "level",   NA,
   "hrv",              "HRV",                          "Vitals",           "ms",        "measurement",  "level",   NA,
@@ -38,6 +37,7 @@ analytics_registry <- tibble::tribble(
   "resp",             "Breathing rate",               "Vitals",           "br/min",    "measurement",  "level",   NA,
   "spo2",             "SpO2",                         "Vitals",           "%",         "measurement",  "level",   NA,
   "skin_temp_dev",    "Skin temperature (deviation)", "Vitals",           "°C",        "measurement",  "level",   NA,
+  "steps",            "Steps",                        "Training",         "steps",     "measurement",  "level",   NA,
   "ride_h",           "Riding",                       "Training",         "h",         "measurement",  "volume",  "hours",
   "run_h",            "Running",                      "Training",         "h",         "measurement",  "volume",  "hours",
   "load_6w_hpw",      "6-week load",                  "Training",         "h/week",    "derived",      "level",   "hours",
@@ -57,8 +57,11 @@ analytics_presets <- tibble::tribble(
   "Scale weight and resting HR",  "scale_kg", "rhr",  0L,   "7d"
 )
 
+# device_steps: steps from the wrist device by era (sql/marts/device_steps.sql),
+# never MacroFactor's
 build_analytics_daily <- function(weight_daily, vitals_daily, load, sessions, plan_bands,
-                                  strength_sessions, climb_efforts, vitals_homogenised = NULL) {
+                                  strength_sessions, climb_efforts, vitals_homogenised = NULL,
+                                  device_steps = NULL) {
   long <- function(df, cols, era = "all") {
     purrr::imap(cols, \(col, v) tibble(date = as.Date(df$date), variable = v, era = era,
                                        value = as.numeric(df[[col]]))) %>%
@@ -70,14 +73,16 @@ build_analytics_daily <- function(weight_daily, vitals_daily, load, sessions, pl
   }
 
   weight <- long(weight_daily, c(scale_kg = "scale_kg", trend_kg = "trend_kg", kcal = "kcal",
-                                 protein_g = "protein_g", steps = "steps",
-                                 expenditure_kcal = "expenditure_kcal"))
+                                 protein_g = "protein_g", expenditure_kcal = "expenditure_kcal"))
+  steps <- if (is.null(device_steps)) NULL else
+    transmute(device_steps, date = as.Date(date), variable = "steps", era, value = as.numeric(steps))
 
   sleep_vars <- c(sleep_s = "sleep_h", sleep_deep_s = "sleep_deep_h", sleep_rem_s = "sleep_rem_h")
   vitals <- vitals_daily %>%
     select(date, metric, era, value) %>%
     bind_rows(if (!is.null(vitals_homogenised)) select(vitals_homogenised, date, metric, era, value)) %>%
-    filter(metric %in% c("rhr", "hrv", "resp", "spo2", "skin_temp_dev", names(sleep_vars))) %>%
+    # steps: only the homogenised series comes this way (the eras come from device_steps)
+    filter(metric %in% c("rhr", "hrv", "resp", "spo2", "skin_temp_dev", "steps", names(sleep_vars))) %>%
     transmute(date = as.Date(date),
               variable = if_else(metric %in% names(sleep_vars), unname(sleep_vars[metric]), metric),
               era, value = if_else(metric %in% names(sleep_vars), value / 3600, value))
@@ -111,7 +116,7 @@ build_analytics_daily <- function(weight_daily, vitals_daily, load, sessions, pl
     summarise(.by = date, value = max(wkg)) %>%
     transmute(date = as.Date(date), variable = "wkg", era = "all", value)
 
-  bind_rows(weight, vitals, training, sess, bands, e1rm, wkg) %>%
+  bind_rows(weight, steps, vitals, training, sess, bands, e1rm, wkg) %>%
     filter(!is.na(value), is.finite(value)) %>%
     arrange(variable, era, date)
 }

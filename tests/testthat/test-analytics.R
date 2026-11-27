@@ -42,8 +42,21 @@ test_that("build_analytics_daily: eras kept, sleep in hours, volumes 0 on rest d
   eff <- tibble::tibble(date = as.Date("2030-01-03"), status = c("clean", "early", "clean"),
                         short = c(FALSE, FALSE, TRUE), wkg = c(4, 5, 6))
 
-  d <- build_analytics_daily(wd, vit, load, sess, bands, ss, eff)
+  dev <- tibble::tibble(date = as.Date("2030-01-01") + 0:2, era = c("fitbit", "fitbit", "garmin"),
+                        steps = c(6000, 7000, 9000))
+  d <- build_analytics_daily(wd, vit, load, sess, bands, ss, eff, device_steps = dev)
   get <- function(v, e = "all") d$value[d$variable == v & d$era == e]
+
+  # Steps from the device, by era; MacroFactor's 8000 a day nowhere
+  expect_equal(get("steps", "fitbit"), c(6000, 7000))
+  expect_equal(get("steps", "garmin"), 9000)
+  expect_length(get("steps"), 0)
+  expect_false(8000 %in% d$value[d$variable == "steps"])
+  # A homogenised steps series comes in beside the eras
+  hom <- tibble::tibble(date = dev$date, metric = "steps", era = "homogenised",
+                        source_era = dev$era, value = c(4800, 5600, 9000))
+  dh <- build_analytics_daily(wd, vit, load, sess, bands, ss, eff, vitals_homogenised = hom, device_steps = dev)
+  expect_equal(dh$value[dh$variable == "steps" & dh$era == "homogenised"], c(4800, 5600, 9000))
 
   expect_equal(get("scale_kg"), c(80, 79.8))                  # missing days stay missing
   expect_equal(get("hrv", "fitbit"), 50)

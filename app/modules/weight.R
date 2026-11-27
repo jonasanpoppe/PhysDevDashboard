@@ -9,7 +9,7 @@ weight_figures <- c("Trend weight and goal pace" = "trend",
 weight_footers <- list(
   trend = "Dots are weigh-ins (measurements); the line is MacroFactor's trend weight, a model output that MacroFactor recalculates; dashed is the goal pace, with its pause.",
   weeks = "Each bar is the change in trend weight over a Monday-to-Sunday week; the black tick is the planned change for that week. Grey: before the plan. Pale: the week isn't over.",
-  intake = "Weekly averages over logged days. The day of the export is left out: it wasn't finished."
+  intake = "Weekly averages over logged days. The day of the export is left out: it wasn't finished. Steps are the wrist device's count (Fitbit, then Garmin), not MacroFactor's; a week spanning the switch has none."
 )
 
 weight_ui <- function(id) {

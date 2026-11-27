@@ -335,7 +335,7 @@ list(
   # ── Weight against the plan (goals in config/goals.yml) ───────────────────────
   tar_target(weight_daily, build_weight_daily(macrofactor_daily, goals_config$weight_goal)),
   tar_target(sessions_daily, build_sessions(strava_activities, macrofactor_workout_sets, goals_config$sessions)),
-  tar_target(weight_weekly, build_weight_weekly(weight_daily, sessions_daily, goals_config$weight_goal)),
+  tar_target(weight_weekly, build_weight_weekly(weight_daily, sessions_daily, goals_config$weight_goal, device_steps)),
   tar_target(
     weight_status,
     # Sessions counted to today and judged at adherence_met, the rate over
@@ -448,12 +448,14 @@ list(
     analytics_daily,
     build_analytics_daily(weight_daily, vitals_daily, strava_daily_load, sessions_daily,
                           strava_plan_bands, strength_sessions, strava_climb_efforts,
-                          vitals_homogenised = vitals_homogenised)
+                          vitals_homogenised = vitals_homogenised, device_steps = device_steps)
   ),
   # Fitbit era drawn onto Garmin's scale: a derived series beside the two
   # originals, with the step and its interval in vitals_era_steps (R/homogenise.R)
-  tar_target(vitals_era_steps, estimate_era_steps(vitals_daily)),
-  tar_target(vitals_homogenised, homogenise_vitals(vitals_daily, vitals_era_steps)),
+  # Steps walked too (device_steps, metric "steps")
+  tar_target(era_series_long, era_series(vitals_daily, device_steps)),
+  tar_target(vitals_era_steps, estimate_era_steps(era_series_long)),
+  tar_target(vitals_homogenised, homogenise_vitals(era_series_long, vitals_era_steps)),
   tar_target(homogenisation_tables, write_homogenisation_tables(vitals_era_steps, db_path = "db/health.db")),
   tar_target(
     analytics_tables,
@@ -478,6 +480,15 @@ list(
            sleep_score_daily, stress_score_daily, fitbit_weight, garmin_api_daily,
            strava_raw, macrofactor_raw, macrofactor_food_log, macrofactor_workout_sets)
       run_data_checks(db_path = "db/health.db")
+    }
+  ),
+  # Steps from the wrist device, Fitbit and Garmin eras (not MacroFactor's)
+  tar_target(sql_device_steps, "sql/marts/device_steps.sql", format = "file"),
+  tar_target(
+    device_steps,
+    {
+      data_checks
+      run_sql(sql_device_steps, read_back = "device_steps", db_path = "db/health.db")
     }
   ),
   tar_target(sql_vitals_daily, "sql/marts/vitals_daily.sql", format = "file"),

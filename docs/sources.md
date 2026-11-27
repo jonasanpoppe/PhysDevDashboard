@@ -29,7 +29,9 @@ is allowed only as a derived, labelled series beside the originals.
 
 ## MacroFactor (export)
 
-- **System of record for:** intake, body weight, lifting sets.
+- **System of record for:** intake, body weight, lifting sets. Its steps are
+  not used: 0 on days without a sync and a changing mix of sources; steps
+  come from the device (Fitbit, then Garmin).
 - **Landing:** `data/landing/macrofactor/MacroFactor-<YYYYMMDDhhmmss>.<ext>`,
   dropped unchanged. Three kinds share one name pattern: summary `.xlsx`, food
   log `.csv`, workout log `.csv` (told apart by header).
@@ -84,7 +86,8 @@ is allowed only as a derived, labelled series beside the originals.
 ## Garmin Connect (API, own fetcher)
 
 - **System of record for:** sleep, HRV, resting HR, breathing rate, SpO2, skin
-  temperature, from the switch to Garmin onwards.
+  temperature and steps, from the switch to Garmin onwards (steps: from
+  Garmin's first day with a count, the switch day included).
 - **Landing:** `data/landing/garmin/<from>_<to>_garmin_api.json`, one record
   per calendar date; overlapping ranges are merged in staging (per field,
   the first non-missing value in file name order).
@@ -108,7 +111,7 @@ is allowed only as a derived, labelled series beside the originals.
 ## Fitbit (Google Takeout, one-off backfill)
 
 - **System of record for:** sleep, HRV, resting HR, breathing rate, SpO2, skin
-  temperature, before the switch to Garmin; body weight before MacroFactor's
+  temperature and steps, before the switch to Garmin; body weight before MacroFactor's
   first weigh-in.
 - **Landing:** `data/landing/fitbit/Takeout/Fitbit/`, frozen.
 - **Weight:** `Physical Activity_GoogleData/weight.csv` (grams) and

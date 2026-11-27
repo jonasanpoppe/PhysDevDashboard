@@ -97,7 +97,9 @@ private/           private specs and plans (gitignored)
    `data_checks`).
 4. **Marts** (`sql/marts/*.sql`, or `R/build_*.R` where a mart needs R):
    combine staging outputs into what a view needs, with their own structural
-   checks. `sql/marts/vitals_daily.sql` stops on overlapping device eras.
+   checks. `sql/marts/vitals_daily.sql` stops on overlapping device eras;
+   `sql/marts/device_steps.sql` gives each day to one device (Garmin from
+   its first day with steps).
 5. **Analysis**: climb matching, effort metrics, the fitness and strength
    models, the Quest Board, relics, roadmap and scenarios.
 6. **The consistency check** (`view_checks`, last): numbers that two tabs
