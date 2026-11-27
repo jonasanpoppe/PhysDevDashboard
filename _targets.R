@@ -71,7 +71,9 @@ list(
   tar_target(bike_overrides_file, "config/bike_overrides.csv", format = "file"),
   tar_target(effort_overrides_file, "config/effort_overrides.csv", format = "file"),
   tar_target(goals_config_file, "config/goals.yml", format = "file"),
-  tar_target(goals_config, yaml::read_yaml(goals_config_file)),
+  # goals.yml holds the plan's numbers (the single source, R/plan_config.R);
+  # resolve_goals() adds what they imply (the forecast's e1RM targets)
+  tar_target(goals_config, resolve_goals(yaml::read_yaml(goals_config_file), lifts)),
   tar_target(lifts_file, "config/lifts.csv", format = "file"),
   tar_target(lifts, readr::read_csv(lifts_file, show_col_types = FALSE)),
 
@@ -305,8 +307,13 @@ list(
   tar_target(weight_weekly, build_weight_weekly(weight_daily, sessions_daily, goals_config$weight_goal)),
   tar_target(
     weight_status,
+    # Sessions counted to today and judged at adherence_met, the rate over
+    # the Scenarios' recent weeks: the same numbers as Home and Scenarios
     compute_weight_status(weight_daily, sessions_daily, goals_config$weight_goal,
-                  goals_config$nutrition, goals_config$sessions)
+                          goals_config$nutrition, goals_config$sessions, as_of = Sys.Date(),
+                          adherence = oath_config$adherence_met %||% 0.8,
+                          recent_weeks = scenario_defaults(oath_config)$recent_weeks),
+    cue = tar_cue(mode = "always")
   ),
   tar_target(
     weight_tables,
@@ -321,7 +328,7 @@ list(
                             mf_exercise = macrofactor_exercise, settings = athlete_config$strength,
                             max_bw_age_days = BODYWEIGHT_MAX_AGE_DAYS)
   ),
-  tar_target(strength_goals, strength_goal_tables(lifts, goals_config$strength, strength_forecast$params)),
+  tar_target(strength_goals, strength_goal_tables(lifts, goals_config$strength, strength_forecast$params, goals = goals_config)),
   # Forecast: plateau curves per main lift (R/forecast.R; config in goals.yml)
   tar_target(
     strength_forecast,
@@ -343,7 +350,8 @@ list(
   # Always rerun: the board counts days up to today (last 28 days, the
   # year's pace), so it goes stale even when no data changes.
   tar_target(oath_config_file, "config/oath.yml", format = "file"),
-  tar_target(oath_config, yaml::read_yaml(oath_config_file)),
+  # oath.yml with its numbers filled from goals.yml; stops on a conflict
+  tar_target(oath_config, oath_from_config(yaml::read_yaml(oath_config_file), goals_config, lifts)),
   tar_target(
     quest_tables,
     write_quest_tables(
@@ -368,12 +376,39 @@ list(
     )),
     cue = tar_cue(mode = "always")
   ),
-  tar_target(relic_tables, write_relic_tables(relics, db_path = "db/health.db")),
+  tar_target(relic_tables, write_relic_tables(relics, relic_events, db_path = "db/health.db")),
+  # Scenarios: a verdict per quest with the default assumptions, for the
+  # Home chips (R/scenarios.R); the Scenarios tab reruns them live
+  tar_target(
+    scenario_tables,
+    write_scenario_tables(
+      quest_scenarios(oath_config, as_of = Sys.Date(), data = list(
+        weight = weight_daily, strength = strength_sessions, rides = strava_rides,
+        sessions = sessions_daily, climbs = strava_climb_efforts, events = relic_events,
+        weekly = weight_weekly, goal = goals_config$weight_goal,
+        forecast = list(params = strength_forecast$params, curve = strength_forecast$curve)
+      )),
+      db_path = "db/health.db"
+    ),
+    cue = tar_cue(mode = "always")
+  ),
   # Roadmap: phases against today, gates ticked by the relics (R/roadmap.R)
   tar_target(
     roadmap_tables,
     write_roadmap_tables(roadmap_phases(oath_config, as_of = Sys.Date()),
                          roadmap_gates(oath_config, relics), db_path = "db/health.db"),
+    cue = tar_cue(mode = "always")
+  ),
+
+  # ── Consistency: numbers two tabs show must agree (R/consistency.R) ─────────
+  # After every table it reads is written; stops the build on a mismatch.
+  tar_target(
+    view_checks,
+    {
+      list(quest_tables, scenario_tables, relic_tables, roadmap_tables, weight_tables, strength_tables,
+           strength_forecast, riding_tables)
+      assert_views("db/health.db")
+    },
     cue = tar_cue(mode = "always")
   ),
 

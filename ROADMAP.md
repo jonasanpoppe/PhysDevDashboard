@@ -29,47 +29,12 @@ replaces them.
 
 ## Architecture
 
-```
-APIs ──Python──▶ data/landing/<source>/   (per date, or per item, e.g. one
-exports ────────▶ data/landing/<source>/    file per activity; never edited)
-                          │
-                          ▼  R runs sql/*.sql through DuckDB
-                 raw ──▶ staging ──▶ marts        (db/health.duckdb, rebuilt every time)
-                                       │
-                                       ▼
-                           R: projections + Shiny app
-```
-
-| Concern | Tool | Why |
-|---|---|---|
-| Fetching from APIs | Python (`httpx`, `stravalib`, `garminconnect`) | Mature API clients |
-| Python env | `uv` | Lockfile-based, fast |
-| R env | `renv` | Already in place |
-| Loading files | DuckDB SQL (`read_xlsx`, `read_csv`, `read_json`, `read_parquet`) | Reads every landing format natively |
-| Transformations | Plain SQL files, run in order from R | Language-neutral, testable |
-| Analysis | R; `targets` for analysis only (projections, climb matching, models) | Existing strength |
-| Dashboard | Shiny + `bslib`, one module per view | Scenario inputs, not just charts |
-| Task runner | `just` | Owns the data flow: `fetch`, `build`, `test`, `app` |
-| Secrets | `.env` with `chmod 600`, outside git | `keyring` usually has no backend in WSL |
-| Backups | `restic` | Encrypted, deduplicated, restorable |
-| CI | GitHub Actions on synthetic data | Real data never leaves the machine |
-| Remote access (optional) | Docker + Tailscale | Phone access without public exposure |
-
-### Environment
-
-- Everything lives inside WSL2's Linux filesystem (`~/projects/...`), never
-  under `/mnt/c`: repo, data, R (RStudio Server in WSL, or Positron/VS Code via
-  Remote-WSL), Python and Claude Code. File locks across the Windows/WSL
-  boundary are unreliable and I/O is slow.
-- **DuckDB versions.** R is the only process that creates or writes the
-  database, so R's duckdb version decides the file format. Every other reader
-  (DuckDB CLI, Python) must be the same version or newer. Files created by
-  DuckDB 2.0 cannot be read by 1.x. `just doctor` checks this.
-- **Concurrency.** DuckDB allows one read-write process or several read-only
-  ones, never both. `just build` writes `db/health.new.duckdb`, closes it
-  cleanly (`dbDisconnect(con, shutdown = TRUE)`, no `.wal` left), then `mv`
-  replaces `db/health.duckdb`, which is atomic on one filesystem. The app opens a
-  read-only connection per query, so it never blocks a build.
+How it is built today (data flow, tools, layout, the database, the app,
+testing, config) is in `docs/architecture.md`, the one description. The
+direction: loading moves from R loaders to plain SQL run by DuckDB
+(`sql/staging` → `sql/marts`), `targets` keeps the analysis (projections,
+climb matching, models), and the app stays read-only. The "Interim loaders"
+convention below says when.
 
 ## Data conventions
 

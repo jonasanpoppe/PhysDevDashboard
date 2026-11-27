@@ -1,19 +1,11 @@
-/* The Oath theme, scoped to the Home tab (.oath) so the other tabs keep
-   their look until the styling pass (milestone 9). Colours from the oath
-   spec: parchment, ink, purple, bronze; gold only for borders (it fails
-   contrast as text). */
+/* The Oath pages (Home, Reliquary, Roadmap; .oath) and their corporate
+   look (.oath-corporate). Colours: the --oath-* tokens, whose values live
+   in R/theme_physdev.R (physdev_css_vars(), injected by app/app.R); colours
+   used only here (roadmap fills, status tints) are written here. Gold only
+   for borders: it fails contrast as text. */
 
 .oath {
-  --oath-bg: #F4EBD6;
-  --oath-card: #EFE3C8;
-  --oath-ink: #2A1E14;
-  --oath-muted: #5C4632;
-  --oath-purple: #4B2A6B;
-  --oath-bronze: #7A4A22;
-  --oath-gold: #9A7020;
-  --oath-on-purple: #F4EBD6;
-  --oath-on-purple-muted: #EADFC6;
-  --oath-on-purple-label: #E6D3A3;
+  /* the --oath-* colour tokens come from R/theme_physdev.R (physdev_css_vars) */
   background: var(--oath-bg);
   color: var(--oath-ink);
   font-family: 'Cormorant Garamond', Georgia, serif;
@@ -100,16 +92,7 @@
 /* Corporate mode: the same layout in white and slate, system sans, no
    double border or blackletter */
 .oath.oath-corporate {
-  --oath-bg: #FFFFFF;
-  --oath-card: #F4F5F7;
-  --oath-ink: #1F2328;
-  --oath-muted: #57606A;
-  --oath-purple: #24364B;
-  --oath-bronze: #57606A;
-  --oath-gold: #D0D7DE;
-  --oath-on-purple: #FFFFFF;
-  --oath-on-purple-muted: #E6EAEF;
-  --oath-on-purple-label: #C9D1D9;
+  /* the corporate tokens: R/theme_physdev.R as well */
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 .oath-corporate .oath-frame { border: 1px solid var(--oath-gold); outline: none; }
@@ -118,7 +101,7 @@
   font-family: inherit; letter-spacing: 0;
 }
 .oath-corporate h1 { font-size: clamp(26px, 3.5vw, 40px); }
-.oath-corporate .oath-card { --accent: #24364B !important; }
+.oath-corporate .oath-card { --accent: var(--oath-purple) !important; }
 .oath-corporate .oath-card-label { text-transform: none; font-weight: 600; }
 .oath-corporate .oath-main-label { text-transform: none; }
 .oath-corporate .oath-card-headline, .oath-corporate .oath-main-quest { font-size: clamp(20px, 2.2vw, 26px); }
@@ -141,10 +124,10 @@
 .relic-art { height: 170px; display: flex; align-items: center; justify-content: center; position: relative;
   background-size: cover; background-position: center; }
 .relic-has-art { height: auto; aspect-ratio: 2 / 3; }
-.relic-num { width: 88px; height: 88px; border-radius: 50%; border: 2px solid #E6D3A3; display: flex;
-  align-items: center; justify-content: center; font-family: UnifrakturMaguntia, serif; font-size: 40px; color: #F4EBD6; }
+.relic-num { width: 88px; height: 88px; border-radius: 50%; border: 2px solid var(--oath-on-purple-label); display: flex;
+  align-items: center; justify-content: center; font-family: UnifrakturMaguntia, serif; font-size: 40px; color: var(--oath-on-purple); }
 .relic-state { position: absolute; top: 8px; right: 8px; font-family: Cinzel, Georgia, serif; font-size: 12px;
-  letter-spacing: 2px; color: #F4EBD6; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+  letter-spacing: 2px; color: var(--oath-on-purple); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
 .relic-unlocked { border-color: var(--oath-purple); box-shadow: 0 0 0 1px var(--oath-gold); }
 .relic-pt { font-family: Cinzel, Georgia, serif; font-weight: 700; font-size: 17px; line-height: 1.2; }
 .relic-en { font-size: 18px; font-style: italic; color: var(--oath-muted); margin-top: -6px; }
@@ -169,7 +152,7 @@
   .relic-art { height: 120px; }
   .relic-num { width: 64px; height: 64px; font-size: 30px; }
 }
-.oath-corporate .relic-card { background: #FFFFFF; border: 1px solid var(--oath-gold); }
+.oath-corporate .relic-card { background: var(--oath-bg); border: 1px solid var(--oath-gold); }
 .oath-corporate .relic-pt, .oath-corporate .relic-level, .oath-corporate .relic-path-title { font-family: inherit; letter-spacing: 0; }
 .oath-corporate .relic-art { background: var(--oath-purple) !important; height: 56px; }
 .oath-corporate .relic-num { display: none; }
@@ -186,17 +169,17 @@
 .road-lane { grid-column: 1; font-family: Cinzel, Georgia, serif; font-size: 17px; letter-spacing: 2px; align-self: center;
   text-transform: uppercase; }
 .road-phase { padding: 10px 12px; font-size: 18px; line-height: 1.25; transition: opacity 0.15s; }
-.road-dark { background: #4B2A6B; color: #F4EBD6; }
-.road-ink { background: #2A1E14; color: #F4EBD6; font-weight: 700; }
-.road-dashed { border: 1px dashed #4B2A6B; color: #4B2A6B; }
+.road-dark { background: var(--oath-purple); color: var(--oath-on-purple); }
+.road-ink { background: var(--oath-ink); color: var(--oath-on-purple); font-weight: 700; }
+.road-dashed { border: 1px dashed var(--oath-purple); color: var(--oath-purple); }
 .road-lilac { background: #E3D3EA; }
 .road-lilac2 { background: #D2BEDC; }
-.road-pale { background: #EFE3C8; }
+.road-pale { background: var(--oath-card); }
 .road-tan { background: #E8D6C4; }
 .road-tan2 { background: #D9BFA6; }
-.road-ride { background: #EFE3C8; border-top: 3px solid #7A4A22; }
-.road-ride2 { background: #E8D6C4; border-top: 3px solid #7A4A22; }
-.road-accent { background: #7A4A22; color: #F4EBD6; font-weight: 700; }
+.road-ride { background: var(--oath-card); border-top: 3px solid var(--oath-bronze); }
+.road-ride2 { background: #E8D6C4; border-top: 3px solid var(--oath-bronze); }
+.road-accent { background: var(--oath-bronze); color: var(--oath-on-purple); font-weight: 700; }
 .road-outline { border: 1px solid var(--oath-gold); }
 .road-done { opacity: 0.45; }
 .road-current { outline: 2px solid var(--oath-gold); outline-offset: 2px; }
@@ -208,6 +191,24 @@
 .road-gate-done { color: var(--oath-purple); font-weight: 600; }
 .roadmap .road-scroll { padding-top: 1.6em; }
 .oath-corporate .road-month, .oath-corporate .road-lane { font-family: inherit; letter-spacing: 0; }
-.oath-corporate .road-dark, .oath-corporate .road-ink, .oath-corporate .road-accent { background: #24364B; }
+.oath-corporate .road-dark, .oath-corporate .road-ink, .oath-corporate .road-accent { background: var(--oath-purple); }
 .oath-corporate .road-lilac, .oath-corporate .road-lilac2, .oath-corporate .road-tan, .oath-corporate .road-tan2,
-.oath-corporate .road-pale, .oath-corporate .road-ride, .oath-corporate .road-ride2 { background: #F4F5F7; border-top-color: #57606A; }
+.oath-corporate .road-pale, .oath-corporate .road-ride, .oath-corporate .road-ride2 { background: var(--oath-card); border-top-color: var(--oath-muted); }
+
+/* Verdicts (Scenarios): an icon plus words, never colour alone. Status
+   colours are reserved for these; text stays ink on a pale tint. */
+.verdict { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 13px; font-weight: 600;
+  white-space: nowrap; color: var(--oath-ink); border: 1px solid; }
+.verdict-icon { font-weight: 700; }
+.verdict-on_track, .verdict-done { background: #E3EFE3; border-color: #3F7A4A; }
+.verdict-on_track .verdict-icon, .verdict-done .verdict-icon { color: #2F6A3A; }
+.verdict-at_risk, .verdict-due { background: #F6EBCF; border-color: #9A7020; }   /* status colours stay fixed in both looks */
+.verdict-at_risk .verdict-icon, .verdict-due .verdict-icon { color: #7A5A10; }
+.verdict-behind, .verdict-overdue { background: #F4DEDA; border-color: #9B2C2C; }
+.verdict-behind .verdict-icon, .verdict-overdue .verdict-icon { color: #8B2222; }
+.verdict-none { background: transparent; border-color: var(--oath-subtle); }
+.oath-card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.oath-main-now .verdict { margin-left: 8px; }
+.scenario-table td { vertical-align: middle; }
+.scenario-table caption { caption-side: bottom; }

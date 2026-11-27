@@ -18,7 +18,7 @@ fake_relic_data <- function(rate = 0.4, weeks_met = rep(TRUE, 10)) {
     ),
     rides = tibble::tibble(
       date = as.Date(c("2030-03-01", "2030-04-01", "2030-05-01", "2031-01-02")),
-      km = c(124.9, 130, 125, 200), elev_m = c(1200, 999, 1000, 2000)
+      km = c(99.9, 105, 100, 200), elev_m = c(900, 799, 800, 2000)
     ),
     climbs = tibble::tibble(
       date = as.Date(c("2030-03-10", "2030-04-10")), climb = "Example Hill",
@@ -102,18 +102,18 @@ test_that("lift_gate: the blocks ticked, then a heavy triple at the right RIR fr
   expect_equal(status_of(rule)$date, as.Date("2030-02-12"))
 })
 
-test_that("ride: 124.9 km or 999 m don't count, a ride in another year doesn't either", {
-  s <- status_of(list(type = "ride", km = 125, gain_m = 1000, year = 2030))
+test_that("ride: 99.9 km or 799 m don't count, a ride in another year doesn't either", {
+  s <- status_of(list(type = "ride", km = 100, gain_m = 800, year = 2030))
   expect_equal(s$date, as.Date("2030-05-01"))
-  s2 <- status_of(list(type = "ride", km = 125, gain_m = 1000, year = 2030), as_of = "2030-04-30")
+  s2 <- status_of(list(type = "ride", km = 100, gain_m = 800, year = 2030), as_of = "2030-04-30")
   expect_false(s2$unlocked)
-  expect_match(s2$hint, "Longest so far: 130 km / 999 m")
+  expect_match(s2$hint, "Longest so far: 105 km / 799 m")
 })
 
 test_that("km_year: the day the year's sum reaches the target", {
-  s <- status_of(list(type = "km_year", km = 250, year = 2030))
-  expect_equal(s$date, as.Date("2030-04-01"))   # 124.9 + 130
-  expect_match(status_of(list(type = "km_year", km = 500, year = 2030))$hint, "380 of 500 km in 2030")
+  s <- status_of(list(type = "km_year", km = 200, year = 2030))
+  expect_equal(s$date, as.Date("2030-04-01"))   # 99.9 + 105
+  expect_match(status_of(list(type = "km_year", km = 500, year = 2030))$hint, "305 of 500 km in 2030")
 })
 
 test_that("climb_clean: on the given bike only", {
@@ -147,7 +147,7 @@ test_that("quest_stages earns a level per stage done, and unlocks when all are",
 })
 
 test_that("the example config builds a status row per relic, colours cycling", {
-  cfg <- yaml::read_yaml(testthat::test_path("..", "..", "config", "oath.example.yml"))
+  cfg <- example_oath()
   d <- fake_relic_data()
   d$events$relic[1] <- "III"
   s <- relic_status(cfg, d, "2030-06-30")

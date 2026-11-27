@@ -52,5 +52,5 @@ test_that("weight tables build from the fixture with the example goals", {
   expect_true(all(sessions$source == "macrofactor"))
   expect_equal(status$lifting_per_week, 2)            # the fixture lifts Mon and Thu
   # The invented person loses ~0.4 kg a week, the example goal asks 0.4
-  expect_equal(status$rate_4w, -0.4, tolerance = 0.15)
+  expect_equal(status$rate_recent, -0.4, tolerance = 0.15)
 })

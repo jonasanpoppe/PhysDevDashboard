@@ -25,6 +25,14 @@ physdev <- list(
   bronze      = "#7A4A22",
   gold        = "#9A7020",
 
+  # Text on the purple panels (main quest, level path, navbar)
+  on_purple        = "#F4EBD6",
+  on_purple_muted  = "#EADFC6",
+  on_purple_label  = "#E6D3A3",
+
+  # Quest card accents, purple to bronze (accent: 1-4 in oath.yml)
+  quest_accents = c("#4B2A6B", "#5E3550", "#6B3F2A", "#7A4A22"),
+
   # Accent: the highlighted series (current round, the main line)
   accent       = "#7046A8",
   accent_light = "#A98BD0",
@@ -61,9 +69,24 @@ physdev_palettes <- list(
     fg_subtle = "#D0D7DE",
     purple    = "#24364B",   # navbar and primary: slate
     bronze    = "#57606A",
-    gold      = "#D0D7DE"
+    gold      = "#D0D7DE",
+    on_purple       = "#FFFFFF",
+    on_purple_muted = "#E6EAEF",
+    on_purple_label = "#C9D1D9",
+    quest_accents   = rep("#24364B", 4)
   ))
 )
+
+# The palette as CSS custom properties for app/www/oath.css: the CSS names
+# tokens (var(--oath-purple)), this file holds their values, once.
+physdev_css_vars <- function() {
+  vars <- c(bg = "bg", card = "bg_card", ink = "fg", muted = "fg_muted", subtle = "fg_subtle",
+            purple = "purple", bronze = "bronze", gold = "gold", "on-purple" = "on_purple",
+            "on-purple-muted" = "on_purple_muted", "on-purple-label" = "on_purple_label")
+  block <- function(p) paste(sprintf("  --oath-%s: %s;", names(vars), unlist(p[vars])), collapse = "\n")
+  sprintf(".oath {\n%s\n}\n.oath.oath-corporate {\n%s\n}",
+          block(physdev_palettes$oath), block(physdev_palettes$corporate))
+}
 
 # ── ggplot2 theme ─────────────────────────────────────────────────────────────
 

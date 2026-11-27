@@ -1,34 +1,19 @@
 # PhysDevDashboard
 
-Personal health data pipeline and Shiny dashboard. ROADMAP.md holds the
-principles, architecture, data conventions and milestones; read it before
-changing structure. This file is the short version for every session.
+Personal health data pipeline and Shiny dashboard. This file is the short
+version for every session; each topic has one home:
 
-## Commands
-
-```
-just doctor   # tools, versions, secrets, personal config
-just fetch    # Strava (incremental) + Garmin (last 30 days)
-just build    # rebuild db/health.db from data/landing/ (targets)
-just test     # R tests (testthat)
-just backup   # restic snapshot of data/, config/, private/, .env
-```
+| Topic | The source |
+|---|---|
+| Commands | `just --list` (the justfile; `just doctor`, `build`, `test`, `app`, `backup`) |
+| How it is built: data flow, layout, tools, testing | `docs/architecture.md` |
+| Principles, data conventions, milestones, PR checklist | `ROADMAP.md` (read before changing structure) |
+| Per source: system of record, landing path, day convention | `docs/sources.md` |
+| The plan's numbers (targets, rates, km) | `config/goals.yml`; `config/oath.yml` names them |
+| Colours | `R/theme_physdev.R` |
 
 Python runs only through `uv` (`uv run python/<fetcher>.py`); dependencies
 live in `pyproject.toml`. R uses `renv`.
-
-## Layout
-
-```
-data/landing/<source>/   raw files, never edited (gitignored)
-  garmin/ strava/ macrofactor/ fitbit/ garmin_export/
-db/                      disposable database, rebuilt by `just build`
-config/                  personal config, gitignored; *.example.* committed
-python/                  fetchers: write files only, never the database
-R/                       loaders and analysis, sourced by _targets.R
-tests/testthat/          tests
-private/                 private specs and reports, gitignored
-```
 
 ## Rules
 
@@ -49,6 +34,14 @@ private/                 private specs and reports, gitignored
 - **Model outputs are not measurements** (trend weight, expenditure,
   estimated power): store them as such and show their uncertainty.
 - **Table names** carry their source prefix (`strava_*`, `garmin_*`).
+- **One source per fact.** Write a fact in its home (the table above) and
+  link to it elsewhere; don't copy it into a second doc or file.
+- **One source for the plan's numbers.** Targets, rates, sessions a week,
+  lift targets (the heavy single on the bar) and single ratios live in
+  `config/goals.yml`; `oath.yml` says how they are shown and judged and is
+  filled from goals.yml (`R/plan_config.R`). Two tabs showing the same
+  number use the same function; `just build` stops when they disagree
+  (`R/consistency.R`). Add a check there for every number a new view repeats.
 
 ## Working agreements
 

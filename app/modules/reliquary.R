@@ -30,7 +30,7 @@ reliquary_ui <- function(id) {
 relic_card <- function(r, plain = FALSE) {
   art <- if (r$unlocked) relic_art(r$id)
   panel_style <- if (!is.null(art)) sprintf("background-image: url('%s');", art) else
-    sprintf("background: linear-gradient(160deg, %s, #2A1E14);", r$colour)
+    sprintf("background: linear-gradient(160deg, %s, %s);", r$colour, physdev_palettes$oath$fg)
   div(
     class = paste(c("relic-card", if (r$unlocked) "relic-unlocked" else "relic-sealed"), collapse = " "),
     div(class = paste(c("relic-art", if (!is.null(art)) "relic-has-art"), collapse = " "), style = panel_style,

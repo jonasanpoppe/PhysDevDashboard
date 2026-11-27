@@ -17,19 +17,13 @@ library(dplyr)
 # No "on track" verdict yet: that needs the scenarios of milestone 7. Each
 # card shows now against target, and how far along the way it is.
 
-`%||%` <- function(a, b) if (is.null(a)) b else a
 
 quest_metric_units <- c(weight_trend_kg = "kg", e1rm_bar_kg = "kg", ride_km_ytd = "km",
                         bjj_sessions_per_week = "a week")
 quest_metric_digits <- c(weight_trend_kg = 1, e1rm_bar_kg = 0, ride_km_ytd = 0,
                          bjj_sessions_per_week = 1)
 
-fmt_num <- function(x, digits = 0) {
-  formatC(round(x, digits), format = "f", digits = digits, big.mark = ",")
-}
-# Targets and milestones: whole numbers without decimals (98, not 98.0)
-fmt_goal <- function(x, digits = 0) fmt_num(x, if (isTRUE(all.equal(x, round(x)))) 0 else digits)
-fmt_day <- function(d) sub("^0", "", format(as.Date(d), "%d %b %Y"))
+# fmt_num(), fmt_goal(), fmt_day(), sessions_per_week(): R/common.R
 
 # A target or baseline that is a number, a {low, high} range or a {text}
 quest_value_text <- function(v, digits = 0) {
@@ -102,12 +96,10 @@ quest_now <- function(quest, data, as_of, cfg = list()) {
       live(sum(r$km, na.rm = TRUE), as_of, year = yr)
     },
     bjj_sessions_per_week = {
-      s <- data$sessions %>% filter(kind == "bjj")
-      if (nrow(s) == 0) {
+      if (!any(data$sessions$kind == "bjj")) {
         list(value = NA_real_, date = as.Date(NA), source = "none", text = "not logged")
       } else {
-        in28 <- s %>% filter(as.Date(date) > as_of - 28, as.Date(date) <= as_of)
-        live(nrow(in28) / 4, as_of)
+        live(sessions_per_week(data$sessions, "bjj", as_of), as_of)
       }
     },
     climb_clean = , manual = , milestones_done = , stages = {
@@ -302,7 +294,10 @@ quest_board <- function(cfg, data, as_of = Sys.Date()) {
       progress = pr$label, share = pr$share, source = now$source, source_note = source_note,
       link_tab = quest_link(q)$tab, link_inputs = quest_link(q)$inputs,
       extras = quest_extras(q, data, now, as_of, cfg),
-      now_value = as.numeric(now$value), now_e1rm = as.numeric(now$e1rm %||% NA_real_), now_date = as.Date(now$date), as_of = as_of
+      now_value = as.numeric(now$value), now_e1rm = as.numeric(now$e1rm %||% NA_real_), now_date = as.Date(now$date), as_of = as_of,
+      # The numbers behind the card, for the consistency check across tabs (R/consistency.R)
+      target_value = quest_value_num(q$target), met_at = as.numeric(q$met_at %||% NA_real_),
+      exercise = q$exercise %||% NA_character_, metric = q$metric
     )
   })
   dplyr::bind_rows(rows)

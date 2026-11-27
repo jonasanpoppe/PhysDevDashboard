@@ -14,14 +14,15 @@ skip_if_no_chrome <- function() {
   testthat::skip_if(is.null(chrome) || !nzchar(chrome), "no Chrome found")
 }
 
-local_app <- function(env = parent.frame()) {
+# name: the snapshot files' prefix, one per test (shinytest2 numbers from 001)
+local_app <- function(name = "app", env = parent.frame()) {
   dir <- withr::local_tempdir(.local_envir = env)
   fake <- write_fake_app_db(dir)
   # NOT_CRAN: AppDriver skips itself "on CRAN" otherwise (this is no package)
   withr::local_envvar(PDD_DB = fake$db, PDD_RELIC_ART = file.path(dir, "relics"), NOT_CRAN = "true",
                       .local_envir = env)
   app <- shinytest2::AppDriver$new(
-    testthat::test_path("..", "..", "app"), name = "app", variant = NULL,
+    testthat::test_path("..", "..", "app"), name = name, variant = NULL,
     load_timeout = 60 * 1000, timeout = 20 * 1000, height = 1000, width = 1400
   )
   withr::defer(app$stop(), envir = env)
@@ -79,4 +80,24 @@ test_that("the corporate switch restyles the page and is remembered in the brows
   app$run_js("$('#corporate').prop('checked', false).trigger('change');")
   app$wait_for_value(input = "corporate", ignore = list(TRUE, NULL))
   expect_equal(app$get_js("localStorage.getItem('pdd-corporate')"), "0")
+})
+
+test_that("Scenarios: the verdict table, and a slider that moves it", {
+  skip_if_no_chrome()
+  app <- local_app("scenarios")
+  app$set_inputs(main = "scenarios", wait_ = FALSE)
+  app$wait_for_js("$('#scenarios-verdicts table').length > 0", timeout = 20 * 1000)
+  app$set_inputs(`scenarios-quest` = "bodyweight")
+  app$wait_for_idle()
+  app$expect_values(output = "scenarios-verdicts", screenshot_args = FALSE)
+  # The weight sliders show for the weight figure only
+  expect_true(app$get_js("$('#scenarios-rate').is(':visible')"))
+  before <- as.character(app$get_value(output = "scenarios-verdicts")$html)
+  app$set_inputs(`scenarios-rate` = 1, `scenarios-adherence` = 1)
+  app$wait_for_idle()
+  expect_false(identical(before, as.character(app$get_value(output = "scenarios-verdicts")$html)))
+  app$set_inputs(`scenarios-quest` = "riding")
+  app$wait_for_idle()
+  expect_false(app$get_js("$('#scenarios-rate').is(':visible')"))
+  expect_true(app$get_js("$('#scenarios-km_week').is(':visible')"))
 })

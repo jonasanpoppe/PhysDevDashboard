@@ -50,26 +50,27 @@ Three rules hold the flow together:
 
 ## Commands
 
-```
-just doctor    # tools, versions, secrets, personal config
-just fetch     # Strava (incremental) + Garmin (last 30 days)
-just build     # run the targets pipeline: landing files → db/health.db
-just test      # testthat on synthetic data
-just app       # Shiny on localhost:3838
-just backup    # restic snapshot; restore-test and backup-check verify it
-```
+`just --list` prints every recipe with what it does; the justfile is the one
+place they are defined. The everyday ones: `doctor` (tools, secrets, personal
+config and that the plan's config agrees with itself), `fetch`, `build`,
+`test`, `app`, `backup`.
+
+## Environment
+
+Everything lives inside WSL2's Linux filesystem, never under `/mnt/c`: file
+locks across the Windows/WSL boundary are unreliable and I/O is slow.
 
 ## Repository layout
 
 ```
 python/            fetchers (write files only)
-data/landing/      raw files per source (gitignored)
+data/landing/      raw files per source (gitignored): garmin/ strava/ macrofactor/ fitbit/ garmin_export/
 R/                 loaders, marts and plot functions; sourced by _targets.R
 sql/               staging/ and marts/: loading in plain SQL, run by R/run_sql.R
 _targets.R         the pipeline
 db/                the database (gitignored, disposable)
 app/               app.R, db.R, modules/<view>.R
-config/            personal config (gitignored); *.example.* twins committed
+config/            personal config (gitignored); *.example.* twins committed (see "Config")
 tests/testthat/    tests
 docs/              this file, sources.md
 private/           private specs and plans (gitignored)
@@ -77,7 +78,7 @@ private/           private specs and plans (gitignored)
 
 ## The pipeline
 
-`_targets.R` has four kinds of target, in this order:
+`_targets.R` has five kinds of target, in this order:
 
 1. **File targets** (`format = "file"`): the landing files and folders. A
    changed file makes its downstream targets rerun; folders that receive new
@@ -89,8 +90,10 @@ private/           private specs and plans (gitignored)
 3. **Marts** (`R/build_*.R`): combine loader outputs into what a view needs,
    with data checks that stop the build on structural problems.
    `vitals_daily` is the first.
-4. **Analysis** (to come with the climbs module): climb matching, effort
-   metrics, models.
+4. **Analysis**: climb matching, effort metrics, the fitness and strength
+   models, the Quest Board, relics, roadmap and scenarios.
+5. **The consistency check** (`view_checks`, last): numbers that two tabs
+   show must agree (`R/consistency.R`); the build stops when they don't.
 
 Loading through R functions is interim: loading is moving to plain SQL files
 run by DuckDB (`sql/staging`, `sql/marts`), and `targets` keeps only the
@@ -121,6 +124,9 @@ R/plot_<view>.R       the chart as a plain function, testable without Shiny
 ```
 
 - A module reads its mart once per session; a rebuild shows up on reload.
+- Shared helpers (formatters, the session count) are in `R/common.R`; the
+  colours in `R/theme_physdev.R`, which also writes the CSS colour tokens
+  that `app/www/oath.css` uses.
 - Files are sourced with `local = TRUE`: `runApp()` evaluates `app.R` in its
   own environment, and helpers sourced into the global one can't see it.
 - Charts follow the data conventions: one y-axis per panel, device eras as
@@ -134,8 +140,32 @@ R/plot_<view>.R       the chart as a plain function, testable without Shiny
 - Loaders are tested on small files with the real headers; marts on small
   data frames; plots through `ggplot_build()`; the app through
   `shiny::testServer(shinyAppDir("app"))` against a temporary database.
-- Golden tests on real data (the climbs module) will run locally only and be
-  skipped elsewhere.
+- Golden tests on real data (`test-golden-*.R`, expected values in
+  `private/`) run locally only and skip elsewhere, as does the check that the
+  real database's tabs agree.
+- `shinytest2` drives the app in a headless Chrome (`test-app-snapshots.R`):
+  snapshots of the rendered pages in both looks (`tests/testthat/_snaps/`)
+  and what only a browser runs. A changed page fails with a diff; accept it
+  with `testthat::snapshot_accept()`. Skips without Chrome.
+
+## Config
+
+Personal settings live in `config/` (gitignored), each with an invented
+`*.example.*` twin that documents every option. One home per fact:
+
+- `goals.yml`: **what you aim for**: the weight goal (target, pause, rate,
+  start), sessions a week, lift targets (the heavy single on the bar, per
+  group's main lift in `lifts.csv`) and single ratios, km a year, the goal
+  ride, the forecast's settings.
+- `oath.yml`: **how it is shown and judged**: the Home copy, quests,
+  relics, roadmap, deadlines, `adherence_met` (80% counts as met) and the
+  scenario assumptions. Its numbers are filled from goals.yml
+  (`R/plan_config.R`); text names them as `{weight_goal.target_kg}`.
+- `athlete.yml`: zones, the climb matching and power model settings.
+
+`just doctor` and the start of `just build` stop when a number is written in
+both files and differs, a reference leads nowhere, or a plan number is typed
+into text instead of named.
 
 ## Secrets and private data
 

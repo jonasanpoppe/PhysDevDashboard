@@ -112,20 +112,44 @@ build_weight_weekly <- function(daily, sessions, goal, context_weeks = 8) {
            kcal, protein_g, steps, bjj, lifting)
 }
 
-# The numbers for the tiles, as of the last day with a trend weight.
-compute_weight_status <- function(daily, sessions, goal, nutrition, sessions_cfg) {
+# The trend's weekly change over the last `weeks` up to its last day (a
+# linear fit; negative = losing). Shared by the Weight tiles and the
+# Scenarios' "recent pace", so the two never disagree.
+trend_rate <- function(daily, weeks = 8) {
+  d <- daily %>% filter(!is.na(trend_kg)) %>% mutate(date = as.Date(date))
+  if (nrow(d) == 0) return(NA_real_)
+  recent <- d %>% filter(date > max(date) - 7 * weeks)
+  if (nrow(recent) < 14) return(NA_real_)
+  unname(stats::coef(stats::lm(trend_kg ~ as.numeric(date), recent))[2]) * 7
+}
+
+# The numbers for the tiles. Weight values are as of the last day with a
+# trend weight (`date`); sessions are counted up to `as_of` (the build day),
+# as on Home. adherence: the share of a goal that counts as met (oath.yml
+# adherence_met, 80%), as on Home and in the Scenarios; recent_weeks: the
+# window of the rate (the Scenarios' recent pace).
+compute_weight_status <- function(daily, sessions, goal, nutrition, sessions_cfg,
+                                  as_of = max(daily$date), adherence = 1, recent_weeks = 4) {
   today <- max(daily$date)
+  as_of <- max(as.Date(as_of), today)
   now <- daily %>% filter(date == today)
-  four_weeks_ago <- daily %>% filter(date == today - 28)
   last7 <- daily %>% filter(date > today - 8, date < today)
-  in28 <- sessions %>% filter(date > today - 28, date <= today)
+  # BJJ comes from Strava (fetched to today): counted to as_of, as on Home.
+  # Lifting comes mostly from the MacroFactor export: counted to the export's
+  # last day (`today`), or the days after it would look like missed sessions.
+
   tibble(
     date = today,
-    trend_kg = now$trend_kg,
-    rate_4w = if (nrow(four_weeks_ago)) (now$trend_kg - four_weeks_ago$trend_kg) / 4 else NA_real_,
+    as_of = as_of,
+    adherence = adherence,
+    recent_weeks = recent_weeks,
+    rate_recent = trend_rate(daily, recent_weeks),
     goal_rate = -goal$rate_kg_per_week,
+    goal_rate_met = -goal$rate_kg_per_week * adherence,
+    trend_kg = now$trend_kg,
     left_kg = max(0, now$trend_kg - goal$target_kg),
     eta = pace_eta(today, now$trend_kg, goal),
+    eta_met = pace_eta(today, now$trend_kg, utils::modifyList(goal, list(rate_kg_per_week = goal$rate_kg_per_week * adherence))),
     checkpoint = as.Date(goal$checkpoint),
     on_checkpoint = pace_curve(as.Date(goal$checkpoint), today, now$trend_kg, goal),
     pace_today = now$pace_kg,
@@ -133,10 +157,13 @@ compute_weight_status <- function(daily, sessions, goal, nutrition, sessions_cfg
     protein_7d = mean(last7$protein_g, na.rm = TRUE),
     protein_goal = nutrition$protein_g_per_day,
     expenditure = now$expenditure_kcal,
-    bjj_per_week = sum(in28$kind == "bjj") / 4,
+    bjj_per_week = sessions_per_week(sessions, "bjj", as_of),
     bjj_goal = sessions_cfg$bjj$per_week,
-    lifting_per_week = sum(in28$kind == "lifting") / 4,
-    lifting_goal = sessions_cfg$lifting$per_week
+    bjj_met_at = sessions_cfg$bjj$per_week * adherence,
+    lifting_per_week = sessions_per_week(sessions, "lifting", today),
+    lifting_as_of = today,
+    lifting_goal = sessions_cfg$lifting$per_week,
+    lifting_met_at = sessions_cfg$lifting$per_week * adherence
   )
 }
 

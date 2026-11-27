@@ -1,16 +1,27 @@
 # Copy to config/oath.yml (gitignored) and fill in real values.
 #
+# One source of truth (R/plan_config.R): the numbers you aim for live in
+# config/goals.yml (weight goal, sessions a week, lift targets on the bar
+# and single ratios, km a year, the goal ride); this file says how they are
+# shown and judged. Quest targets, the pause milestone, met_at, lift
+# single ratios, forecasts and deadlines, and relic rules with `goal:` are
+# filled from goals.yml. Writing one here as well is a conflict when it
+# differs: the build stops and lists it. Text names numbers the same way:
+# "{weight_goal.target_kg} kg", "{riding.goal_ride.km} km" (any path into
+# goals.yml; plus {plan.adherence_pct}, {plan.bjj_met_at}, {plan.year}). A
+# plan number typed into text next to its unit is flagged by the check.
+#
 # The Home tab: fixed copy and the Quest Board (R/quests.R). A new quest is
 # a config entry, not code. Kinds and how each is shown:
 #   increasing / decreasing  now -> target, % of the way from the start value
-#   hold                     held while now >= target - hold_band_kg
+#   hold                     held while now >= target - hold_band_kg (not for lifts)
 #   cumulative               sum this year against the target, with an even pace
 #   rate                     sessions a week over the last 28 days, met at met_at
 #   event / steps            stages done: a clean ascent from the climb record
 #                            ({climb, bike, since}) or ticked by hand ({done: date})
-# Metrics: weight_trend_kg, e1rm_bar_kg (exercise: exact lift name;
-# single_ratio: count the heavy single on the bar, e1RM x ratio, with the
-# baseline, an e1RM, scaled the same way),
+# Metrics: weight_trend_kg, e1rm_bar_kg (exercise: exact lift name, the
+# main lift of its group in lifts.csv; counted as the heavy single on the
+# bar, e1RM x the single ratio, with the baseline, an e1RM, scaled the same way),
 # ride_km_ytd, bjj_sessions_per_week, and for stages climb_clean / manual /
 # milestones_done. role: main (the panel at the top) or side (a card).
 # plain / plain_headline: the wording in corporate mode (default: label,
@@ -32,11 +43,11 @@ copy:
   tenets: ["Train the legs.", "Mind the sleep.", "Deeds over plans.", "Every hill is a lesson."]
   main_label: "Main quest"
   main_quest: "Enter a local judo tournament this autumn."
-  main_sub: "Two sessions a week, met at 1.6. Everything else gives way to it."
+  main_sub: "Two sessions a week, met at {plan.bjj_met_at}. Everything else gives way to it."
   board_title: "The Quest Board"
   board_note: "now → target · by when"
   rules_title: "House Rules"
-  rules: "0.4 kg a week · no catch-up after a missed week · 150 g protein a day."
+  rules: "{weight_goal.rate_kg_per_week} kg a week · no catch-up after a missed week · {nutrition.protein_g_per_day} g protein a day."
   sworn: "Sworn on 1 January 2030"
   footer: "The Squire · level {level}"
   # Corporate mode: plain words (anything left out keeps the text above;
@@ -54,8 +65,6 @@ quests:
     role: main
     kind: rate
     metric: bjj_sessions_per_week   # sessions recognised as in goals.yml `sessions: bjj`
-    target: 2
-    met_at: 1.6
     by: all year
   - id: bodyweight
     label: Bodyweight
@@ -63,8 +72,9 @@ quests:
     metric: weight_trend_kg
     accent: 1
     baseline: {value: 82, date: 2029-12-01}
-    target: 75
-    milestones: [{value: 78, note: "a week's pause"}]
+    milestones: [{note: "a week's pause"}]   # the value: goals.yml weight_goal pause_at_kg
+    window_start: 2030-05-01       # scenario: target by here on track, by the deadline at risk
+    deadline: 2030-06-30
     by: "By summer · serves the main quest"
   - id: squat
     label: Back squat
@@ -72,21 +82,17 @@ quests:
     kind: increasing
     metric: e1rm_bar_kg
     exercise: "Barbell Back Squat"
-    single_ratio: 0.98
     accent: 2
     baseline: {value: 100, date: 2029-12-01}
-    target: 140
     checkpoint: {date: 2030-06-30, value: null}
     by: "End of 2030"
   - id: bench
     label: Bench
-    kind: hold
+    kind: increasing
     metric: e1rm_bar_kg
     exercise: "Barbell Bench Press"
-    single_ratio: 0.96
     accent: 2
     baseline: {low: 95, high: 100, date: 2029-12-01}
-    target: 100
     by: "Hold all year"
   - id: riding
     label: The Long Road
@@ -94,9 +100,7 @@ quests:
     kind: cumulative
     metric: ride_km_ytd
     accent: 3
-    target: 2000
-    extra: {goal_ride: {km: 100, gain_m: 800}}
-    by: "Plus one 100 km / 800 m ride"
+    by: "Plus one {riding.goal_ride.km} km / {riding.goal_ride.gain_m} m ride"
   - id: hill
     label: Hillclimber
     plain: Climbs
@@ -106,7 +110,7 @@ quests:
     accent: 4
     headline: "Example Hill, ridden clean"
     stages:
-      - {label: "Example Hill clean", climb: "Example Hill"}
+      - {label: "Example Hill clean", climb: "Example Hill", deadline: 2030-05-31}
     by: "Spring"
   - id: dashboard
     label: The Ledger
@@ -118,20 +122,32 @@ quests:
     stages:
       - {label: "First view", done: 2030-02-01}
       - {label: "Scenarios"}
+    deadline: 2030-12-31
     by: "End of 2030"
+
+# ── Scenarios (R/scenarios.R): "am I on track?" ────────────────────────────
+# Per quest: deadline (and window_start for a decreasing quest), forecast:
+# {lift, variant_ratio} for a lift. A stage can have its own deadline.
+# Verdicts: on track (the central projection makes it), at risk (only the
+# optimistic end does), behind; events done / due / overdue. The defaults
+# below start the Scenarios tab's sidebar (km_week: null = an even pace).
+scenarios:
+  recent_weeks: 8
+  km_week: null
 
 # ── The Reliquary (R/relics.R) ──────────────────────────────────────────────
 # One relic per gate of the year. A relic unlocks on the first day its rule
 # holds; once unlocked it stays unlocked. Level = level_base + levels earned.
 # Rule types:
-#   weight_reached  {kg, adherence + rate_kg_week | kept_share [+ week_kept_at], since}
+#   weight_reached  {goal: pause | target, adherence | kept_share [+ week_kept_at]}
+#                   (kg, rate_kg_week and since come from goals.yml weight_goal)
 #                   trend <= kg, with the mean weekly loss >= adherence x rate
 #                   (weeks with a planned loss) or the share of weeks kept
 #                   >= kept_share (a week kept at week_kept_at x its planned
 #                   loss, else weight_weekly$met), complete weeks from since
 #   lift_gate       {exercise, reps, rir: [lo, hi], since, blocks: [{label, done}]}
-#   ride            {km, gain_m, year}       one ride of both
-#   km_year         {km, year}               all ride types
+#   ride            {goal: goal_ride}        one ride of both (goals.yml riding)
+#   km_year         {goal: annual_km}        all ride types (goals.yml riding)
 #   climb_clean     {climb, bike, since}     a clean ascent from the climb record
 #   quest_stages    {quest, levels_per_stage}  a quest's stages (done: dates)
 #   manual          a row in config/relic_events.csv (date, relic, note)
@@ -154,21 +170,21 @@ relics:
   - id: I
     name_pt: "O Cálice"
     name_en: "the Chalice"
-    plain: "78 kg reached"
-    unlock: "78 kg, reached at 0.4 kg a week"
+    plain: "{weight_goal.pause_at_kg} kg reached"
+    unlock: "{weight_goal.pause_at_kg} kg, reached at {weight_goal.rate_kg_per_week} kg a week"
     palette: "purple, amber"
     level_text: "card only"
     levels: 0
-    rule: {type: weight_reached, kg: 78, adherence: 0.80, rate_kg_week: 0.4, since: 2030-01-01}
+    rule: {type: weight_reached, goal: pause, adherence: 0.80}
   - id: II
     name_pt: "A Roda"
     name_en: "the Wheel"
-    plain: "100 km / 800 m ride"
-    unlock: "100 km / 800 m in one ride"
+    plain: "{riding.goal_ride.km} km / {riding.goal_ride.gain_m} m ride"
+    unlock: "{riding.goal_ride.km} km / {riding.goal_ride.gain_m} m in one ride"
     palette: "purple, bronze"
     level_text: "+1 level"
     levels: 1
-    rule: {type: ride, km: 100, gain_m: 800, year: 2030}
+    rule: {type: ride, goal: goal_ride}
   - id: III
     name_pt: "O Selo"
     name_en: "the Seal"
@@ -201,7 +217,8 @@ relics:
 # Lanes x 12 months of `year`. A phase spans the months it touches (from/to:
 # a month like 2030-03 or a day); style: dark, ink, dashed, lilac, lilac2,
 # pale, tan, tan2, ride, ride2, accent, outline. **bold** in the text is
-# shown bold. A gate ticks once its relic (an id under relics:) unlocks.
+# shown bold. A gate ticks once its relic (an id under relics:) unlocks; its
+# date can name the deadline it shares: "{quests.hill.stages.1.deadline}".
 roadmap:
   kicker: "THE WANDERING SQUIRE · 2030"
   title: "The Long Road"
@@ -216,11 +233,11 @@ roadmap:
   phases:
     - {lane: judo, from: 2030-01, to: 2030-08, style: dark, text: "Two sessions a week"}
     - {lane: judo, from: 2030-09, to: 2030-10, style: ink, text: "Tournament"}
-    - {lane: weight, from: 2030-01, to: 2030-05, style: lilac, text: "Cut, 0.4 kg/wk to **78 kg**"}
+    - {lane: weight, from: 2030-01, to: 2030-05, style: lilac, text: "Cut, {weight_goal.rate_kg_per_week} kg/wk to **{weight_goal.pause_at_kg} kg**"}
     - {lane: weight, from: 2030-06, to: 2030-12, style: pale, text: "Hold"}
     - {lane: riding, from: 2030-02, to: 2030-03, style: ride, text: "Base"}
-    - {lane: riding, from: 2030-04, to: 2030-04, style: accent, text: "100 km / 800 m"}
+    - {lane: riding, from: 2030-04, to: 2030-04, style: accent, text: "{riding.goal_ride.km} km / {riding.goal_ride.gain_m} m"}
   gates:
-    - {label: "78 kg", date: 2030-05, relic: I}
-    - {label: "The long ride", date: 2030-04-15, relic: II}
-    - {label: "Example Hill", date: 2030-05-01, relic: V}
+    - {label: "{weight_goal.pause_at_kg} kg", date: 2030-05, relic: I}
+    - {label: "The long ride", date: "{riding.goal_ride.by}", relic: II}
+    - {label: "Example Hill", date: "{quests.hill.stages.1.deadline}", relic: V}

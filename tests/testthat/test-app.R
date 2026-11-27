@@ -25,11 +25,31 @@ test_that("the app starts and renders the Vitals plot", {
     expect_match(rel, "relic-card relic-sealed")
     expect_match(rel, sprintf("Level %d", level))
     expect_match(rel, "the Chalice")
+    # Home: a verdict chip per quest with a scenario
+    expect_match(home, "class=\"verdict verdict-")
+    # Scenarios: a verdict per quest, a figure per quest kind, live assumptions
+    sc_html <- as.character(output$`scenarios-verdicts`$html)
+    expect_equal(lengths(regmatches(sc_html, gregexpr("<tr>", sc_html))), length(oath$quests) + 1)
+    expect_match(sc_html, "Projections are model outputs")
+    for (q in c("bodyweight", "bench", "riding")) {
+      session$setInputs(`scenarios-quest` = q)
+      expect_gt(nchar(output$`scenarios-plot`$src), 1000)
+      expect_gt(nchar(output$`scenarios-footer`), 50)
+    }
+    session$setInputs(`scenarios-quest` = "squat")             # no forecast for this lift in the fixture
+    expect_error(output$`scenarios-plot`, "No strength forecast")
+    session$setInputs(`scenarios-quest` = "riding")
+    expect_equal(output$`scenarios-kind`, "ride_km_ytd")
+    session$setInputs(`scenarios-quest` = "bodyweight", `scenarios-rate` = 0.2, `scenarios-adherence` = 0.5)
+    slow <- as.character(output$`scenarios-verdicts`$html)
+    session$setInputs(`scenarios-rate` = 1, `scenarios-adherence` = 1)
+    fast <- as.character(output$`scenarios-verdicts`$html)
+    expect_false(identical(slow, fast))                     # a slider moves the projection
     # Roadmap: a block per phase, the today line, gates
     road <- as.character(output$`roadmap-page`$html)
     expect_equal(lengths(regmatches(road, gregexpr("class=\"road-phase ", road))), length(oath$roadmap$phases))
     expect_match(road, "road-today")
-    expect_match(road, "road-done")
+    expect_match(road, "road-current")
     expect_match(road, "<b>78 kg</b>")
     expect_match(road, "Gates:")
     expect_equal(lengths(regmatches(home, gregexpr("class=\"oath-card( oath-link)?\"", home))), 6)
@@ -135,7 +155,7 @@ test_that("the app starts and renders the Vitals plot", {
                       `strength-fc_period` = "all", `strength-fc_history` = "monthly", `strength-fc_gap` = "14")
     expect_gt(nchar(output$`strength-plot`$src), 1000)
     below <- as.character(output$`strength-below`$html)
-    expect_match(below, "Target 110 kg")
+    expect_match(below, "Target 100 kg on the bar \\(e1RM 104.2\\)")   # goals.example: 100 on the bar / 0.96
     expect_match(below, "96 kg \\(1.2 × 80 kg\\)")
     expect_match(as.character(output$`strength-footer`$html), "starts at 100 kg")
 

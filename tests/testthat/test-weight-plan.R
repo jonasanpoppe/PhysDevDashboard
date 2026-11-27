@@ -57,7 +57,7 @@ test_that("status: rate, ETA from today, checkpoint, sessions per week", {
   s <- tibble::tibble(date = max(d$date) - c(1, 3, 8, 15), kind = c("bjj", "bjj", "lifting", "bjj"))
   st <- compute_weight_status(d, s, fake_goal(), list(protein_g_per_day = 140),
                               list(bjj = list(per_week = 2), lifting = list(per_week = 3)))
-  expect_equal(st$rate_4w, -0.7, tolerance = 1e-9)
+  expect_equal(st$rate_recent, -0.7, tolerance = 1e-9)
   expect_equal(st$bjj_per_week, 0.75)
   expect_equal(st$protein_7d, 150)
   expect_equal(st$eta, pace_eta(st$date, st$trend_kg, fake_goal()))
