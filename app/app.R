@@ -10,6 +10,12 @@ library(bslib)
 library(dplyr)
 library(ggplot2)
 
+# Shiny's validate() and need(), bound here so a package attached later
+# can't mask them: Posit Connect's launcher attaches jsonlite, whose
+# validate(txt) checks JSON text (every validate(need(...)) then failed)
+validate <- shiny::validate
+need <- shiny::need
+
 # runApp("app") sets the working directory to app/
 project_root <- normalizePath("..")
 
