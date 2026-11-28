@@ -177,3 +177,30 @@ test_that("checkpoint: met when the card's value reaches it by its date, judged 
   cps <- quest_checkpoints(list(quests = list(q), now_sessions = 1), d, "2030-02-01")
   expect_equal(cps$id, "s"); expect_true(cps$met)
 })
+
+test_that("history: the card's number week by week, ending on as_of", {
+  d <- fake_quest_data()
+  cfg <- list(year = 2030, progress_start = "2030-01-01", quests = list(
+    list(id = "w", kind = "decreasing", metric = "weight_trend_kg", target = 75),
+    list(id = "km", kind = "cumulative", metric = "ride_km_ytd", target = 2000),
+    list(id = "hill", kind = "event", metric = "climb_clean", stages = list(list(label = "x", climb = "Example Hill")))
+  ))
+  as_of <- as.Date("2030-02-20")
+  h <- quest_history(cfg, d, as_of)
+  w <- quest_window(cfg, as_of)
+  expect_equal(w$from, as.Date("2030-01-01") - 182)
+  expect_equal(w$to, as.Date("2030-12-31"))
+  # Events and steps have no series
+  expect_setequal(unique(h$id), c("w", "km"))
+  # The last point is quest_now() on as_of: the card's headline
+  for (q in cfg$quests[1:2]) {
+    last <- h[h$id == q$id & h$date == as_of, ]
+    expect_equal(last$value, quest_now(q, d, as_of, cfg)$value)
+  }
+  # Weekly from the window's start; nothing after as_of
+  gaps <- diff(sort(h$date[h$id == "w"]))
+  expect_true(all(utils::head(gaps, -1) == 7))
+  expect_true(all(h$date <= as_of))
+  # A year's running total: only the counted year (no drop on 1 January)
+  expect_true(all(format(h$date[h$id == "km"], "%Y") == "2030"))
+})

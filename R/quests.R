@@ -327,10 +327,50 @@ quest_board <- function(cfg, data, as_of = Sys.Date()) {
       now_value = as.numeric(now$value), now_e1rm = as.numeric(now$e1rm %||% NA_real_), now_date = as.Date(now$date), as_of = as_of,
       # The numbers behind the card, for the consistency check across tabs (R/consistency.R)
       target_value = quest_value_num(q$target), met_at = as.numeric(q$met_at %||% NA_real_),
-      exercise = q$exercise %||% NA_character_, metric = q$metric
+      exercise = q$exercise %||% NA_character_, metric = q$metric,
+      # Event and step quests: how many stages (the card's pips)
+      n_stages = if (q$kind %in% c("event", "steps")) length(q$stages %||% list()) else NA_integer_
     )
   })
   dplyr::bind_rows(rows)
+}
+
+# ── History: the card's number over time ────────────────────────────────────
+
+# The window a card's chart spans: from six months before the plan's
+# start (or before today, if earlier) to the end of the plan's year (or
+# today, once that has passed)
+quest_window <- function(cfg, as_of = Sys.Date()) {
+  as_of <- as.Date(as_of)
+  year <- as.integer(cfg$year %||% format(as_of, "%Y"))
+  start <- as.Date(cfg$progress_start %||% sprintf("%d-01-01", year))
+  list(from = min(start, as_of) - 182, to = max(as.Date(sprintf("%d-12-31", year)), as_of))
+}
+
+# One row per quest and week: the value quest_now() gives on that day (the
+# card's own number, so chart and headline agree), up to as_of (included).
+# Event and step quests have no series: their stages are the picture.
+quest_history <- function(cfg, data, as_of = Sys.Date()) {
+  as_of <- as.Date(as_of)
+  w <- quest_window(cfg, as_of)
+  days <- unique(c(seq(w$from, as_of, by = 7), as_of))
+  rows <- lapply(cfg$quests %||% list(), function(q) {
+    if (q$kind %in% c("event", "steps")) return(NULL)
+    v <- vapply(days, function(d) {
+      n <- quest_now(q, data, d, cfg)
+      if (identical(n$source, "live")) as.numeric(n$value) else NA_real_
+    }, numeric(1))
+    out <- tibble::tibble(id = q$id, date = days, value = v) %>% filter(!is.na(value))
+    # A year's running total: only the year the card counts (the line would
+    # drop to 0 on 1 January otherwise)
+    if (identical(q$kind, "cumulative")) {
+      yr <- min(as.integer(format(as_of, "%Y")), as.integer(cfg$year %||% format(as_of, "%Y")))
+      out <- out %>% filter(as.integer(format(date, "%Y")) == yr)
+    }
+    out
+  })
+  out <- dplyr::bind_rows(rows)
+  if (nrow(out) == 0) tibble::tibble(id = character(), date = as.Date(character()), value = numeric()) else out
 }
 
 # The tables quest_board() reads, from the database
@@ -346,12 +386,13 @@ quest_data <- function(con, events = NULL) {
   )
 }
 
-# The board plus the config itself (as JSON: the fixed copy, tenets), so the
-# app reads only the database
-write_quest_tables <- function(board, cfg, db_path = "db/health.db") {
+# The board, its history (the cards' charts) and the config itself (as
+# JSON: the fixed copy, tenets), so the app reads only the database
+write_quest_tables <- function(board, cfg, history = NULL, db_path = "db/health.db") {
   con <- DBI::dbConnect(duckdb::duckdb(), db_path)
   on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
   DBI::dbWriteTable(con, "quest_board", board, overwrite = TRUE)
+  if (!is.null(history)) DBI::dbWriteTable(con, "quest_history", history, overwrite = TRUE)
   DBI::dbWriteTable(con, "oath_config",
                     tibble::tibble(json = as.character(jsonlite::toJSON(cfg, auto_unbox = TRUE, null = "null"))),
                     overwrite = TRUE)

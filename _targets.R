@@ -386,13 +386,13 @@ list(
   tar_target(oath_config, oath_from_config(yaml::read_yaml(oath_config_file), goals_config, lifts)),
   tar_target(
     quest_tables,
-    write_quest_tables(
-      quest_board(oath_config, as_of = pdd_as_of(), data = list(
-        weight = weight_daily, strength = strength_sessions, rides = strava_rides,
-        sessions = sessions_daily, climbs = strava_climb_efforts, events = relic_events
-      )),
-      oath_config, db_path = "db/health.db"
-    ),
+    {
+      data <- list(weight = weight_daily, strength = strength_sessions, rides = strava_rides,
+                   sessions = sessions_daily, climbs = strava_climb_efforts, events = relic_events)
+      write_quest_tables(quest_board(oath_config, as_of = pdd_as_of(), data = data), oath_config,
+                         history = quest_history(oath_config, data, as_of = pdd_as_of()),
+                         db_path = "db/health.db")
+    },
     cue = tar_cue(mode = "always")
   ),
 

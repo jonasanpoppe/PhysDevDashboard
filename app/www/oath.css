@@ -243,3 +243,115 @@
 .oath-main-now .verdict { margin-left: 8px; }
 .scenario-table td { vertical-align: middle; }
 .scenario-table caption { caption-side: bottom; }
+
+/* Home: a card's picture (R/plot_quests.R): its number over time against
+   the target, or one pip per stage; the rest folded under Details */
+.oath-card-picture { margin: 8px 0 2px; }
+.oath-spark { display: block; width: 100%; height: auto; aspect-ratio: 300 / 84; overflow: visible; }
+.spark-future { fill: var(--oath-ink); fill-opacity: 0.045; }
+.spark-today, .spark-target, .spark-met { stroke-opacity: 1; }
+.spark-today { stroke: var(--oath-subtle); stroke-width: 1; }
+.spark-target { stroke: var(--oath-gold); stroke-width: 1.6; stroke-dasharray: 6 4; fill: none; }
+.spark-met { stroke: var(--oath-muted); stroke-width: 1.2; stroke-dasharray: 1.5 3; }
+.spark-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.spark-now { stroke: var(--accent); }
+.oath-spark-axis { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--oath-muted); }
+.oath-spark-key { font-style: italic; text-align: center; }
+.oath-pips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.oath-pip { width: 22px; height: 22px; border: 2px solid var(--accent); }
+.oath-pip-done { background: var(--accent); }
+.oath-card-more { margin-top: 6px; }
+.oath-card-more summary { cursor: pointer; font-size: 15px; color: var(--oath-muted); width: max-content; }
+.oath-card-more[open] summary { margin-bottom: 4px; }
+/* On the main quest's purple */
+.oath-main-picture { margin-top: 6px; --accent: var(--oath-on-purple); }
+.oath-main-picture .spark-target { stroke: var(--oath-gold); }
+.oath-main-picture .spark-future { fill: var(--oath-on-purple); fill-opacity: 0.08; }
+.oath-main-picture .spark-today, .oath-main-picture .spark-met { stroke: var(--oath-on-purple-label); }
+.oath-main-picture .oath-spark-axis { color: var(--oath-on-purple-muted); }
+.oath-main-picture .oath-card-picture { max-width: 560px; }
+
+/* Home in one column (below 1400 px): the two desktop columns dissolve and
+   the blocks keep the hub's order */
+.oath-poster, .oath-board-col { display: contents; }
+.oath-head { order: 1; } .oath-relic-note { order: 2; } .oath-tenets-fold { order: 3; }
+.oath-today { order: 4; } .oath-main { order: 5; } .oath-board-section { order: 6; }
+.oath-shelf-strip { order: 7; } .oath-rules-section { order: 8; } .oath-footer { order: 9; }
+
+/* Desktop (1400 px and wider): Home fits one screen. The poster on the
+   left (title, Today, the main quest, relics, footer), the Quest Board
+   and the rules beside it, three cards a row (four from 1800 px); compact type and
+   charts of a fixed height. Narrower: one column, as above. */
+@media (min-width: 1400px) {
+  .oath { padding: 10px 16px 16px; }
+  .oath-frame {
+    /* One size for the whole page: 15 px on a 1080p screen, growing with
+       the screen (24 px at most); every size below is a multiple of it */
+    font-size: clamp(15px, calc(0.55vh + 0.45vw), 24px);
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(360px, 1fr) minmax(0, 2.2fr);
+    column-gap: clamp(28px, 2.5vw, 48px);
+    align-items: start;
+    padding: 1.45em 2em;
+    outline-offset: -8px;
+  }
+  .oath-poster, .oath-board-col { display: flex; flex-direction: column; gap: 0.95em; min-width: 0; }
+  .oath-head { gap: 0.15em; }
+  .oath-board-section { gap: 0.67em; }
+  .oath-rules-section { gap: 0.4em; }
+  .oath-footer { flex-direction: column; align-items: flex-start; gap: 0.15em; padding-top: 0.55em; }
+
+  /* The poster column */
+  .oath-kicker { font-size: 0.8em; letter-spacing: 0.33em; }
+  .oath h1 { font-size: 1.9em; }
+  .oath-subtitle { font-size: 1.07em; letter-spacing: 0.13em; }
+  .oath-rule { margin-top: 0.27em; }
+  .oath-tenets-fold > summary { font-size: 0.93em; }
+  .oath-tenets { grid-template-columns: minmax(0, 1fr); gap: 0.27em; }
+  .oath-tenet { font-size: 1.33em; }
+  .oath-strip { padding: 0.4em 0.67em; gap: 0.27em 0.8em; }
+  .oath-strip-label { font-size: 0.8em; }
+  .oath-strip-body { font-size: 1.07em; gap: 0.13em 0.9em; }
+  .oath-more { font-size: 0.93em; }
+  .oath-today .oath-strip-body { flex-wrap: wrap; }
+  .oath-main { flex-direction: column; align-items: stretch; gap: 0.4em; padding: 0.93em 1.2em; }
+  .oath-main-label { writing-mode: horizontal-tb; transform: none; font-size: 0.8em; letter-spacing: 0.25em; }
+  .oath-main-body { gap: 0.4em; }
+  .oath-main-quest { font-size: 1.6em; }
+  .oath-main-sub, .oath-main-now { font-size: 1em; line-height: 1.3; }
+  .oath-main-now { padding-top: 0.4em; margin-top: 0; }
+  .oath-main-picture .oath-card-picture { max-width: none; }
+  .oath-main-picture .oath-spark { aspect-ratio: auto; height: clamp(56px, calc(14vh - 60px), 150px); }
+  .oath-shelf { gap: 0.33em; }
+  .shelf-relic { font-size: 0.8em; width: 2.33em; height: 3.5em; }
+  .oath h2 { font-size: 1.2em; letter-spacing: 0.13em; }
+  .oath-rules { font-size: 1em; line-height: 1.35; }
+  .oath-footer-left { font-size: 0.93em; }
+  .oath-footer-right { font-size: 0.8em; letter-spacing: 0.07em; }
+
+  /* The board */
+  .oath-section-head { padding-bottom: 0.27em; }
+  .oath-note { font-size: 1em; }
+  .oath-board { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8em 1.07em; }
+  .oath-card { padding: 0.53em 0.93em 0.4em; }
+  .oath-card-label { font-size: 0.87em; letter-spacing: 0.1em; }
+  .oath-card-headline { font-size: 1.5em; }
+  .oath-card-by { font-size: 0.93em; line-height: 1.25; }
+  .oath-card-picture { margin: 0.27em 0 0; }
+  /* Taller on taller screens: the board fills the height it has */
+  .oath-card .oath-spark { aspect-ratio: auto; height: clamp(50px, calc(18vh - 100px), 170px); }
+  .oath-spark-axis { font-size: 0.8em; }
+  .oath-pips { margin: 0.4em 0 0.13em; gap: 0.4em; }
+  .oath-pip { width: 1.07em; height: 1.07em; }
+  .oath-card-more { margin-top: 0.13em; }
+  .oath-card-more summary { font-size: 0.87em; }
+  .oath-card-progress { font-size: 1em; }
+  .oath-card-extra, .oath-card-source { font-size: 0.93em; }
+  .oath-board-section .oath-strip-foot { margin-top: -0.27em; }
+  .oath-frame .verdict { font-size: 0.87em; padding: 0.07em 0.55em; }
+}
+/* Wide desktop and ultrawide: four cards a row */
+@media (min-width: 1800px) {
+  .oath-board { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
