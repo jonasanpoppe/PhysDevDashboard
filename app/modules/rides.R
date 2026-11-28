@@ -40,7 +40,8 @@ rides_server <- function(id) {
       validate(need(length(shown_years()) > 0, "Pick at least one year."))
       if (identical(input$view, "monthly")) plot_rides_monthly(rides, shown_years())
       else plot_rides_cumulative(cumulative, targets, shown_years())
-    }, res = 96)
+    }, res = 96) %>%
+      bindCache(plot_key(input, "plot"))
 
     output$best <- renderUI({
       r <- rides %>% filter(year %in% shown_years())

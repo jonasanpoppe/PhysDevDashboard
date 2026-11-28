@@ -51,6 +51,7 @@ power_server <- function(id) {
       ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       plot_engine(shown(), year_colours = colours, show_range = isTRUE(input$range),
                   label_climbs = labelled)
-    }, res = 96)
+    }, res = 96) %>%
+      bindCache(plot_key(input, "plot"))
   })
 }

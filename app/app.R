@@ -52,6 +52,9 @@ for (f in list.files("modules", pattern = "\\.R$", full.names = TRUE)) source(f,
 # different modes would follow the last switch.
 ui_mode <- reactiveVal("oath")
 
+# Sidebars: open on desktop, closed on phones so the figure comes first
+sidebar_open <- list(desktop = "open", mobile = "closed")
+
 app_rules <- function(mode) {
   shared <- "
      .tiles-compact .value-box-area { padding: 0.6rem 0.75rem !important; }
@@ -117,6 +120,26 @@ $(document).on('change', '#corporate', function() {
   try { localStorage.setItem('pdd-corporate', this.checked ? '1' : '0'); } catch (e) {}
 });"
 
+# A dropped connection (a phone asleep, another app, wifi to mobile data
+# over a VPN) ends the session; the page would stay grey until reloaded.
+# Reload as soon as the page is visible again; at most once per 10 s, so a
+# stopped app shows the browser's error instead of reloading in a loop. The
+# reload lands on the same page (the URL keeps it, see the server).
+reconnect_js <- "
+$(document).on('shiny:disconnected', function() {
+  var reload = function() {
+    var last = 0;
+    try { last = +sessionStorage.getItem('pdd-reload') || 0; } catch (e) {}
+    if (Date.now() - last < 10000) return;
+    try { sessionStorage.setItem('pdd-reload', String(Date.now())); } catch (e) {}
+    location.reload();
+  };
+  if (document.visibilityState === 'visible') setTimeout(reload, 500);
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') reload();
+  });
+});"
+
 # A label in both looks: the oath word, or the corporate one (the switch sets
 # body.pdd-corporate; app_rules() shows one of the two)
 look_label <- function(icon, oath, plain = oath) {
@@ -128,7 +151,11 @@ ui <- page_navbar(
   title = "PhysDevDashboard",
   theme = app_themes$oath,
   # The --oath-* colour tokens for oath.css, from the one palette (R/theme_physdev.R)
-  header = tags$head(tags$script(HTML(corporate_js)), tags$style(HTML(physdev_css_vars()))),
+  header = tagList(
+    tags$head(tags$script(HTML(corporate_js)), tags$script(HTML(reconnect_js)),
+              tags$style(HTML(physdev_css_vars()))),
+    # A spinner on a figure while it redraws, so a slow page doesn't look frozen
+    useBusyIndicators()),
   # The oath: Home (the hub: poster, Today, Quest Board, relic shelf), then
   # its full pages (config/oath.yml; R/quests.R, R/relics.R, R/roadmap.R,
   # R/scenarios.R)
@@ -161,6 +188,22 @@ server <- function(input, output, session) {
     physdev <<- physdev_palettes[[mode]]
     session$setCurrentTheme(app_themes[[mode]])
     ui_mode(mode)
+  }, ignoreInit = TRUE)
+
+  # The tab and page in the URL (?tab=body&page=weight): a reload, or a
+  # bookmark, opens where you were
+  restore <- parseQueryString(isolate(session$clientData$url_search))
+  if (!is.null(restore$tab) && restore$tab %in% unlist(app_pages)) {
+    nav_select("main", restore$tab, session = session)
+    if (!is.null(restore$page) && identical(app_pages[[restore$page]], restore$tab) && restore$page != restore$tab) {
+      nav_select(paste0(restore$tab, "_page"), restore$page, session = session)
+    }
+  }
+  observeEvent(list(input$main, input$oath_page, input$body_page), {
+    req(input$main)
+    page <- switch(input$main, oath = input$oath_page, body = input$body_page, NULL)
+    updateQueryString(paste0("?tab=", input$main, if (!is.null(page)) paste0("&page=", page)),
+                      mode = "replace", session = session)
   }, ignoreInit = TRUE)
 
   # A click on a quest card opens the tab with its data

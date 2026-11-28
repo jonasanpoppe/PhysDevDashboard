@@ -6,6 +6,7 @@ vitals_ui <- function(id) {
   ns <- NS(id)
   layout_sidebar(
     sidebar = sidebar(
+      open = sidebar_open,   # closed on phones: the figure first
       title = "Vitals",
       radioButtons(
         ns("range"), "Period",
@@ -53,7 +54,8 @@ vitals_server <- function(id) {
       from <- if (input$range == "all") NULL else last_day - as.numeric(input$range) + 1
       plot_vitals(vitals, from = from, switch_date = switch_date,
                   metrics = metrics(), show_points = isTRUE(input$points))
-    }, res = 96)
+    }, res = 96) %>%
+      bindCache(plot_key(input, "plot"))
 
     # Fills the card, but never below ~200 px per row of two panels plus
     # room for the legend; past that the card scrolls.

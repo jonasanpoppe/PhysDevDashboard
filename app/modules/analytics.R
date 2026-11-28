@@ -8,6 +8,7 @@ analytics_ui <- function(id) {
   ns <- NS(id)
   layout_sidebar(
     sidebar = sidebar(
+      open = sidebar_open,   # closed on phones: the figure first
       title = "Analytics",
       selectInput(ns("view"), "View", choices = c("Scatter" = "scatter", "Over time" = "time",
                                                   "Overview: all pairs" = "matrix")),
@@ -192,7 +193,8 @@ analytics_server <- function(id) {
                               ylab = if (overlay) "SDs from the mean" else NULL)
         },
         matrix = NULL)
-    }, res = 96)
+    }, res = 96) %>%
+      bindCache(plot_key(input, "plot"))
 
     output$matrix <- renderPlot({
       ui_mode()   # redraw when corporate mode flips (colours come from physdev)
@@ -200,7 +202,8 @@ analytics_server <- function(id) {
       m <- matrix_data()
       validate(need(any(!is.na(m$rho)), "Too few overlapping days in this period."))
       plot_analytics_matrix(m, labels)
-    }, res = 96)
+    }, res = 96) %>%
+      bindCache(plot_key(input, "matrix"))
 
     output$top <- renderUI({
       top <- analytics_top_pairs(matrix_data(), series, lag = lag())

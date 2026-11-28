@@ -132,12 +132,22 @@ downloaded on first use into `~/.duckdb` (once per machine, once per CI run).
 ```
 app/app.R             page_navbar; sources R/ helpers and modules (local = TRUE)
 app/pages.R           app_pages: every page and the navbar tab that holds it
-app/db.R              query(sql): read-only connection per query; PDD_DB overrides the path
+app/db.R              query(sql): read-only connection per query, answers cached until the database
+                      file changes; plot_key() for the figures' cache; PDD_DB overrides the path
 app/modules/<view>.R  <view>_ui(id) / <view>_server(id)
 R/plot_<view>.R       the chart as a plain function, testable without Shiny
 ```
 
 - A module reads its mart once per session; a rebuild shows up on reload.
+  `query()` answers from a per-process cache keyed by the database file's
+  modification time, so a new session doesn't reopen the database ~55
+  times, and a rebuild empties it. Figures are cached app-wide with
+  `bindCache(plot_key(input, "<output>"))`: the figure, its module's
+  inputs, the look and the database's time.
+- Phones: sidebars start closed (`sidebar_open`); a dropped connection
+  reloads the page when it is visible again (`reconnect_js`), and the tab
+  and page live in the URL (`?tab=body&page=weight`), so the reload opens
+  where you were. Busy indicators mark a figure while it redraws.
 - **Four navbar tabs by kind:** Oath (pills: Quest Board, Reliquary,
   Roadmap, Scenarios), Body (pills: Weight, Strength, Vitals), Engine (its
   own view selector in the sidebar) and Analytics. Home, the Quest Board,

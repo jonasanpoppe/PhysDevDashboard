@@ -16,6 +16,7 @@ weight_ui <- function(id) {
   ns <- NS(id)
   layout_sidebar(
     sidebar = sidebar(
+      open = sidebar_open,   # closed on phones: the figure first
       title = "Weight",
       selectInput(ns("figure"), "Figure", choices = weight_figures),
       conditionalPanel(
@@ -90,7 +91,8 @@ weight_server <- function(id) {
         intake = plot_weight_intake(weekly, input$metric %||% "kcal",
                                     if (identical(input$metric, "protein_g")) st$protein_goal else NULL)
       )
-    }, res = 96)
+    }, res = 96) %>%
+      bindCache(plot_key(input, "plot"))
 
     output$footer <- renderText(weight_footers[[input$figure %||% "trend"]])
   })
