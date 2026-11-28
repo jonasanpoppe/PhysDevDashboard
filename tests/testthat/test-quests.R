@@ -154,3 +154,26 @@ test_that("the example config builds a board, one row per quest", {
   expect_equal(b$headline[b$id == "bodyweight"], sprintf("%.1f → 75 kg", quest_now(cfg$quests[[2]], fake_quest_data(), "2030-02-15")$value))
   expect_match(b$progress[b$id == "hill"], "^1 of 1")     # no bike named: any bike counts
 })
+
+test_that("checkpoint: met when the card's value reaches it by its date, judged on the date after", {
+  q <- list(id = "s", kind = "increasing", metric = "e1rm_bar_kg", exercise = "Barbell Back Squat",
+            single_ratio = 1, baseline = list(value = 90, date = "2029-11-01"), target = 140,
+            checkpoint = list(date = "2030-01-15", value = 110))
+  d <- fake_quest_data()                                 # e1RM 100, 110, 120 on 1 Dec, 10 Jan, 20 Jan
+  cfg <- list(now_sessions = 1)
+  hit <- quest_checkpoint(q, d, "2030-01-12", cfg)
+  expect_true(hit$met)
+  expect_equal(hit$met_on, as.Date("2030-01-10"))
+  early <- quest_checkpoint(q, d, "2030-01-05", cfg)    # before the date, not reached yet
+  expect_false(early$met); expect_false(early$missed)
+  q$checkpoint$value <- 115
+  late <- quest_checkpoint(q, d, "2030-02-01", cfg)     # 120 on 20 Jan is after the date
+  expect_false(late$met); expect_true(late$missed)
+  expect_match(quest_board(list(quests = list(q), now_sessions = 1), d, "2030-02-01")$extras,
+               "☐ Checkpoint 15 Jan 2030: 115 kg, missed")
+  q$checkpoint$value <- NULL
+  expect_null(quest_checkpoint(q, d, "2030-02-01", cfg))
+  q$checkpoint$value <- 110
+  cps <- quest_checkpoints(list(quests = list(q), now_sessions = 1), d, "2030-02-01")
+  expect_equal(cps$id, "s"); expect_true(cps$met)
+})

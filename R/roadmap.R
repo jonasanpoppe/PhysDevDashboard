@@ -56,8 +56,10 @@ roadmap_today <- function(cfg, as_of = Sys.Date()) {
   if (f < 0 || f >= 1) NA_real_ else f
 }
 
-# One row per gate, ticked when its relic is unlocked (relic_status)
-roadmap_gates <- function(cfg, relics = NULL) {
+# One row per gate, ticked when its relic is unlocked (relic_status), or,
+# for a gate naming a quest (checkpoint: <quest id>), when that quest's
+# checkpoint is met (quest_checkpoints(), R/quests.R)
+roadmap_gates <- function(cfg, relics = NULL, checkpoints = NULL) {
   g <- cfg$roadmap$gates %||% list()
   if (!length(g)) {
     return(tibble::tibble(ord = integer(), label = character(), date = as.Date(character()),
@@ -65,10 +67,15 @@ roadmap_gates <- function(cfg, relics = NULL) {
   }
   dplyr::bind_rows(lapply(seq_along(g), function(i) {
     r <- g[[i]]$relic %||% NA_character_
+    cp <- g[[i]]$checkpoint %||% NA_character_
     hit <- if (!is.null(relics) && !is.na(r)) relics[relics$id == r, ] else NULL
+    cph <- if (!is.null(checkpoints) && nrow(checkpoints) && !is.na(cp)) checkpoints[checkpoints$id == cp, ] else NULL
+    ticked <- if (!is.na(cp)) !is.null(cph) && nrow(cph) == 1 && isTRUE(cph$met) else
+      !is.null(hit) && nrow(hit) == 1 && isTRUE(hit$unlocked)
+    on <- if (!is.na(cp)) { if (ticked) as.Date(cph$met_on) else as.Date(NA) } else
+      if (!is.null(hit) && nrow(hit) == 1) as.Date(hit$date) else as.Date(NA)
     tibble::tibble(ord = i, label = g[[i]]$label, date = roadmap_date(g[[i]]$date %||% NA),
-                   relic = r, ticked = !is.null(hit) && nrow(hit) == 1 && isTRUE(hit$unlocked),
-                   ticked_on = if (!is.null(hit) && nrow(hit) == 1) as.Date(hit$date) else as.Date(NA))
+                   relic = r, ticked = ticked, ticked_on = on)
   }))
 }
 

@@ -424,11 +424,15 @@ list(
     ),
     cue = tar_cue(mode = "always")
   ),
-  # Roadmap: phases against today, gates ticked by the relics (R/roadmap.R)
+  # Roadmap: phases against today, gates ticked by the relics or a quest's
+  # checkpoint (R/roadmap.R)
   tar_target(
     roadmap_tables,
     write_roadmap_tables(roadmap_phases(oath_config, as_of = pdd_as_of()),
-                         roadmap_gates(oath_config, relics), db_path = "db/health.db"),
+                         roadmap_gates(oath_config, relics, quest_checkpoints(oath_config, as_of = pdd_as_of(), data = list(
+                           weight = weight_daily, strength = strength_sessions, rides = strava_rides,
+                           sessions = sessions_daily, climbs = strava_climb_efforts, events = relic_events))),
+                         db_path = "db/health.db"),
     cue = tar_cue(mode = "always")
   ),
 

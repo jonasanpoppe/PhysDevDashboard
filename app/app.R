@@ -56,7 +56,13 @@ for (f in list.files("modules", pattern = "\\.R$", full.names = TRUE)) source(f,
 # swapped with the mode; ui_mode() makes every figure redraw. Both are
 # app-wide, not per session: fine for a one-person app, but two browsers in
 # different modes would follow the last switch.
-ui_mode <- reactiveVal("oath")
+# PDD_LOOK = "corporate" (the demo) locks the corporate look: the page,
+# the charts and the words start corporate (no oath look while it loads),
+# the switch is hidden and nothing remembered in the browser applies.
+look_locked <- identical(Sys.getenv("PDD_LOOK"), "corporate")
+start_mode <- if (look_locked) "corporate" else "oath"
+physdev <- physdev_palettes[[start_mode]]
+ui_mode <- reactiveVal(start_mode)
 
 # Sidebars: open on desktop, closed on phones so the figure comes first
 sidebar_open <- list(desktop = "open", mobile = "closed")
@@ -114,9 +120,7 @@ app_theme <- function(mode) {
 app_themes <- list(oath = app_theme("oath"), corporate = app_theme("corporate"))
 
 # The switch remembers its state in this browser (localStorage; without it,
-# the app opens in the oath look). PDD_LOOK = "corporate" (the demo) locks
-# the corporate look: the switch is hidden and nothing remembered applies.
-look_locked <- identical(Sys.getenv("PDD_LOOK"), "corporate")
+# the app opens in the oath look; locked: see look_locked above)
 corporate_js <- paste0(sprintf("
 $(document).on('shiny:connected', function() {
   var locked = %s, on = locked;
@@ -157,11 +161,14 @@ look_label <- function(icon, oath, plain = oath) {
 ui <- page_navbar(
   id = "main",
   title = "PhysDevDashboard",
-  theme = app_themes$oath,
+  theme = app_themes[[start_mode]],
   # The --oath-* colour tokens for oath.css, from the one palette (R/theme_physdev.R)
   header = tagList(
     tags$head(tags$script(HTML(corporate_js)), tags$script(HTML(reconnect_js)),
               tags$style(HTML(physdev_css_vars()))),
+    # Locked: the page's class before anything is drawn (corporate_js sets it
+    # on the switch otherwise, after the connection)
+    if (look_locked) tags$script(HTML("document.body.classList.add('pdd-corporate');")),
     # A spinner on a figure while it redraws, so a slow page doesn't look frozen
     useBusyIndicators()),
   # The oath: Home (the hub: poster, Today, Quest Board, relic shelf), then
@@ -186,7 +193,7 @@ ui <- page_navbar(
   nav_panel(look_label("🔍", "Analytics"), value = "analytics", analytics_ui("analytics")),
   nav_spacer(),
   # Hidden, not removed, when the look is locked: the input still switches the theme
-  nav_item(div(style = if (look_locked) "display: none;", input_switch("corporate", "Corporate mode", value = FALSE)))
+  nav_item(div(style = if (look_locked) "display: none;", input_switch("corporate", "Corporate mode", value = look_locked)))
 )
 
 server <- function(input, output, session) {

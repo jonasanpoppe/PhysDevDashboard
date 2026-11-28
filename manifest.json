@@ -6531,10 +6531,10 @@
   },
   "files": {
     "app.R": {
-      "checksum": "02bc4228341e2275cbecb772fcdaeffd"
+      "checksum": "53df27d42eb6a49d77f034053cebc95c"
     },
     "app/app.R": {
-      "checksum": "5bef43546c4dfe93496905a0edf841c2"
+      "checksum": "f0ccca7f6bcfe33a6a6a4f988f49bb8a"
     },
     "app/db.R": {
       "checksum": "2cb27ff91759aa4bed839891b21a5742"
@@ -6594,7 +6594,7 @@
       "checksum": "6da73a45c336f578069496340e35d8e7"
     },
     "demo/demo.db": {
-      "checksum": "7fb9d37bc0a3c4bef6994402b62c3cf9"
+      "checksum": "dd592fbd151f93a28adc425a84c81e1b"
     },
     "DESCRIPTION": {
       "checksum": "37bf6dd57e7a25c1dcdff7252ab11809"
@@ -6654,7 +6654,7 @@
       "checksum": "84abc0d3a58a83a4f649b11a0a98517e"
     },
     "R/plan_config.R": {
-      "checksum": "897a979bacc813ad8149ff93e9d87b13"
+      "checksum": "2ca4bae44d3e10b9e3710bf386b28422"
     },
     "R/plot_analytics.R": {
       "checksum": "bad19d46f4ddb189bb9306d39fac1376"
@@ -6687,7 +6687,7 @@
       "checksum": "4c6f23422be4a18e72c0bf9bb33b77c3"
     },
     "R/quests.R": {
-      "checksum": "7cfd31e946413d15a4f3e6d4b5ef0115"
+      "checksum": "b72f846a8235e145a258900c614b79c7"
     },
     "R/relics.R": {
       "checksum": "1f6b4c50989f37083ec36fba271bad3a"
@@ -6696,7 +6696,7 @@
       "checksum": "137f3c880b8649125e11a3ede98761c8"
     },
     "R/roadmap.R": {
-      "checksum": "0434c643965c75b04dfa4c731adbec31"
+      "checksum": "b9a5cba63e13505a20f782d81f6aeafe"
     },
     "R/run_sql.R": {
       "checksum": "950be760ae9cfc6dfbe16031b668d9f2"

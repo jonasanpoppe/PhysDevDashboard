@@ -192,7 +192,8 @@ from the `demo` branch.
   (`demo/make_demo_landing.R`: Fitbit, then Garmin; Strava rides past the
   example climbs, which sit at open sea; the lifting backfill, then MacroFactor) and the example configs into
   `demo/.build/`, and runs the real pipeline there. The result is
-  `demo/demo.db`, committed. It never reads `data/`, `config/` or `db/`.
+  `demo/demo.db`, committed on the `demo` branch only (with
+  `manifest.json`). It never reads `data/`, `config/` or `db/`.
 - The build is frozen on one day (`PDD_AS_OF`, read by `pdd_as_of()` in
   `R/common.R`), so the plan's year stays in progress.
 - `app.R` at the root starts `app/` on `demo/demo.db`, locked to the

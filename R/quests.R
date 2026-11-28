@@ -208,6 +208,33 @@ quest_progress <- function(quest, now, start = NA_real_, as_of = Sys.Date(), cfg
   )
 }
 
+# A quest's checkpoint ({date, value}; for a lift the value is on the bar,
+# from goals.yml strength.checkpoints_kg): met when the quest's own value
+# (quest_now(), the card's number) reaches it, judged on as_of or on the
+# checkpoint's date once that has passed. NULL without a value. Shared by
+# the card and the Roadmap gate that names the quest (one function).
+quest_checkpoint <- function(quest, data, as_of, cfg = list()) {
+  cp <- quest$checkpoint
+  if (is.null(cp) || is.null(cp$value)) return(NULL)
+  due <- as.Date(cp$date %||% NA)
+  at <- if (is.na(due)) as.Date(as_of) else min(as.Date(as_of), due)
+  now <- quest_now(quest, data, at, cfg)
+  hit <- identical(now$source, "live") && !is.na(now$value) &&
+    if (identical(quest$kind, "decreasing")) now$value <= cp$value else now$value >= cp$value
+  list(value = as.numeric(cp$value), due = due, met = hit, met_on = if (hit) as.Date(now$date) else as.Date(NA),
+       missed = !hit && !is.na(due) && as.Date(as_of) > due)
+}
+
+# One row per quest with a checkpoint value, for the Roadmap gates
+quest_checkpoints <- function(cfg, data, as_of = Sys.Date()) {
+  rows <- lapply(cfg$quests %||% list(), function(q) {
+    c1 <- quest_checkpoint(q, data, as_of, cfg)
+    if (is.null(c1)) NULL else tibble::tibble(id = q$id, value = c1$value, due = c1$due,
+                                              met = c1$met, met_on = c1$met_on)
+  })
+  dplyr::bind_rows(rows)
+}
+
 # Notes under the progress line: milestones, a checkpoint, a goal ride
 quest_extras <- function(quest, data, now, as_of, cfg) {
   digits <- quest_metric_digits[quest$metric] %||% 0
@@ -221,8 +248,11 @@ quest_extras <- function(quest, data, now, as_of, cfg) {
   }
   if (!is.null(quest$checkpoint)) {
     cp <- quest$checkpoint
-    out <- c(out, sprintf("Checkpoint %s: %s", fmt_day(cp$date),
-                          if (is.null(cp$value)) "value set at the gate" else paste(fmt_num(cp$value, digits), unit)))
+    st <- quest_checkpoint(quest, data, as_of, cfg)
+    out <- c(out, if (is.null(st)) sprintf("Checkpoint %s: value set at the gate", fmt_day(cp$date)) else
+      sprintf("%s Checkpoint %s: %s %s%s", if (st$met) "\u2611" else "\u2610", fmt_day(cp$date),
+              fmt_num(st$value, digits), unit,
+              if (st$met) sprintf(", reached %s", fmt_day(st$met_on)) else if (st$missed) ", missed" else ""))
   }
   if (!is.null(quest$fallback_target)) {
     out <- c(out, sprintf("Fallback %s %s if the checkpoint is missed", fmt_num(quest$fallback_target, digits), unit))
