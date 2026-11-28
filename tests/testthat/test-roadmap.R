@@ -35,11 +35,21 @@ test_that("gates tick when their relic is unlocked", {
   relics <- tibble::tibble(id = c("I", "II", "V"), unlocked = c(FALSE, TRUE, FALSE),
                            date = as.Date(c(NA, "2030-04-12", NA)))
   g <- roadmap_gates(cfg, relics)
-  expect_equal(g$ticked, c(FALSE, TRUE, FALSE))
+  expect_equal(g$ticked, c(FALSE, TRUE, FALSE, FALSE))     # the checkpoint gate: no checkpoints given
   expect_equal(g$ticked_on[2], as.Date("2030-04-12"))
   expect_equal(g$date[1], as.Date("2030-05-01"))
   expect_false(any(roadmap_gates(cfg)$ticked))                       # no relic table yet
   expect_equal(nrow(roadmap_gates(list())), 0)
+})
+
+test_that("a gate naming a quest ticks when that quest's checkpoint is met", {
+  cps <- tibble::tibble(id = "squat", value = 125, due = as.Date("2030-06-30"), met = TRUE,
+                        met_on = as.Date("2030-06-02"))
+  g <- roadmap_gates(cfg, NULL, cps)
+  expect_equal(g$ticked[g$label == "Squat checkpoint"], TRUE)
+  expect_equal(g$ticked_on[g$label == "Squat checkpoint"], as.Date("2030-06-02"))
+  cps$met <- FALSE; cps$met_on <- as.Date(NA)
+  expect_false(roadmap_gates(cfg, NULL, cps)$ticked[4])
 })
 
 test_that("now (the Home hub): current phases by lane, the next open gate", {
