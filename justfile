@@ -105,6 +105,18 @@ build:
 build-fixture:
     Rscript fixtures/build_fixture.R
 
+# Build demo/demo.db: synthetic raw files and the example configs through the real pipeline (no personal data)
+build-demo:
+    Rscript demo/build_demo.R
+
+# Write manifest.json for Posit Connect Cloud (rerun after renv.lock changes)
+demo-manifest:
+    Rscript demo/write_manifest.R
+
+# Start the demo app (demo/demo.db, corporate look) on http://localhost:3839, as Connect Cloud runs it
+app-demo:
+    Rscript -e 'shiny::runApp(".", port = 3839, launch.browser = FALSE)'
+
 # Start the Shiny app on http://localhost:3838 (reads db/ read-only)
 app:
     Rscript -e 'shiny::runApp("app", port = 3838, launch.browser = FALSE)'

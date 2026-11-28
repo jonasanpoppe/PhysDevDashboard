@@ -8,6 +8,7 @@ test_that("the app starts and renders the Vitals plot", {
   oath <- fake$oath
   level <- fake$level
   db <- fake$db
+  dir.create(file.path(dir, "relics"))   # an art folder without cards: the note asks for one
   withr::local_envvar(PDD_DB = db, PDD_RELIC_ART = file.path(dir, "relics"))
 
   pages_file <- normalizePath(testthat::test_path("..", "..", "app", "pages.R"))   # testServer runs in app/

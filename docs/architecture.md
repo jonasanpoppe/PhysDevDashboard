@@ -73,6 +73,8 @@ app/               app.R, db.R, modules/<view>.R
 config/            personal config (gitignored); *.example.* twins committed (see "Config")
 tests/testthat/    tests
 docs/              this file, sources.md
+demo/              the public demo: synthetic data generator, demo.db (see "The demo")
+app.R              the demo's entry point (Posit Connect Cloud)
 private/           private specs and plans (gitignored)
 ```
 
@@ -180,6 +182,24 @@ R/plot_<view>.R       the chart as a plain function, testable without Shiny
   snapshots of the rendered pages in both looks (`tests/testthat/_snaps/`)
   and what only a browser runs. A changed page fails with a diff; accept it
   with `testthat::snapshot_accept()`. Skips without Chrome.
+
+## The demo
+
+A public demo of the app on invented data, deployed to Posit Connect Cloud
+from the `demo` branch.
+
+- `just build-demo` writes synthetic raw files for every source
+  (`demo/make_demo_landing.R`: Fitbit, then Garmin; Strava rides past the
+  example climbs, moved to open sea so no track centres on a real place;
+  the lifting backfill, then MacroFactor) and the example configs into
+  `demo/.build/`, and runs the real pipeline there. The result is
+  `demo/demo.db`, committed. It never reads `data/`, `config/` or `db/`.
+- The build is frozen on one day (`PDD_AS_OF`, read by `pdd_as_of()` in
+  `R/common.R`), so the plan's year stays in progress.
+- `app.R` at the root starts `app/` on `demo/demo.db`, locked to the
+  corporate look (`PDD_LOOK`, no switch) and without relic art. `just app-demo` runs it locally.
+- `manifest.json` (`just demo-manifest`) gives Connect Cloud the R version
+  and packages from `renv.lock`; rerun it when the lockfile changes.
 
 ## Config
 
