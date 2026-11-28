@@ -190,8 +190,7 @@ from the `demo` branch.
 
 - `just build-demo` writes synthetic raw files for every source
   (`demo/make_demo_landing.R`: Fitbit, then Garmin; Strava rides past the
-  example climbs, moved to open sea so no track centres on a real place;
-  the lifting backfill, then MacroFactor) and the example configs into
+  example climbs, which sit at open sea; the lifting backfill, then MacroFactor) and the example configs into
   `demo/.build/`, and runs the real pipeline there. The result is
   `demo/demo.db`, committed. It never reads `data/`, `config/` or `db/`.
 - The build is frozen on one day (`PDD_AS_OF`, read by `pdd_as_of()` in

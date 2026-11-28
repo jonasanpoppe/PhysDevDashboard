@@ -21,11 +21,9 @@ DEMO <- list(
   chest_from  = as.Date("2028-06-01"),   # rides recorded with the bike computer and chest strap
   cut_from    = as.Date("2030-01-06"),   # weight_goal.start_date in goals.example.yml
   tz          = "Europe/Berlin",         # home_timezone in athlete.example.yml
-  # Home and the example climbs, moved together to open sea (45 N, 30 W):
-  # the example coordinates are invented but sit in a real region, and the
-  # demo's hundreds of tracks shouldn't centre on any real place
+  # Next to the example climbs (config/climbs.example.csv), at open sea:
+  # invented coordinates that are no real place
   home        = c(lat = 45.00, lon = -30.00),
-  climb_shift = c(lat = 45.00 - 50.77, lon = -30.00 - 3.75),
   seed        = 42
 )
 
@@ -528,15 +526,10 @@ write_backfill <- function(sets, root) {
 write_demo_config <- function(root, repo = ".") {
   cfg <- file.path(root, "config")
   dir.create(file.path(cfg, "relics"), recursive = TRUE, showWarnings = FALSE)
-  for (f in c("athlete.yml", "oath.yml", "bikes.csv", "lifts.csv", "programs.csv", "relic_events.csv")) {
+  for (f in c("athlete.yml", "oath.yml", "climbs.csv", "bikes.csv", "lifts.csv", "programs.csv", "relic_events.csv")) {
     ex <- sub("\\.(yml|csv)$", ".example.\\1", f)
     file.copy(file.path(repo, "config", ex), file.path(cfg, f), overwrite = TRUE)
   }
-  cl <- utils::read.csv(file.path(repo, "config", "climbs.example.csv"), colClasses = "character", check.names = FALSE)
-  for (k in c("lat", "lon")) for (end in c("start_", "end_")) {
-    cl[[paste0(end, k)]] <- sprintf("%.4f", as.numeric(cl[[paste0(end, k)]]) + DEMO$climb_shift[[k]])
-  }
-  utils::write.csv(cl, file.path(cfg, "climbs.csv"), row.names = FALSE, na = "")
   # goals: the squat round starts from the data, not the example's invented override
   g <- readLines(file.path(repo, "config", "goals.example.yml"))
   i <- grep("^  start_override:", g)
