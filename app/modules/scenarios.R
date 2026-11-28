@@ -18,6 +18,7 @@ scenarios_ui <- function(id) {
   ns <- NS(id)
   layout_sidebar(
     sidebar = sidebar(
+      open = sidebar_open,   # closed on phones: the figure first
       title = "Assumptions",
       selectInput(ns("quest"), "Figure", choices = NULL),
       conditionalPanel(
@@ -115,7 +116,8 @@ scenarios_server <- function(id) {
           plot_scenario_lift(sl, data$strength, q)
         },
         ride_km_ytd = plot_scenario_km(scenario_km(q, data, as_of, a(), cfg), data$rides, q, cfg))
-    })
+    }) %>%
+      bindCache(plot_key(input, "plot"))
 
     output$footer <- renderText({
       q <- quest()

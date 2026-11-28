@@ -18,6 +18,7 @@ engine_ui <- function(id) {
   views <- unlist(engine_views, use.names = FALSE)
   layout_sidebar(
     sidebar = sidebar(
+      open = sidebar_open,   # closed on phones: the figure first
       title = "Engine",
       selectInput(ns("view"), "View", choices = engine_views),
       # Each view's own options, under the dropdown (same ids as its module)

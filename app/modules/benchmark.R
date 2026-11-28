@@ -24,7 +24,8 @@ benchmark_server <- function(id) {
       ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       validate(need(nrow(attempts) > 0, "No attempts on the benchmark climb yet."))
       plot_benchmark(attempts)
-    }, res = 96)
+    }, res = 96) %>%
+      bindCache(plot_key(input, "plot"))
     output$table <- renderUI({
       if (nrow(attempts) == 0) return(NULL)
       a <- attempts %>% arrange(desc(date))

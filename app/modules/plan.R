@@ -26,7 +26,8 @@ plan_server <- function(id) {
       ui_mode()   # redraw when corporate mode flips (colours come from physdev)
       from <- switch(input$period %||% "6m", "6m" = last - 182, "1y" = last - 365, all = NULL)
       plot_plan_bands(bands, from)
-    }, res = 96)
+    }, res = 96) %>%
+      bindCache(plot_key(input, "plot"))
     output$footer <- renderText(sprintf(
       "Seconds per ride at each heart rate, summed per week. Zone 2: %s–%s bpm; sweet spot: %s–%s bpm; above the cap: over %s bpm. Judge rides on time in band, not average heart rate. Heart rate before the chest strap came from a wrist sensor and reads differently.",
       limits$z2_low, limits$z2_high, limits$ss_low, limits$ss_high, limits$cap))

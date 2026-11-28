@@ -112,3 +112,19 @@ test_that("Scenarios: the verdict table, and a slider that moves it", {
   expect_false(app$get_js("$('#scenarios-rate').is(':visible')"))
   expect_true(app$get_js("$('#scenarios-km_week').is(':visible')"))
 })
+
+test_that("the URL keeps the page: a reload opens where you were", {
+  skip_if_no_chrome()
+  app <- local_app("url")
+  app$set_inputs(main = "body", wait_ = FALSE)
+  app$set_inputs(body_page = "strength", wait_ = FALSE)
+  app$wait_for_idle()
+  expect_match(app$get_js("window.location.search"), "tab=body&page=strength")
+  # A new session on that URL (what the quiet reload does) lands on Strength
+  url <- paste0(app$get_url(), "?tab=body&page=strength")
+  b <- shinytest2::AppDriver$new(url, load_timeout = 60 * 1000, timeout = 20 * 1000)
+  withr::defer(b$stop())
+  b$wait_for_value(input = "body_page", ignore = list(NULL, "weight"), timeout = 20 * 1000)
+  expect_equal(b$get_value(input = "main"), "body")
+  expect_equal(b$get_value(input = "body_page"), "strength")
+})

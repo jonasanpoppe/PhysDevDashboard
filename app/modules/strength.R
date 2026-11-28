@@ -16,6 +16,7 @@ strength_ui <- function(id) {
   ns <- NS(id)
   layout_sidebar(
     sidebar = sidebar(
+      open = sidebar_open,   # closed on phones: the figure first
       title = "Strength",
       selectInput(ns("figure"), "Figure", choices = strength_figures),
       conditionalPanel("input.figure == 'lifts'", ns = ns, uiOutput(ns("group_select"))),
@@ -108,7 +109,8 @@ strength_server <- function(id) {
         },
         targets = plot_strength_targets(now, targets, ceilings),
         standards = plot_strength_standards(now, strength_standards))
-    }, res = 96)
+    }, res = 96) %>%
+      bindCache(plot_key(input, "plot"))
 
     # Under the forecast: the time to the target and the threshold on the bar
     output$below <- renderUI({
