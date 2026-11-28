@@ -18,6 +18,7 @@ skip_if_no_chrome <- function() {
 local_app <- function(name = "app", env = parent.frame()) {
   dir <- withr::local_tempdir(.local_envir = env)
   fake <- write_fake_app_db(dir)
+  dir.create(file.path(dir, "relics"))   # an art folder without cards: the note asks for one
   # NOT_CRAN: AppDriver skips itself "on CRAN" otherwise (this is no package)
   withr::local_envvar(PDD_DB = fake$db, PDD_RELIC_ART = file.path(dir, "relics"), NOT_CRAN = "true",
                       .local_envir = env)

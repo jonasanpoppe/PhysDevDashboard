@@ -120,8 +120,9 @@ oath_server <- function(id) {
       # Level: the base plus levels earned in the Reliquary
       relics <- relic_table()
       level <- if (is.null(relics)) cfg$level_base %||% 1 else relic_level(relics, cfg)
-      # Unlocked relics without card art yet: a note to make the card
-      no_art <- if (is.null(relics)) character(0) else
+      # Unlocked relics without card art yet: a note to make the card (only
+      # where there is an art folder: the demo has none, and no note)
+      no_art <- if (is.null(relics) || !dir.exists(relic_art_dir)) character(0) else
         relics$id[relics$unlocked & !vapply(relics$id, \(i) !is.null(relic_art(i)), logical(1))]
       tenets <- if (plain) character(0) else unlist(copy$tenets)
       rules <- if (plain) pc[["rules"]] %||% copy$rules else copy$rules   # [[ ]]: $ would match rules_title

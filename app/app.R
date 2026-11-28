@@ -10,6 +10,12 @@ library(bslib)
 library(dplyr)
 library(ggplot2)
 
+# Shiny's validate() and need(), bound here so a package attached later
+# can't mask them: Posit Connect's launcher attaches jsonlite, whose
+# validate(txt) checks JSON text (every validate(need(...)) then failed)
+validate <- shiny::validate
+need <- shiny::need
+
 # runApp("app") sets the working directory to app/
 project_root <- normalizePath("..")
 
@@ -108,17 +114,19 @@ app_theme <- function(mode) {
 app_themes <- list(oath = app_theme("oath"), corporate = app_theme("corporate"))
 
 # The switch remembers its state in this browser (localStorage; without it,
-# the app opens in the oath look)
-corporate_js <- "
+# the app opens in the oath look). PDD_LOOK = "corporate" (the demo) locks
+# the corporate look: the switch is hidden and nothing remembered applies.
+look_locked <- identical(Sys.getenv("PDD_LOOK"), "corporate")
+corporate_js <- paste0(sprintf("
 $(document).on('shiny:connected', function() {
-  var on = false;
-  try { on = localStorage.getItem('pdd-corporate') === '1'; } catch (e) {}
+  var locked = %s, on = locked;
+  if (!locked) try { on = localStorage.getItem('pdd-corporate') === '1'; } catch (e) {}
   if (on) $('#corporate').prop('checked', true).trigger('change');
-});
+});", tolower(look_locked)), "
 $(document).on('change', '#corporate', function() {
   document.body.classList.toggle('pdd-corporate', this.checked);
   try { localStorage.setItem('pdd-corporate', this.checked ? '1' : '0'); } catch (e) {}
-});"
+});")
 
 # A dropped connection (a phone asleep, another app, wifi to mobile data
 # over a VPN) ends the session; the page would stay grey until reloaded.
@@ -177,7 +185,8 @@ ui <- page_navbar(
   # Analytics: any two variables side by side
   nav_panel(look_label("🔍", "Analytics"), value = "analytics", analytics_ui("analytics")),
   nav_spacer(),
-  nav_item(input_switch("corporate", "Corporate mode", value = FALSE))
+  # Hidden, not removed, when the look is locked: the input still switches the theme
+  nav_item(div(style = if (look_locked) "display: none;", input_switch("corporate", "Corporate mode", value = FALSE)))
 )
 
 server <- function(input, output, session) {
