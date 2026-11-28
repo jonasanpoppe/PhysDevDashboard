@@ -155,6 +155,12 @@ R/plot_<view>.R       the chart as a plain function, testable without Shiny
   own view selector in the sidebar) and Analytics. Home, the Quest Board,
   is the hub: a Today strip (level, the roadmap's current phase and next
   gate), the quest cards and the relic shelf, each linking to its full page.
+  A card shows its number over time against the target (`quest_history`:
+  `quest_now()` week by week, so the chart ends on the card's number;
+  inline SVG from `R/plot_quests.R`), or one pip per stage; its notes fold
+  under Details. From 1400 px wide Home fits one screen: the poster (title,
+  Today, main quest, relics) left, the board and the rules right, three
+  cards a row (four from 1800 px), charts sized by the screen's height.
   A link names a page (`link: {tab}` in `config/oath.yml`); `oath_follow()`
   opens its tab and pill through `app_pages`.
 - Tab and pill names exist in both looks (`look_label()`); the corporate

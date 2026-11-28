@@ -14,7 +14,9 @@ oath_ui <- function(id) {
   tagList(
     tags$head(
       tags$link(rel = "stylesheet", href = oath_fonts),
-      tags$link(rel = "stylesheet", href = "oath.css")
+      # ?v=: the file's time, so a browser fetches a changed stylesheet
+      # instead of keeping its cached copy
+      tags$link(rel = "stylesheet", href = sprintf("oath.css?v=%s", format(file.mtime("www/oath.css"), "%Y%m%d%H%M%S")))
     ),
     uiOutput(ns("page"))
   )
@@ -37,12 +39,31 @@ oath_more <- function(ns, tab, label) {
   tags$a(class = "oath-more", href = "#", onclick = paste0(goto_js(ns, tab), "; return false;"), label)
 }
 
-# A card; with a link, clicking it opens the page with its data
-oath_card <- function(q, ns, plain = FALSE) {
+# The picture on a card: the chart of its number (quest_history) with the
+# target, or one pip per stage. `w` is the chart window (quest_window()).
+oath_card_picture <- function(q, hist, w, year) {
+  if (q$kind %in% c("event", "steps")) return(quest_pips(q$now_value, q$n_stages))
+  h <- hist[hist$id == q$id, c("date", "value")]
+  unit <- quest_metric_units[q$metric] %||% ""
+  digits <- quest_metric_digits[q$metric] %||% 0
+  key <- if (is.na(q$target_value)) "" else if (identical(q$kind, "cumulative"))
+    sprintf("- - even pace to %s %s", fmt_goal(q$target_value), unit) else
+      sprintf("- - target %s %s", fmt_goal(q$target_value, digits), unit)
+  spark <- quest_spark(h, q$kind, q$target_value, w$from, w$to, q$as_of, met_at = q$met_at, year = year)
+  if (is.null(spark)) return(NULL)
+  div(class = "oath-card-picture", spark, quest_spark_axis(w$from, w$to, key))
+}
+
+# A card; with a link, clicking it opens the page with its data. The
+# headline and the picture up front; the progress line, notes and source
+# folded under Details.
+oath_card <- function(q, ns, plain = FALSE, hist = NULL, w = NULL, year = NA) {
   accents <- physdev_palettes$oath$quest_accents   # corporate mode recolours them in oath.css
   accent <- accents[min(max(q$accent, 1L), length(accents))]
   linked <- !is.na(q$link_tab)
   click <- if (linked) goto_js(ns, q$link_tab, q$link_inputs)
+  notes <- Filter(nzchar, c(progress = q$progress, extra = q$extras, source = q$source_note))
+  picture <- if (!is.null(hist) && !is.null(w)) oath_card_picture(q, hist, w, year)
   tags$div(
     class = paste(c("oath-card", if (linked) "oath-link"), collapse = " "), style = sprintf("--accent: %s;", accent),
     role = if (linked) "link", tabindex = if (linked) "0", onclick = click,
@@ -53,10 +74,12 @@ oath_card <- function(q, ns, plain = FALSE) {
         if (!is.null(q$verdict) && !is.na(q$verdict)) verdict_chip(q$verdict)),
     div(class = "oath-card-headline", if (plain) q$plain_headline else q$headline),
     div(class = "oath-card-by", q$by),
-    if (!is.na(q$share)) div(class = "oath-bar", div(style = sprintf("width: %.0f%%;", 100 * q$share))),
-    if (nzchar(q$progress)) div(class = "oath-card-progress", q$progress),
-    if (nzchar(q$extras)) div(class = "oath-card-extra", q$extras),
-    if (nzchar(q$source_note)) div(class = "oath-card-source", q$source_note)
+    # Without a picture, the share of the way as a bar (as before)
+    if (is.null(picture) && !is.na(q$share)) div(class = "oath-bar", div(style = sprintf("width: %.0f%%;", 100 * q$share))),
+    picture,
+    if (length(notes)) tags$details(class = "oath-card-more", onclick = "event.stopPropagation();",
+        tags$summary("Details"),
+        lapply(names(notes), \(k) div(class = paste0("oath-card-", k), notes[[k]])))
   )
 }
 
@@ -100,6 +123,8 @@ oath_shelf <- function(relics, ns, plain) {
 oath_server <- function(id) {
   moduleServer(id, function(input, output, session) {
     board <- query("SELECT * FROM quest_board ORDER BY ord")
+    # The cards' charts (no table in an older database: cards without charts)
+    hist <- if (db_has_table("quest_history")) query("SELECT * FROM quest_history") else NULL
     # The verdict per quest with the default assumptions (Scenarios tab)
     if (db_has_table("quest_scenarios")) {
       board <- board %>% left_join(query("SELECT id, verdict, summary AS scenario FROM quest_scenarios"), by = "id")
@@ -109,6 +134,8 @@ oath_server <- function(id) {
     phases <- if (db_has_table("roadmap_phases")) query("SELECT * FROM roadmap_phases ORDER BY ord") else NULL
     gates <- if (db_has_table("roadmap_gates")) query("SELECT * FROM roadmap_gates ORDER BY ord") else NULL
     now <- roadmap_now(phases, gates)
+    win <- quest_window(cfg, board$as_of[1])
+    year <- as.integer(cfg$year %||% format(as.Date(board$as_of[1]), "%Y"))
 
     output$page <- renderUI({
       # Corporate mode: the same numbers in plain words, without the poster's
@@ -130,44 +157,52 @@ oath_server <- function(id) {
         class = paste(c("oath", if (plain) "oath-corporate"), collapse = " "),
         div(
           class = "oath-frame",
-          div(class = "oath-head",
-              if (!plain) div(class = "oath-kicker", copy$kicker),
-              h1(if (plain) pc$title %||% "Goals" else copy$title),
-              div(class = "oath-subtitle", if (plain) pc$subtitle %||% "" else copy$subtitle),
-              if (!plain) div(class = "oath-rule")),
-          if (length(no_art)) div(class = "oath-relic-note", role = "status",
-              sprintf("New relic unlocked: %s. Generate its card (config/relics/%s.jpg).",
-                      paste(no_art, collapse = ", "), no_art[1])),
-          # The tenets, folded: the hub opens on what's next
-          if (length(tenets)) tags$details(class = "oath-tenets-fold",
-              tags$summary(copy$tenets_title %||% "The tenets"),
-              div(class = "oath-tenets",
-                  lapply(seq_along(tenets), \(i) oath_tenet(tenets[i], late = i > ceiling(length(tenets) / 2))))),
-          oath_today(level, now, cfg, as.Date(board$as_of[1]), session$ns, plain),
-          div(class = "oath-main",
-              div(class = "oath-main-label", if (plain) pc$main_label %||% "Main goal" else copy$main_label %||% "Main quest"),
-              div(class = "oath-main-body",
-                  div(class = "oath-main-quest", if (plain) pc$main_quest %||% copy$main_quest else copy$main_quest),
-                  div(class = "oath-main-sub", if (plain) pc$main_sub %||% copy$main_sub else copy$main_sub),
-                  if (nrow(main)) div(class = "oath-main-now",
-                      sprintf("%s now: %s. %s", if (plain) main$plain[1] else main$label[1],
-                              main$headline[1], main$progress[1]),
-                      if (!is.null(main$verdict) && !is.na(main$verdict[1])) verdict_chip(main$verdict[1])))),
-          div(class = "oath-section",
-              div(class = "oath-section-head",
-                  h2(if (plain) pc$board_title %||% "Goals" else copy$board_title %||% "The Quest Board"),
-                  div(class = "oath-note", sprintf("%s \u00B7 as of %s", copy$board_note %||% "now \u2192 target",
-                                                   fmt_day(board$as_of[1])))),
-              div(class = "oath-board", lapply(seq_len(nrow(side)), \(i) oath_card(side[i, ], session$ns, plain))),
-              div(class = "oath-strip-foot", span(),
-                  oath_more(session$ns, "scenarios", "What if? \u2192"))),
-          if (!is.null(relics) && nrow(relics)) oath_shelf(relics, session$ns, plain),
-          if (!is.null(rules)) div(class = "oath-section",
-              h2(if (plain) pc$rules_title %||% "Rules" else copy$rules_title %||% "Rules"),
-              div(class = "oath-rules", rules)),
-          if (!plain) div(class = "oath-footer",
-              div(class = "oath-footer-left", copy$sworn),
-              div(class = "oath-footer-right", sub("{level}", level, copy$footer %||% "", fixed = TRUE)))
+          # Two columns on desktop: the poster, and the board with the rules
+          # (on narrower screens the wrappers dissolve and oath.css orders
+          # the blocks: head, Today, main quest, board, relics, rules, footer)
+          div(class = "oath-poster",
+            div(class = "oath-head",
+                if (!plain) div(class = "oath-kicker", copy$kicker),
+                h1(if (plain) pc$title %||% "Goals" else copy$title),
+                div(class = "oath-subtitle", if (plain) pc$subtitle %||% "" else copy$subtitle),
+                if (!plain) div(class = "oath-rule")),
+            if (length(no_art)) div(class = "oath-relic-note", role = "status",
+                sprintf("New relic unlocked: %s. Generate its card (config/relics/%s.jpg).",
+                        paste(no_art, collapse = ", "), no_art[1])),
+            # The tenets, folded: the hub opens on what's next
+            if (length(tenets)) tags$details(class = "oath-tenets-fold",
+                tags$summary(copy$tenets_title %||% "The tenets"),
+                div(class = "oath-tenets",
+                    lapply(seq_along(tenets), \(i) oath_tenet(tenets[i], late = i > ceiling(length(tenets) / 2))))),
+            oath_today(level, now, cfg, as.Date(board$as_of[1]), session$ns, plain),
+            div(class = "oath-main",
+                div(class = "oath-main-label", if (plain) pc$main_label %||% "Main goal" else copy$main_label %||% "Main quest"),
+                div(class = "oath-main-body",
+                    div(class = "oath-main-quest", if (plain) pc$main_quest %||% copy$main_quest else copy$main_quest),
+                    div(class = "oath-main-sub", if (plain) pc$main_sub %||% copy$main_sub else copy$main_sub),
+                    if (nrow(main)) div(class = "oath-main-now",
+                        sprintf("%s now: %s. %s", if (plain) main$plain[1] else main$label[1],
+                                main$headline[1], main$progress[1]),
+                        if (!is.null(main$verdict) && !is.na(main$verdict[1])) verdict_chip(main$verdict[1])),
+                    if (nrow(main) && !is.null(hist)) div(class = "oath-main-picture", oath_card_picture(main[1, ], hist, win, year)))),
+            if (!is.null(relics) && nrow(relics)) oath_shelf(relics, session$ns, plain),
+            if (!plain) div(class = "oath-footer",
+                div(class = "oath-footer-left", copy$sworn),
+                div(class = "oath-footer-right", sub("{level}", level, copy$footer %||% "", fixed = TRUE)))
+          ),
+          div(class = "oath-board-col",
+            div(class = "oath-section oath-board-section",
+                div(class = "oath-section-head",
+                    h2(if (plain) pc$board_title %||% "Goals" else copy$board_title %||% "The Quest Board"),
+                    div(class = "oath-note", sprintf("%s \u00B7 as of %s", copy$board_note %||% "now \u2192 target",
+                                                     fmt_day(board$as_of[1])))),
+                div(class = "oath-board", lapply(seq_len(nrow(side)), \(i) oath_card(side[i, ], session$ns, plain, hist, win, year))),
+                div(class = "oath-strip-foot", span(),
+                    oath_more(session$ns, "scenarios", "What if? \u2192"))),
+            if (!is.null(rules)) div(class = "oath-section oath-rules-section",
+                h2(if (plain) pc$rules_title %||% "Rules" else copy$rules_title %||% "Rules"),
+                div(class = "oath-rules", rules))
+          )
         )
       )
     })

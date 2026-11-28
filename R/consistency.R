@@ -66,6 +66,15 @@ check_views <- function(con) {
     yr <- if (has("oath_config")) jsonlite::fromJSON(get("SELECT json FROM oath_config")$json)$year else NA
     same("km a year", "Engine tab", rt$target_km[rt$year == yr], "Home card", c1$target_value)
   }
+  # The card's chart ends on the card's number (both quest_now())
+  if (has("quest_history")) {
+    qh <- get("SELECT * FROM quest_history")
+    for (i in seq_len(nrow(qb))) {
+      h <- qh[qh$id == qb$id[i] & as.Date(qh$date) == as.Date(qb$as_of[i]), ]
+      if (nrow(h) && qb$source[i] == "live") same(sprintf("%s now", qb$id[i]), "Home card", qb$now_value[i],
+                                                  "its chart, last point", h$value, tol = 1e-9)
+    }
+  }
   for (t in c("quest_scenarios", "relic_status", "roadmap_phases")) {
     if (has(t)) same("as of", "Home", qb$as_of, t, get(sprintf("SELECT max(as_of) AS d FROM %s", t))$d)
   }

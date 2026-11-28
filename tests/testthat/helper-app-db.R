@@ -69,9 +69,10 @@ write_fake_app_db <- function(dir) {
   DBI::dbWriteTable(con, "analytics_daily", ad)
   DBI::dbWriteTable(con, "analytics_variables", analytics_variables(ad))
   source(testthat::test_path("..", "..", "R", "quests.R"), local = TRUE)
-  DBI::dbWriteTable(con, "quest_board", quest_board(oath, as_of = max(wd$date), data = list(
-    weight = wd, strength = DBI::dbReadTable(con, "strength_sessions"), rides = rt$rides,
-    sessions = ws, climbs = ct$efforts)))
+  qd <- list(weight = wd, strength = DBI::dbReadTable(con, "strength_sessions"), rides = rt$rides,
+             sessions = ws, climbs = ct$efforts)
+  DBI::dbWriteTable(con, "quest_board", quest_board(oath, as_of = max(wd$date), data = qd))
+  DBI::dbWriteTable(con, "quest_history", quest_history(oath, qd, as_of = max(wd$date)))
   DBI::dbWriteTable(con, "oath_config", tibble::tibble(json = as.character(
     jsonlite::toJSON(oath, auto_unbox = TRUE, null = "null"))))
   # The Reliquary: relic III logged by hand, so one card is unlocked (no art)
