@@ -341,7 +341,7 @@ list(
     # Sessions counted to today and judged at adherence_met, the rate over
     # the Scenarios' recent weeks: the same numbers as Home and Scenarios
     compute_weight_status(weight_daily, sessions_daily, goals_config$weight_goal,
-                          goals_config$nutrition, goals_config$sessions, as_of = Sys.Date(),
+                          goals_config$nutrition, goals_config$sessions, as_of = pdd_as_of(),
                           adherence = oath_config$adherence_met %||% 0.8,
                           recent_weeks = scenario_defaults(oath_config)$recent_weeks),
     cue = tar_cue(mode = "always")
@@ -387,7 +387,7 @@ list(
   tar_target(
     quest_tables,
     write_quest_tables(
-      quest_board(oath_config, as_of = Sys.Date(), data = list(
+      quest_board(oath_config, as_of = pdd_as_of(), data = list(
         weight = weight_daily, strength = strength_sessions, rides = strava_rides,
         sessions = sessions_daily, climbs = strava_climb_efforts, events = relic_events
       )),
@@ -402,7 +402,7 @@ list(
   tar_target(relic_events, read_relic_events("config/relic_events.csv"), cue = tar_cue(mode = "always")),
   tar_target(
     relics,
-    relic_status(oath_config, as_of = Sys.Date(), data = list(
+    relic_status(oath_config, as_of = pdd_as_of(), data = list(
       weight = weight_daily, weekly = weight_weekly, sets = lifting_sets,
       rides = strava_rides, climbs = strava_climb_efforts, events = relic_events
     )),
@@ -414,7 +414,7 @@ list(
   tar_target(
     scenario_tables,
     write_scenario_tables(
-      quest_scenarios(oath_config, as_of = Sys.Date(), data = list(
+      quest_scenarios(oath_config, as_of = pdd_as_of(), data = list(
         weight = weight_daily, strength = strength_sessions, rides = strava_rides,
         sessions = sessions_daily, climbs = strava_climb_efforts, events = relic_events,
         weekly = weight_weekly, goal = goals_config$weight_goal,
@@ -428,8 +428,8 @@ list(
   # checkpoint (R/roadmap.R)
   tar_target(
     roadmap_tables,
-    write_roadmap_tables(roadmap_phases(oath_config, as_of = Sys.Date()),
-                         roadmap_gates(oath_config, relics, quest_checkpoints(oath_config, as_of = Sys.Date(), data = list(
+    write_roadmap_tables(roadmap_phases(oath_config, as_of = pdd_as_of()),
+                         roadmap_gates(oath_config, relics, quest_checkpoints(oath_config, as_of = pdd_as_of(), data = list(
                            weight = weight_daily, strength = strength_sessions, rides = strava_rides,
                            sessions = sessions_daily, climbs = strava_climb_efforts, events = relic_events))),
                          db_path = "db/health.db"),

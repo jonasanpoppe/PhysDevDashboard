@@ -2,6 +2,10 @@
 # tests (the Home tab, Reliquary, Scenarios and Weight tiles all print and
 # count the same way). `%||%` comes from base R (4.4 and later).
 
+# The day the build counts up to: today, or PDD_AS_OF (YYYY-MM-DD) for a
+# build frozen on one day (the demo database, built by demo/build_demo.R)
+pdd_as_of <- function() as.Date(Sys.getenv("PDD_AS_OF", as.character(Sys.Date())))
+
 # Numbers with a thousands separator: 2,000 and 82.4
 fmt_num <- function(x, digits = 0) {
   formatC(round(x, digits), format = "f", digits = digits, big.mark = ",")

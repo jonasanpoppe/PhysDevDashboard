@@ -11,9 +11,14 @@
 # Dates run from `start` for `days` days and match the invented goals in
 # config/goals.example.yml (start 6 Jan 2030).
 #
+# `trend` (kg, one per day) and `sets` (Date, Workout, Exercise, Set Type,
+# Weight (kg), Reps, RIR) replace the invented defaults; the demo database
+# (demo/make_demo_landing.R) passes its own.
+#
 # Needs fixtures/macrofactor_schema.R sourced first.
 
-make_macrofactor_fixture <- function(dir, start = as.Date("2029-11-01"), days = 150, seed = 1) {
+make_macrofactor_fixture <- function(dir, start = as.Date("2029-11-01"), days = 150, seed = 1,
+                                     trend = NULL, sets = NULL) {
   set.seed(seed)
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   dates <- start + seq_len(days) - 1
@@ -23,7 +28,7 @@ make_macrofactor_fixture <- function(dir, start = as.Date("2029-11-01"), days = 
 
   # Invented person: 82 kg, flat until the plan starts, then ~0.4 kg a week
   goal_start <- as.Date("2030-01-06")
-  trend <- 82 - pmax(0, as.numeric(dates - goal_start)) * 0.4 / 7 + sin(seq_len(n) / 9) * 0.15
+  if (is.null(trend)) trend <- 82 - pmax(0, as.numeric(dates - goal_start)) * 0.4 / 7 + sin(seq_len(n) / 9) * 0.15
   weighed <- runif(n) < 0.6
   scale <- ifelse(weighed, round(trend + rnorm(n, 0, 0.5), 1), NA)
   kcal <- round(rnorm(n, 2300, 250))
@@ -85,13 +90,17 @@ make_macrofactor_fixture <- function(dir, start = as.Date("2029-11-01"), days = 
 
   # ── Workout log: MacroFactor's double-encoded UTF-8 ───────────────────────
   double_encode <- function(x) iconv(x, from = "latin1", to = "UTF-8")   # the UTF-8 bytes read as latin1
-  sets <- do.call(rbind, lapply(lift_days, \(d) data.frame(
+  if (is.null(sets)) sets <- do.call(rbind, lapply(lift_days, \(d) data.frame(
     Date = format(d), `Workout Duration` = 3600, Workout = "Full Body",
     Exercise = rep(c(exercises[1:3], paste(exercises[4], "∈ SS1")), each = 3),
     `Exercise Base Weight (kg)` = "", `Set Type` = rep(c("Warm-Up Set", "Standard Set", "Standard Set"), 4),
     `Weight (kg)` = round(runif(12, 40, 120)), Reps = sample(5:10, 12, TRUE), RIR = sample(1:3, 12, TRUE),
     Duration = "", `Distance short (m)` = "", `Distance long (km)` = "", check.names = FALSE
   )))
+  sets <- data.frame(Date = format(as.Date(sets$Date)), `Workout Duration` = 3600, Workout = sets$Workout,
+                     Exercise = sets$Exercise, `Exercise Base Weight (kg)` = "", `Set Type` = sets$`Set Type`,
+                     `Weight (kg)` = sets$`Weight (kg)`, Reps = sets$Reps, RIR = sets$RIR, Duration = "",
+                     `Distance short (m)` = "", `Distance long (km)` = "", check.names = FALSE)
   sets$Exercise <- double_encode(sets$Exercise)
   header <- c(paste0("\"", double_encode("﻿"), "\"\"Date\"\"\""), macrofactor_schema$workout_log[-1])
   # paste() per column: apply() would pad numbers with spaces

@@ -3,4 +3,4 @@ roadie,Example Road 1,Roadie,b1000001,gear,,2030-02-28,8.8,2.20,assign = gear: r
 roadie,Example Road 1,Roadie,b1000001,gear,2030-03-01,,8.8,2.05,a new row when the bike changes (here: a bigger cassette)
 hybrid,Example Hybrid 2,,b1000002,gear,,,11.0,2.10,
 hybrid,Example Hybrid 2,,,no_gear,,2029-12-31,11.0,2.10,assign = no_gear: rides without a gear id in the date range
-rental,Example Rental 3,,,dates,2030-06-01,2030-06-07,7.5,,assign = dates: every ride in the range, whatever gear Strava has
+rental,Example Rental 3,,,dates,2030-06-01,2030-06-07,7.5,,"assign = dates: every ride in the range, whatever gear Strava has"
