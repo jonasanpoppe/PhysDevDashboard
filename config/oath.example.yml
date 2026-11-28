@@ -86,7 +86,7 @@ quests:
     exercise: "Barbell Back Squat"
     accent: 2
     baseline: {value: 100, date: 2029-12-01}
-    checkpoint: {date: 2030-06-30, value: null}
+    checkpoint: {date: 2030-06-30}   # value from goals.yml strength.checkpoints_kg
     by: "End of 2030"
   - id: bench
     label: Bench
@@ -242,3 +242,4 @@ roadmap:
     - {label: "{weight_goal.pause_at_kg} kg", date: 2030-05, relic: I}
     - {label: "The long ride", date: "{riding.goal_ride.by}", relic: II}
     - {label: "Example Hill", date: "{quests.hill.stages.1.deadline}", relic: V}
+    - {label: "Squat checkpoint", date: "{quests.squat.checkpoint}", checkpoint: squat}   # ticks when the quest's checkpoint is met

@@ -42,6 +42,9 @@ sessions:
 strength:
   target_date: 2030-12-31
   targets_kg: {Bench: 100, Squat: 140, "Deadlift and hinge": [170, 175]}   # heavy single on the bar
+  # A checkpoint on the way, on the bar, by exercise: the quest card and a
+  # Roadmap gate naming it (checkpoint: <quest id>) tick when it is met
+  checkpoints_kg: {"Barbell Back Squat": {date: 2030-06-30, value: 125}}
 
 # Riding: km per calendar year, the goal ride, and the benchmark climb (by
 # its name in config/climbs.csv).

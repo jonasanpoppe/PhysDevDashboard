@@ -110,6 +110,11 @@ resolve_oath <- function(oath, goals, lifts) {
         q <- plan_fill(q, "single_ratio", single_ratio_for(q$exercise, goals), at, conflicts)
         q <- plan_fill(q, "deadline", goals$strength$target_date, at, conflicts)
         q <- plan_fill(q, "forecast", forecast_for(q$exercise, goals), at, conflicts)
+        cp <- goals$strength$checkpoints_kg[[q$exercise]]
+        if (!is.null(cp)) {
+          c1 <- plan_fill(q$checkpoint %||% list(), "date", as.character(cp$date), paste(at, "checkpoint"), conflicts)
+          q$checkpoint <- plan_fill(c1, "value", cp$value, paste(at, "checkpoint"), conflicts)
+        }
       },
       ride_km_ytd = {
         q <- plan_fill(q, "target", if (!is.na(year)) goals$riding$annual_km[[as.character(year)]], at, conflicts)
